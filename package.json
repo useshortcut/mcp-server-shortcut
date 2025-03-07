@@ -1,12 +1,28 @@
 {
-  "name": "shortcut-mcp",
-  "module": "index.ts",
-  "type": "module",
-  "private": true,
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  }
+	"name": "@useshortcut/mcp",
+	"version": "0.0.0",
+	"module": "dist/server.js",
+	"type": "module",
+	"main": "dist/server.js",
+	"private": true,
+	"bin": "dist/shortcut-mcp",
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"@types/bun": "latest",
+		"shx": "^0.3.4"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.6.1",
+		"@shortcut/client": "^1.1.0",
+		"zod": "^3.24.2"
+	},
+	"scripts": {
+		"format": "biome format --write ./",
+		"lint": "biome check ./",
+		"build": "bun build ./server.ts --outfile dist/server.js --target node",
+		"postbuild": "shx chmod +x dist/*.js"
+	}
 }

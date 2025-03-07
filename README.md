@@ -1,15 +1,15 @@
-# shortcut-mcp
+# @useshortcut/mcp
 
-To install dependencies:
+## Installation
+
+> First - install **bun** if needed: [Bun](https://bun.sh).
 
 ```bash
 bun install
 ```
 
-To run:
+## Build
 
 ```bash
-bun run index.ts
+bun run build
 ```
-
-This project was created using `bun init` in bun v1.2.3. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
