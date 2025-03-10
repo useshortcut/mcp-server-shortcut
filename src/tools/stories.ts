@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ShortcutClient } from "./shortcut-client";
-import { formatStoryList, toResult } from "./utils";
+import type { ShortcutClient } from "../shortcut-client";
+import { formatMemberList, formatStoryList, toResult } from "./utils";
 import { z } from "zod";
 
 export class StoryTools {
@@ -86,6 +86,45 @@ Available date operators are:
 			async ({ query }) => await tools.searchStories(query),
 		);
 
+		server.tool(
+			"create-story",
+			`Create a new Shortcut story. 
+Name and Workflow are required. If a team is specified, the workflow is optional, and we will use the default workflow for that team instead.
+The story will be added to the default state for the workflow.
+`,
+			{
+				name: z.string().min(1).max(512).describe("The name of the story"),
+				description: z.string().max(10_000).optional().describe("The description of the story"),
+				type: z
+					.enum(["feature", "bug", "chore"])
+					.default("feature")
+					.describe("The type of the story"),
+				owner: z.string().optional().describe("The user id of the owner of the story"),
+				epic: z.number().optional().describe("The epic id of the epic the story belongs to"),
+				team: z.string().optional().describe("The team id of the team the story belongs to"),
+				workflow: z
+					.number()
+					.optional()
+					.describe("The workflow to add the story to. Required unless a team is specified."),
+			},
+			async ({ name, description, type, owner, epic, team, workflow }) =>
+				await tools.createStory({ name, description, type, owner, epic, team, workflow }),
+		);
+
+		server.tool(
+			"assign-current-user-as-owner",
+			"Assign the current user as the owner of a story",
+			{ storyPublicId: z.number().positive().describe("The public ID of the story") },
+			async ({ storyPublicId }) => await tools.assignCurrentUserAsOwner(storyPublicId),
+		);
+
+		server.tool(
+			"unassign-current-user-as-owner",
+			"Unassign the current user as the owner of a story",
+			{ storyPublicId: z.number().positive().describe("The public ID of the story") },
+			async ({ storyPublicId }) => await tools.unassignCurrentUserAsOwner(storyPublicId),
+		);
+
 		return tools;
 	}
 
@@ -95,33 +134,110 @@ Available date operators are:
 		this.client = client;
 	}
 
-	async searchStories(query: string) {
-		try {
-			const { stories, total } = await this.client.searchStories(query);
+	async assignCurrentUserAsOwner(storyPublicId: number) {
+		const story = await this.client.getStory(storyPublicId);
 
-			if (!stories)
-				throw new Error(`Failed to search for stories matching your query: "${query}".`);
-			if (!stories.length) return toResult(`Result: No stories found.`);
+		if (!story)
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
 
-			const users = await this.client.getUserMap(stories.flatMap((story) => story.owner_ids));
+		const currentUser = await this.client.getCurrentUser();
 
-			return toResult(`Result (first ${stories.length} shown of ${total} total stories found):
-${formatStoryList(stories, users)}`);
-		} catch (err) {
-			return toResult(err instanceof Error ? err.message : String(err));
+		if (!currentUser) throw new Error("Failed to retrieve current user");
+
+		if (story.owner_ids.includes(currentUser.id))
+			return toResult(`Current user is already an owner of story sc-${storyPublicId}`);
+
+		await this.client.updateStory(storyPublicId, {
+			owner_ids: story.owner_ids.concat([currentUser.id]),
+		});
+
+		return toResult(`Assigned current user as owner of story sc-${storyPublicId}`);
+	}
+
+	async unassignCurrentUserAsOwner(storyPublicId: number) {
+		const story = await this.client.getStory(storyPublicId);
+
+		if (!story)
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
+
+		const currentUser = await this.client.getCurrentUser();
+
+		if (!currentUser) throw new Error("Failed to retrieve current user");
+
+		if (!story.owner_ids.includes(currentUser.id))
+			return toResult(`Current user is not an owner of story sc-${storyPublicId}`);
+
+		await this.client.updateStory(storyPublicId, {
+			owner_ids: story.owner_ids.filter((ownerId) => ownerId !== currentUser.id),
+		});
+
+		return toResult(`Unassigned current user as owner of story sc-${storyPublicId}`);
+	}
+
+	async createStory({
+		name,
+		description,
+		type,
+		owner,
+		epic,
+		team,
+		workflow,
+	}: {
+		name: string;
+		description?: string;
+		type: "feature" | "bug" | "chore";
+		owner?: string;
+		epic?: number;
+		team?: string;
+		workflow?: number;
+	}) {
+		if (!workflow && !team) throw new Error("Team or Workflow has to be specified");
+
+		if (!workflow && team) {
+			const fullTeam = await this.client.getTeam(team);
+			workflow = fullTeam?.workflow_ids?.[0];
 		}
+
+		if (!workflow) throw new Error("Failed to find workflow for team");
+
+		const fullWorkflow = await this.client.getWorkflow(workflow);
+		if (!fullWorkflow) throw new Error("Failed to find workflow");
+
+		const story = await this.client.createStory({
+			name,
+			description,
+			story_type: type,
+			owner_ids: owner ? [owner] : [],
+			epic_id: epic,
+			group_id: team,
+			workflow_state_id: fullWorkflow.default_state_id,
+		});
+
+		return toResult(`Created story: ${story.id}`);
+	}
+
+	async searchStories(query: string) {
+		const { stories, total } = await this.client.searchStories(query);
+
+		if (!stories) throw new Error(`Failed to search for stories matching your query: "${query}".`);
+		if (!stories.length) return toResult(`Result: No stories found.`);
+
+		const users = await this.client.getUserMap(stories.flatMap((story) => story.owner_ids));
+
+		return toResult(`Result (first ${stories.length} shown of ${total} total stories found):
+${formatStoryList(stories, users)}`);
 	}
 
 	async getStory(storyPublicId: number) {
-		try {
-			const story = await this.client.getStory(storyPublicId);
+		const story = await this.client.getStory(storyPublicId);
 
-			if (!story)
-				throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}.`);
+		if (!story)
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}.`);
 
-			const owners = await this.client.getUsers(story.owner_ids);
+		const owners = await this.client.getUserMap(story.owner_ids);
 
-			return toResult(`Story: sc-${storyPublicId}
+		return toResult(`Story: sc-${storyPublicId}
+URL: ${story.app_url}
 Name: ${story.name}
 Type: ${story.story_type}
 Archived: ${story.archived ? "Yes" : "No"}
@@ -130,7 +246,8 @@ Started: ${story.started ? "Yes" : "No"}
 Blocked: ${story.blocked ? "Yes" : "No"}
 Blocking: ${story.blocker ? "Yes" : "No"}
 Due date: ${story.deadline}
-Owners: ${owners.map((owner) => `@${owner.profile.mention_name}`).join(", ")}
+Owners: 
+${formatMemberList(story.owner_ids, owners)}
 
 Description:
 ${story.description}
@@ -138,8 +255,5 @@ ${story.description}
 Comments:
 ${(story.comments || []).map((comment) => `- From: ${comment.author_id} on ${comment.created_at}.\n${comment.text || ""}`).join("\n\n")}
 `);
-		} catch (err) {
-			return toResult(err instanceof Error ? err.message : String(err));
-		}
 	}
 }

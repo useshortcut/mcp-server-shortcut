@@ -1,5 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ShortcutClient } from "./shortcut-client";
+import type { ShortcutClient } from "../shortcut-client";
 import { toResult } from "./utils";
 import { z } from "zod";
 
@@ -69,28 +69,26 @@ Available date operators are:
 	}
 
 	async searchObjectives(query: string) {
-		try {
-			const { milestones, total } = await this.client.searchMilestones(query);
+		const { milestones, total } = await this.client.searchMilestones(query);
 
-			if (!milestones)
-				throw new Error(`Failed to search for milestones matching your query: "${query}"`);
-			if (!milestones.length) return toResult(`Result: No milestones found.`);
+		if (!milestones)
+			throw new Error(`Failed to search for milestones matching your query: "${query}"`);
+		if (!milestones.length) return toResult(`Result: No milestones found.`);
 
-			return toResult(`Result (first ${milestones.length} shown of ${total} total milestones found):
+		return toResult(`Result (first ${milestones.length} shown of ${total} total milestones found):
 ${milestones.map((milestone) => `- ${milestone.id}: ${milestone.name}`).join("\n")}`);
-		} catch (err) {
-			return toResult(err instanceof Error ? err.message : String(err));
-		}
 	}
 
 	async getObjective(objectivePublicId: number) {
-		try {
-			const objective = await this.client.getMilestone(objectivePublicId);
+		const objective = await this.client.getMilestone(objectivePublicId);
 
-			if (!objective)
-				throw new Error(`Failed to retrieve Shortcut objective with public ID: ${objectivePublicId}`);
+		if (!objective)
+			throw new Error(
+				`Failed to retrieve Shortcut objective with public ID: ${objectivePublicId}`,
+			);
 
-			return toResult(`Objective: ${objectivePublicId}
+		return toResult(`Objective: ${objectivePublicId}
+Url: ${objective.app_url}
 Name: ${objective.name}
 Archived: ${objective.archived ? "Yes" : "No"}
 Completed: ${objective.completed ? "Yes" : "No"}
@@ -99,8 +97,5 @@ Started: ${objective.started ? "Yes" : "No"}
 Description:
 ${objective.description}
 `);
-		} catch (err) {
-			return toResult(err instanceof Error ? err.message : String(err));
-		}
 	}
 }

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ShortcutClient } from "./shortcut-client";
+import type { ShortcutClient } from "../shortcut-client";
 import { toResult } from "./utils";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
@@ -74,27 +74,23 @@ Available date operators are:
 	}
 
 	async searchEpics(query: string) {
-		try {
-			const { epics, total } = await this.client.searchEpics(query);
+		const { epics, total } = await this.client.searchEpics(query);
 
-			if (!epics) throw new Error(`Failed to search for epics matching your query: "${query}"`);
-			if (!epics.length) return toResult(`Result: No epics found.`);
+		if (!epics) throw new Error(`Failed to search for epics matching your query: "${query}"`);
+		if (!epics.length) return toResult(`Result: No epics found.`);
 
-			return toResult(`Result (first ${epics.length} shown of ${total} total epics found):
+		return toResult(`Result (first ${epics.length} shown of ${total} total epics found):
 ${epics.map((epic) => `- ${epic.id}: ${epic.name}`).join("\n")}`);
-		} catch (err) {
-			return toResult(err instanceof Error ? err.message : String(err));
-		}
 	}
 
 	async getEpic(epicPublicId: number) {
-		try {
-			const epic = await this.client.getEpic(epicPublicId);
+		const epic = await this.client.getEpic(epicPublicId);
 
-			if (!epic)
-				throw new Error(`Failed to retrieve Shortcut epic with public ID: ${epicPublicId}`);
+		if (!epic)
+			throw new Error(`Failed to retrieve Shortcut epic with public ID: ${epicPublicId}`);
 
-			return toResult(`Epic: ${epicPublicId}
+		return toResult(`Epic: ${epicPublicId}
+URL: ${epic.app_url}
 Name: ${epic.name}
 Archived: ${epic.archived ? "Yes" : "No"}
 Completed: ${epic.completed ? "Yes" : "No"}
@@ -104,8 +100,5 @@ Due date: ${epic.deadline}
 Description:
 ${epic.description}
 `);
-		} catch (err) {
-			return toResult(err instanceof Error ? err.message : String(err));
-		}
 	}
 }

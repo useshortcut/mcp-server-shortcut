@@ -1,5 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ShortcutClient } from "./shortcut-client";
+import type { ShortcutClient } from "../shortcut-client";
 import { formatStoryList, toResult } from "./utils";
 import { z } from "zod";
 
@@ -66,48 +66,40 @@ Available date operators are:
 	}
 
 	async getIterationStories(iterationPublicId: number) {
-		try {
-			const { stories } = await this.client.listIterationStories(iterationPublicId);
+		const { stories } = await this.client.listIterationStories(iterationPublicId);
 
-			if (!stories)
-				throw new Error(
-					`Failed to retrieve Shortcut stories in iteration with public ID: ${iterationPublicId}.`,
-				);
+		if (!stories)
+			throw new Error(
+				`Failed to retrieve Shortcut stories in iteration with public ID: ${iterationPublicId}.`,
+			);
 
-			const owners = await this.client.getUserMap(stories.flatMap((story) => story.owner_ids));
+		const owners = await this.client.getUserMap(stories.flatMap((story) => story.owner_ids));
 
-			return toResult(`Result (${stories.length} stories found):
+		return toResult(`Result (${stories.length} stories found):
 ${formatStoryList(stories, owners)}`);
-		} catch (err) {
-			return toResult(err instanceof Error ? err.message : String(err));
-		}
 	}
 
 	async searchIterations(query: string) {
-		try {
-			const { iterations, total } = await this.client.searchIterations(query);
+		const { iterations, total } = await this.client.searchIterations(query);
 
-			if (!iterations)
-				throw new Error(`Failed to search for iterations matching your query: "${query}".`);
-			if (!iterations.length) return toResult(`Result: No iterations found.`);
+		if (!iterations)
+			throw new Error(`Failed to search for iterations matching your query: "${query}".`);
+		if (!iterations.length) return toResult(`Result: No iterations found.`);
 
-			return toResult(`Result (first ${iterations.length} shown of ${total} total iterations found):
+		return toResult(`Result (first ${iterations.length} shown of ${total} total iterations found):
 ${iterations.map((iteration) => `- ${iteration.id}: ${iteration.name} (Start date: ${iteration.start_date}, End date: ${iteration.end_date})`).join("\n")}`);
-		} catch (err) {
-			return toResult(err instanceof Error ? err.message : String(err));
-		}
 	}
 
 	async getIteration(iterationPublicId: number) {
-		try {
-			const iteration = await this.client.getIteration(iterationPublicId);
+		const iteration = await this.client.getIteration(iterationPublicId);
 
-			if (!iteration)
-				throw new Error(
-					`Failed to retrieve Shortcut iteration with public ID: ${iterationPublicId}.`,
-				);
+		if (!iteration)
+			throw new Error(
+				`Failed to retrieve Shortcut iteration with public ID: ${iterationPublicId}.`,
+			);
 
-			return toResult(`Iteration: ${iterationPublicId}
+		return toResult(`Iteration: ${iterationPublicId}
+Url: ${iteration.app_url}
 Name: ${iteration.name}
 Start date: ${iteration.start_date}
 End date: ${iteration.end_date}
@@ -116,10 +108,6 @@ Started: ${iteration.status === "started" ? "Yes" : "No"}
 
 Description:
 ${iteration.description}
-
 `);
-		} catch (err) {
-			return toResult(err instanceof Error ? err.message : String(err));
-		}
 	}
 }

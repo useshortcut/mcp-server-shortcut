@@ -1,25 +1,42 @@
-import { ShortcutClient as BaseClient, type Member } from "@shortcut/client";
+import {
+	ShortcutClient as BaseClient,
+	type CreateStoryParams,
+	type Member,
+	type UpdateStory,
+	type Workflow,
+} from "@shortcut/client";
+import { Cache } from "./cache";
 
 export class ShortcutClient {
 	private client: BaseClient;
-	private userCache: Map<string, Member>;
-	private userCacheAge: number;
+	private userCache: Cache<string, Member>;
+	private workflowCache: Cache<number, Workflow>;
 
 	constructor(apiToken: string) {
 		this.client = new BaseClient(apiToken);
-		this.userCache = new Map();
-		this.userCacheAge = 0;
+		this.userCache = new Cache();
+		this.workflowCache = new Cache();
 	}
 
 	private async loadMembers() {
-		if (Date.now() - this.userCacheAge > 1000 * 60 * 5) {
+		if (this.userCache.isStale) {
 			const response = await this.client.listMembers({});
 			const members = response?.data ?? null;
 
-			if (!members) return new Map();
+			if (members) {
+				this.userCache.setMany(members.map((member) => [member.id, member]));
+			}
+		}
+	}
 
-			this.userCache = new Map(members.map((member) => [member.id, member]));
-			this.userCacheAge = Date.now();
+	private async loadWorkflows() {
+		if (this.workflowCache.isStale) {
+			const response = await this.client.listWorkflows();
+			const workflows = response?.data ?? null;
+
+			if (workflows) {
+				this.workflowCache.setMany(workflows.map((workflow) => [workflow.id, workflow]));
+			}
 		}
 	}
 
@@ -55,6 +72,66 @@ export class ShortcutClient {
 		return userIds
 			.map((id) => this.userCache.get(id))
 			.filter((user): user is Member => user !== null);
+	}
+
+	async getWorkflowMap(workflowIds: number[]) {
+		await this.loadWorkflows();
+		return new Map(
+			workflowIds
+				.map((id) => [id, this.workflowCache.get(id)])
+				.filter((workflow): workflow is [number, Workflow] => workflow[1] !== null),
+		);
+	}
+
+	async getWorkflows() {
+		const response = await this.client.listWorkflows();
+		const workflows = response?.data ?? null;
+
+		if (!workflows) return [];
+
+		return workflows;
+	}
+
+	async getWorkflow(workflowPublicId: number) {
+		const response = await this.client.getWorkflow(workflowPublicId);
+		const workflow = response?.data ?? null;
+
+		if (!workflow) return null;
+
+		return workflow;
+	}
+
+	async listTeams() {
+		const response = await this.client.listGroups();
+		const groups = response?.data ?? [];
+		return groups;
+	}
+
+	async getTeam(teamPublicId: string) {
+		const response = await this.client.getGroup(teamPublicId);
+		const group = response?.data ?? null;
+
+		if (!group) return null;
+
+		return group;
+	}
+
+	async createStory(params: CreateStoryParams) {
+		const response = await this.client.createStory(params);
+		const story = response?.data ?? null;
+
+		if (!story) throw new Error(`Failed to create the story: ${response.status}`);
+
+		return story;
+	}
+
+	async updateStory(storyPublicId: number, params: UpdateStory) {
+		const response = await this.client.updateStory(storyPublicId, params);
+		const story = response?.data ?? null;
+
+		if (!story) throw new Error(`Failed to update the story: ${response.status}`);
+
+		return story;
 	}
 
 	async getStory(storyPublicId: number) {

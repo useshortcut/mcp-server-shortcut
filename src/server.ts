@@ -2,11 +2,14 @@ import { name, version } from "../package.json";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { ShortcutClient } from "./shortcut-client";
-import { StoryTools } from "./stories";
-import { UserTools } from "./user";
-import { EpicTools } from "./epics";
-import { ObjectiveTools } from "./objectives";
-import { IterationTools } from "./iterations";
+
+import { StoryTools } from "./tools/stories";
+import { UserTools } from "./tools/user";
+import { EpicTools } from "./tools/epics";
+import { ObjectiveTools } from "./tools/objectives";
+import { IterationTools } from "./tools/iterations";
+import { TeamTools } from "./tools/teams";
+import { WorkflowTools } from "./tools/workflows";
 
 let apiToken = process.env.SHORTCUT_API_TOKEN;
 
@@ -28,6 +31,8 @@ StoryTools.create(client, server);
 IterationTools.create(client, server);
 EpicTools.create(client, server);
 ObjectiveTools.create(client, server);
+TeamTools.create(client, server);
+WorkflowTools.create(client, server);
 
 async function startServer() {
 	try {
