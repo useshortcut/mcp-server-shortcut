@@ -4,26 +4,35 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { ShortcutMcpClient } from "./shortcut-mcp-client";
 
-if (!process.env.SHORTCUT_API_TOKEN) {
-	console.error("SHORTCUT_API_TOKEN is required");
-	process.exit(1);
+let apiToken = process.env.SHORTCUT_API_TOKEN;
+
+if (process.argv.length > 2) {
+  const [name, token] = String(process.argv[2]).split('=');
+  if (name === 'SHORTCUT_API_TOKEN') apiToken = token;
 }
 
+if (!apiToken) {
+  console.error("SHORTCUT_API_TOKEN is required");
+  process.exit(1);
+}
+
+console.log(apiToken)
+
 const server = new McpServer({ name, version });
-const client = new ShortcutMcpClient(process.env.SHORTCUT_API_TOKEN);
+const client = new ShortcutMcpClient(apiToken);
 
 server.tool("get-current-user", "Get the current user", async () => await client.getCurrentUser());
 
 server.tool(
-	"get-story",
-	"Get a Shortcut story by public ID",
-	{ storyPublicId: z.number().positive().describe("The public ID of the story to get") },
-	async ({ storyPublicId }) => await client.getStory(storyPublicId),
+  "get-story",
+  "Get a Shortcut story by public ID",
+  { storyPublicId: z.number().positive().describe("The public ID of the story to get") },
+  async ({ storyPublicId }) => await client.getStory(storyPublicId),
 );
 
 server.tool(
-	"search-stories",
-	`Find Shortcut stories. 
+  "search-stories",
+  `Find Shortcut stories. 
 
 A number of search operators are available. 
 Search operators can be negated by prefixing the operator with a "!". Example: "!type:bug" or "!is:archived".
@@ -89,27 +98,27 @@ Available date operators are:
 - completed: The date the story was completed (e.g. "completed:yesterday").
 - due: The date the story is due (e.g. "due:tomorrow").
 `,
-	{ query: z.string().describe("The query which is a combination of keywords and operators") },
-	async ({ query }) => await client.searchStories(query),
+  { query: z.string().describe("The query which is a combination of keywords and operators") },
+  async ({ query }) => await client.searchStories(query),
 );
 
 server.tool(
-	"get-iteration-stories",
-	"Get stories in a specific iteration by iteration public ID",
-	{ iterationPublicId: z.number().positive().describe("The public ID of the iteration") },
-	async ({ iterationPublicId }) => await client.getIterationStories(iterationPublicId),
+  "get-iteration-stories",
+  "Get stories in a specific iteration by iteration public ID",
+  { iterationPublicId: z.number().positive().describe("The public ID of the iteration") },
+  async ({ iterationPublicId }) => await client.getIterationStories(iterationPublicId),
 );
 
 server.tool(
-	"get-iteration",
-	"Get a Shortcut iteration by public ID",
-	{ iterationPublicId: z.number().positive().describe("The public ID of the iteration to get") },
-	async ({ iterationPublicId }) => await client.getIteration(iterationPublicId),
+  "get-iteration",
+  "Get a Shortcut iteration by public ID",
+  { iterationPublicId: z.number().positive().describe("The public ID of the iteration to get") },
+  async ({ iterationPublicId }) => await client.getIteration(iterationPublicId),
 );
 
 server.tool(
-	"search-iterations",
-	`Find Shortcut iterations. 
+  "search-iterations",
+  `Find Shortcut iterations. 
 
 A number of search operators are available. 
 Search operators can be negated by prefixing the operator with a "!". Example: "!is:started".
@@ -136,20 +145,20 @@ Available date operators are:
 - start_date: The date the iteration started (e.g. "start_date:2023-01-01").
 - end_date: The date the iteration ended (e.g. "end_date:2023-01-01").
 `,
-	{ query: z.string().describe("The query which is a combination of keywords and operators") },
-	async ({ query }) => await client.searchIterations(query),
+  { query: z.string().describe("The query which is a combination of keywords and operators") },
+  async ({ query }) => await client.searchIterations(query),
 );
 
 server.tool(
-	"get-epic",
-	"Get a Shortcut epic by public ID",
-	{ epicPublicId: z.number().positive().describe("The public ID of the epic to get") },
-	async ({ epicPublicId }) => await client.getEpic(epicPublicId),
+  "get-epic",
+  "Get a Shortcut epic by public ID",
+  { epicPublicId: z.number().positive().describe("The public ID of the epic to get") },
+  async ({ epicPublicId }) => await client.getEpic(epicPublicId),
 );
 
 server.tool(
-	"search-epics",
-	`Find Shortcut epics. 
+  "search-epics",
+  `Find Shortcut epics. 
 
 A number of search operators are available. 
 Search operators can be negated by prefixing the operator with a "!". Example: "!is:started".
@@ -193,20 +202,20 @@ Available date operators are:
 - completed: The date the epic was completed (e.g. "completed:yesterday").
 - due: The date the epic is due (e.g. "due:tomorrow").
 `,
-	{ query: z.string().describe("The query which is a combination of keywords and operators") },
-	async ({ query }) => await client.searchEpics(query),
+  { query: z.string().describe("The query which is a combination of keywords and operators") },
+  async ({ query }) => await client.searchEpics(query),
 );
 
 server.tool(
-	"get-objective",
-	"Get a Shortcut objective by public ID",
-	{ objectivePublicId: z.number().positive().describe("The public ID of the objective to get") },
-	async ({ objectivePublicId }) => await client.getObjective(objectivePublicId),
+  "get-objective",
+  "Get a Shortcut objective by public ID",
+  { objectivePublicId: z.number().positive().describe("The public ID of the objective to get") },
+  async ({ objectivePublicId }) => await client.getObjective(objectivePublicId),
 );
 
 server.tool(
-	"search-objectives",
-	`Find Shortcut objectives. 
+  "search-objectives",
+  `Find Shortcut objectives. 
 
 A number of search operators are available. 
 Search operators can be negated by prefixing the operator with a "!". Example: "!is:started".
@@ -243,20 +252,20 @@ Available date operators are:
 - updated: The date the objective was last updated (e.g. "updated:today").
 - completed: The date the objective was completed (e.g. "completed:yesterday").
 `,
-	{ query: z.string().describe("The query which is a combination of keywords and operators") },
-	async ({ query }) => await client.searchObjectives(query),
+  { query: z.string().describe("The query which is a combination of keywords and operators") },
+  async ({ query }) => await client.searchObjectives(query),
 );
 
 async function startServer() {
-	try {
-		console.log("Starting server...");
-		const transport = new StdioServerTransport();
-		await server.connect(transport);
-		console.log("Server running!");
-	} catch (error) {
-		console.error("Fatal:", error);
-		process.exit(1);
-	}
+  try {
+    console.log("Starting server...");
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.log("Server running!");
+  } catch (error) {
+    console.error("Fatal:", error);
+    process.exit(1);
+  }
 }
 
 startServer();
