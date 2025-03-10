@@ -1,9 +1,9 @@
 {
 	"name": "@useshortcut/mcp",
 	"version": "0.0.0",
-	"module": "dist/server.js",
+	"module": "dist/index.js",
 	"type": "module",
-	"main": "dist/server.js",
+	"main": "dist/index.js",
 	"private": true,
 	"bin": "dist/shortcut-mcp",
 	"devDependencies": {
@@ -24,7 +24,7 @@
 		"format": "biome format --write ./",
 		"lint": "biome check ./",
 		"ts": "tsc -b",
-		"build": "bun build ./server.ts --outfile dist/server.js --target node",
+		"build": "bun build ./index.ts --outfile dist/index.js --target node",
 		"postbuild": "shx chmod +x dist/*.js",
 		"prepare": "husky"
 	}

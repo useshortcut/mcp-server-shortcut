@@ -30,7 +30,7 @@ See the [official Windsurf docs](https://codeium.com/docs/windsurf/mcp) for more
     "shortcut": {
       "command": "node",
       "args": [
-        "/path/to/this/repo/shortcut-mcp/dist/server.js"
+        "/path/to/this/repo/shortcut-mcp"
       ],
       "env": {
         "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
@@ -50,7 +50,7 @@ See the [official Cursor docs](https://docs.cursor.com/context/model-context-pro
 
 - Name: `shortcut`
 - Type: `command`
-- Command: `node /path/to/this/repo/shortcut-mcp/dist/server.js SHORTCUT_API_TOKEN=<YOUR_SHORTCUT_API_TOKEN>`
+- Command: `node /path/to/this/repo/shortcut-mcp SHORTCUT_API_TOKEN=<YOUR_SHORTCUT_API_TOKEN>`
 
 If you prefer, the SHORTCUT_API_TOKEN can instead be added to your environment:
 
