@@ -1,9 +1,4 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { Member, Story, StorySearchResult, Workflow } from "@shortcut/client";
-
-export const toResult = (content: string): CallToolResult => ({
-	content: [{ type: "text", text: content }],
-});
 
 export const formatStoryList = (
 	stories: (Story | StorySearchResult)[],

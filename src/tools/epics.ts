@@ -1,11 +1,11 @@
 import { z } from "zod";
 import type { ShortcutClient } from "../shortcut-client";
-import { toResult } from "./utils";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { date, has, is, user } from "./validation";
-import { buildSearchQuery, type QueryParams } from "./search";
+import { date, has, is, user } from "./utils/validation";
+import { buildSearchQuery, type QueryParams } from "./utils/search";
+import { BaseTools } from "./base";
 
-export class EpicTools {
+export class EpicTools extends BaseTools {
 	static create(client: ShortcutClient, server: McpServer) {
 		const tools = new EpicTools(client);
 
@@ -63,21 +63,15 @@ export class EpicTools {
 		return tools;
 	}
 
-	private client: ShortcutClient;
-
-	constructor(client: ShortcutClient) {
-		this.client = client;
-	}
-
 	async searchEpics(params: QueryParams) {
 		const currentUser = await this.client.getCurrentUser();
 		const query = await buildSearchQuery(params, currentUser);
 		const { epics, total } = await this.client.searchEpics(query);
 
 		if (!epics) throw new Error(`Failed to search for epics matching your query: "${query}"`);
-		if (!epics.length) return toResult(`Result: No epics found.`);
+		if (!epics.length) return this.toResult(`Result: No epics found.`);
 
-		return toResult(`Result (first ${epics.length} shown of ${total} total epics found):
+		return this.toResult(`Result (first ${epics.length} shown of ${total} total epics found):
 ${epics.map((epic) => `- ${epic.id}: ${epic.name}`).join("\n")}`);
 	}
 
@@ -86,7 +80,7 @@ ${epics.map((epic) => `- ${epic.id}: ${epic.name}`).join("\n")}`);
 
 		if (!epic) throw new Error(`Failed to retrieve Shortcut epic with public ID: ${epicPublicId}`);
 
-		return toResult(`Epic: ${epicPublicId}
+		return this.toResult(`Epic: ${epicPublicId}
 URL: ${epic.app_url}
 Name: ${epic.name}
 Archived: ${epic.archived ? "Yes" : "No"}

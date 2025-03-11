@@ -1,11 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ShortcutClient } from "../shortcut-client";
-import { formatMemberList, formatStoryList, toResult } from "./utils";
+import { formatMemberList, formatStoryList } from "./utils/format";
 import { z } from "zod";
-import { date, has, is, user } from "./validation";
-import { buildSearchQuery, type QueryParams } from "./search";
+import { date, has, is, user } from "./utils/validation";
+import { buildSearchQuery, type QueryParams } from "./utils/search";
+import { BaseTools } from "./base";
 
-export class StoryTools {
+export class StoryTools extends BaseTools {
 	static create(client: ShortcutClient, server: McpServer) {
 		const tools = new StoryTools(client);
 
@@ -154,12 +155,6 @@ The story will be added to the default state for the workflow.
 		return tools;
 	}
 
-	private client: ShortcutClient;
-
-	constructor(client: ShortcutClient) {
-		this.client = client;
-	}
-
 	async assignCurrentUserAsOwner(storyPublicId: number) {
 		const story = await this.client.getStory(storyPublicId);
 
@@ -171,13 +166,13 @@ The story will be added to the default state for the workflow.
 		if (!currentUser) throw new Error("Failed to retrieve current user");
 
 		if (story.owner_ids.includes(currentUser.id))
-			return toResult(`Current user is already an owner of story sc-${storyPublicId}`);
+			return this.toResult(`Current user is already an owner of story sc-${storyPublicId}`);
 
 		await this.client.updateStory(storyPublicId, {
 			owner_ids: story.owner_ids.concat([currentUser.id]),
 		});
 
-		return toResult(`Assigned current user as owner of story sc-${storyPublicId}`);
+		return this.toResult(`Assigned current user as owner of story sc-${storyPublicId}`);
 	}
 
 	async unassignCurrentUserAsOwner(storyPublicId: number) {
@@ -191,13 +186,13 @@ The story will be added to the default state for the workflow.
 		if (!currentUser) throw new Error("Failed to retrieve current user");
 
 		if (!story.owner_ids.includes(currentUser.id))
-			return toResult(`Current user is not an owner of story sc-${storyPublicId}`);
+			return this.toResult(`Current user is not an owner of story sc-${storyPublicId}`);
 
 		await this.client.updateStory(storyPublicId, {
 			owner_ids: story.owner_ids.filter((ownerId) => ownerId !== currentUser.id),
 		});
 
-		return toResult(`Unassigned current user as owner of story sc-${storyPublicId}`);
+		return this.toResult(`Unassigned current user as owner of story sc-${storyPublicId}`);
 	}
 
 	async getStoryBranchName(storyPublicId: number) {
@@ -213,7 +208,9 @@ The story will be added to the default state for the workflow.
 			.toLowerCase()
 			.replace(/\s+/g, "-")
 			.replace(/[^\w\-]/g, "")}`;
-		return toResult(`Branch name for story sc-${storyPublicId}: ${branchName.substring(0, 50)}`);
+		return this.toResult(
+			`Branch name for story sc-${storyPublicId}: ${branchName.substring(0, 50)}`,
+		);
 	}
 	//amcd/sc-283926/we-got-a-404-when-trying-to-fetch-a
 	async createStory({
@@ -255,7 +252,7 @@ The story will be added to the default state for the workflow.
 			workflow_state_id: fullWorkflow.default_state_id,
 		});
 
-		return toResult(`Created story: ${story.id}`);
+		return this.toResult(`Created story: ${story.id}`);
 	}
 
 	async searchStories(params: QueryParams) {
@@ -264,11 +261,11 @@ The story will be added to the default state for the workflow.
 		const { stories, total } = await this.client.searchStories(query);
 
 		if (!stories) throw new Error(`Failed to search for stories matching your query: "${query}".`);
-		if (!stories.length) return toResult(`Result: No stories found.`);
+		if (!stories.length) return this.toResult(`Result: No stories found.`);
 
 		const users = await this.client.getUserMap(stories.flatMap((story) => story.owner_ids));
 
-		return toResult(`Result (first ${stories.length} shown of ${total} total stories found):
+		return this.toResult(`Result (first ${stories.length} shown of ${total} total stories found):
 ${formatStoryList(stories, users)}`);
 	}
 
@@ -280,7 +277,7 @@ ${formatStoryList(stories, users)}`);
 
 		const owners = await this.client.getUserMap(story.owner_ids);
 
-		return toResult(`Story: sc-${storyPublicId}
+		return this.toResult(`Story: sc-${storyPublicId}
 URL: ${story.app_url}
 Name: ${story.name}
 Type: ${story.story_type}

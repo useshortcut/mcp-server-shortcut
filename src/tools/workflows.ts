@@ -1,9 +1,9 @@
 import { z } from "zod";
 import type { ShortcutClient } from "../shortcut-client";
-import { toResult } from "./utils";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { BaseTools } from "./base";
 
-export class WorkflowTools {
+export class WorkflowTools extends BaseTools {
 	static create(client: ShortcutClient, server: McpServer) {
 		const tools = new WorkflowTools(client);
 
@@ -23,18 +23,12 @@ export class WorkflowTools {
 		return tools;
 	}
 
-	private client: ShortcutClient;
-
-	constructor(client: ShortcutClient) {
-		this.client = client;
-	}
-
 	async getWorkflow(workflowPublicId: number) {
 		const workflow = await this.client.getWorkflow(workflowPublicId);
 
-		if (!workflow) return toResult(`Workflow with public ID: ${workflowPublicId} not found.`);
+		if (!workflow) return this.toResult(`Workflow with public ID: ${workflowPublicId} not found.`);
 
-		return toResult(`Workflow with id: ${workflow.id}
+		return this.toResult(`Workflow with id: ${workflow.id}
 Name: ${workflow.name}
 Description: ${workflow.description}
 States:
@@ -45,9 +39,9 @@ ${workflow.states.map((state) => `- ${state.id}: ${state.name} (default: ${state
 	async listWorkflows() {
 		const workflows = await this.client.getWorkflows();
 
-		if (!workflows.length) return toResult(`No workflows found.`);
+		if (!workflows.length) return this.toResult(`No workflows found.`);
 
-		return toResult(`Result (first ${workflows.length} shown of ${workflows.length} total workflows found):
+		return this.toResult(`Result (first ${workflows.length} shown of ${workflows.length} total workflows found):
 ${workflows
 	.map(
 		(workflow) => `Workflow with id: ${workflow.id}

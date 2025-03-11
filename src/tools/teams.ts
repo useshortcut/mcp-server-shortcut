@@ -1,9 +1,10 @@
 import { z } from "zod";
 import type { ShortcutClient } from "../shortcut-client";
-import { formatMemberList, formatWorkflowList, toResult } from "./utils";
+import { formatMemberList, formatWorkflowList } from "./utils/format";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { BaseTools } from "./base";
 
-export class TeamTools {
+export class TeamTools extends BaseTools {
 	static create(client: ShortcutClient, server: McpServer) {
 		const tools = new TeamTools(client);
 
@@ -19,20 +20,14 @@ export class TeamTools {
 		return tools;
 	}
 
-	private client: ShortcutClient;
-
-	constructor(client: ShortcutClient) {
-		this.client = client;
-	}
-
 	async getTeam(teamPublicId: string) {
 		const team = await this.client.getTeam(teamPublicId);
 
-		if (!team) return toResult(`Team with public ID: ${teamPublicId} not found.`);
+		if (!team) return this.toResult(`Team with public ID: ${teamPublicId} not found.`);
 
 		const users = await this.client.getUserMap(team.member_ids);
 
-		return toResult(`Team with id: ${team.id}
+		return this.toResult(`Team with id: ${team.id}
 Name: ${team.name}
 Mention name: ${team.mention_name}
 Description: ${team.description}
@@ -44,18 +39,18 @@ ${formatMemberList(team.member_ids, users)}
 	async listTeams() {
 		const teams = await this.client.listTeams();
 
-		if (!teams.length) return toResult(`No teams found.`);
+		if (!teams.length) return this.toResult(`No teams found.`);
 
 		const workflows = await this.client.getWorkflowMap(teams.flatMap((team) => team.workflow_ids));
 
-		return toResult(`Result (first ${teams.length} shown of ${teams.length} total teams found):
+		return this.toResult(`Result (first ${teams.length} shown of ${teams.length} total teams found):
 ${teams
 	.map(
 		(team) => `Team with id: ${team.id}
 Name: ${team.name}
 Description: ${team.description}
 Number of Members: ${team.member_ids.length}
-Workflows: 
+Workflows:
 ${formatWorkflowList(team.workflow_ids, workflows)}
 `,
 	)

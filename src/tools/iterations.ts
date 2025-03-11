@@ -1,11 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ShortcutClient } from "../shortcut-client";
-import { formatStoryList, toResult } from "./utils";
+import { formatStoryList } from "./utils/format";
 import { z } from "zod";
-import { date } from "./validation";
-import { type QueryParams, buildSearchQuery } from "./search";
+import { date } from "./utils/validation";
+import { type QueryParams, buildSearchQuery } from "./utils/search";
+import { BaseTools } from "./base";
 
-export class IterationTools {
+export class IterationTools extends BaseTools {
 	static create(client: ShortcutClient, server: McpServer) {
 		const tools = new IterationTools(client);
 
@@ -56,12 +57,6 @@ export class IterationTools {
 		return tools;
 	}
 
-	private client: ShortcutClient;
-
-	constructor(client: ShortcutClient) {
-		this.client = client;
-	}
-
 	async getIterationStories(iterationPublicId: number) {
 		const { stories } = await this.client.listIterationStories(iterationPublicId);
 
@@ -72,7 +67,7 @@ export class IterationTools {
 
 		const owners = await this.client.getUserMap(stories.flatMap((story) => story.owner_ids));
 
-		return toResult(`Result (${stories.length} stories found):
+		return this.toResult(`Result (${stories.length} stories found):
 ${formatStoryList(stories, owners)}`);
 	}
 
@@ -83,9 +78,9 @@ ${formatStoryList(stories, owners)}`);
 
 		if (!iterations)
 			throw new Error(`Failed to search for iterations matching your query: "${query}".`);
-		if (!iterations.length) return toResult(`Result: No iterations found.`);
+		if (!iterations.length) return this.toResult(`Result: No iterations found.`);
 
-		return toResult(`Result (first ${iterations.length} shown of ${total} total iterations found):
+		return this.toResult(`Result (first ${iterations.length} shown of ${total} total iterations found):
 ${iterations.map((iteration) => `- ${iteration.id}: ${iteration.name} (Start date: ${iteration.start_date}, End date: ${iteration.end_date})`).join("\n")}`);
 	}
 
@@ -97,7 +92,7 @@ ${iterations.map((iteration) => `- ${iteration.id}: ${iteration.name} (Start dat
 				`Failed to retrieve Shortcut iteration with public ID: ${iterationPublicId}.`,
 			);
 
-		return toResult(`Iteration: ${iterationPublicId}
+		return this.toResult(`Iteration: ${iterationPublicId}
 Url: ${iteration.app_url}
 Name: ${iteration.name}
 Start date: ${iteration.start_date}

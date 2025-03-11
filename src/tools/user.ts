@@ -1,8 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ShortcutClient } from "../shortcut-client";
-import { toResult } from "./utils";
+import { BaseTools } from "./base";
 
-export class UserTools {
+export class UserTools extends BaseTools {
 	static create(client: ShortcutClient, server: McpServer) {
 		const tools = new UserTools(client);
 
@@ -15,18 +15,12 @@ export class UserTools {
 		return tools;
 	}
 
-	private client: ShortcutClient;
-
-	constructor(client: ShortcutClient) {
-		this.client = client;
-	}
-
 	async getCurrentUser() {
 		const user = await this.client.getCurrentUser();
 
 		if (!user) throw new Error("Failed to retrieve current user.");
 
-		return toResult(
+		return this.toResult(
 			`Current user:
 Id: ${user.id}
 Mention name: @${user.mention_name}
