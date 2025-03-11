@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { ShortcutClient } from "../shortcut-client";
 import { toResult } from "./utils";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { date, has, is, owner, requester } from "./validation";
+import { date, has, is, user } from "./validation";
 import { buildSearchQuery, type QueryParams } from "./search";
 
 export class EpicTools {
@@ -34,8 +34,8 @@ export class EpicTools {
 					.number()
 					.optional()
 					.describe("Find only epics matching the specified objective"),
-				owner: owner,
-				requester: requester,
+				owner: user("owner"),
+				requester: user("requester"),
 				team: z
 					.string()
 					.optional()

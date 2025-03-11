@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ShortcutClient } from "../shortcut-client";
 import { toResult } from "./utils";
 import { z } from "zod";
-import { date, is, has, requester, owner } from "./validation";
+import { date, is, has, user } from "./validation";
 import { buildSearchQuery, type QueryParams } from "./search";
 
 export class ObjectiveTools {
@@ -32,8 +32,8 @@ export class ObjectiveTools {
 					.enum(["unstarted", "started", "done"])
 					.optional()
 					.describe("Find objectives matching the specified state"),
-				owner: owner,
-				requester: requester,
+				owner: user("owner"),
+				requester: user("requester"),
 				team: z
 					.string()
 					.optional()

@@ -49,16 +49,10 @@ export const has = (field: string) =>
 			`Find only entities that have ${field} when true, or only entities that do not have ${field} when false.`,
 		);
 
-export const owner = z
-	.string()
-	.optional()
-	.describe(
-		'Find entities where the owners match the specified user. This should either be the user\'s mention name or the keyword "me" for the current user.',
-	);
-
-export const requester = z
-	.string()
-	.optional()
-	.describe(
-		'Find entities where requesters match the specified user. This should either be the user\'s mention name or the keyword "me" for the current user.',
-	);
+export const user = (field: string) =>
+	z
+		.string()
+		.optional()
+		.describe(
+			`Find entities where the ${field} match the specified user. This must either be the user\'s mention name or the keyword "me" for the current user.`,
+		);

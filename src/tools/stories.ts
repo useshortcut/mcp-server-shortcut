@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ShortcutClient } from "../shortcut-client";
 import { formatMemberList, formatStoryList, toResult } from "./utils";
 import { z } from "zod";
-import { date, has, is, owner, requester } from "./validation";
+import { date, has, is, user } from "./validation";
 import { buildSearchQuery, type QueryParams } from "./search";
 
 export class StoryTools {
@@ -11,7 +11,7 @@ export class StoryTools {
 
 		server.tool(
 			"get-story-branch-name",
-			"Get a valid branch name for a specific story",
+			'Get a valid branch name for a specific story. The branch name is a combination of story ID, owner, and story name in the format "[owner]/sc-[id]/[name]". The story name will be truncated if the total length of the branch name exceeds 50 characters.',
 			{ storyPublicId: z.number().positive().describe("The public Id of the story") },
 			async ({ storyPublicId }) => await tools.getStoryBranchName(storyPublicId),
 		);
@@ -53,8 +53,8 @@ export class StoryTools {
 					.describe("Find only stories matching the specified objective"),
 				state: z.string().optional().describe("Find only stories matching the specified state"),
 				label: z.string().optional().describe("Find only stories matching the specified label"),
-				owner: owner,
-				requester: requester,
+				owner: user("owner"),
+				requester: user("requester"),
 				team: z
 					.string()
 					.optional()
