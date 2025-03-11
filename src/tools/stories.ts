@@ -10,6 +10,13 @@ export class StoryTools {
 		const tools = new StoryTools(client);
 
 		server.tool(
+			"get-story-branch-name",
+			"Get a valid branch name for a specific story",
+			{ storyPublicId: z.number().positive().describe("The public Id of the story") },
+			async ({ storyPublicId }) => await tools.getStoryBranchName(storyPublicId),
+		);
+
+		server.tool(
 			"get-story",
 			"Get a Shortcut story by public ID",
 			{ storyPublicId: z.number().positive().describe("The public ID of the story to get") },
@@ -188,6 +195,22 @@ The story will be added to the default state for the workflow.
 		return toResult(`Unassigned current user as owner of story sc-${storyPublicId}`);
 	}
 
+	async getStoryBranchName(storyPublicId: number) {
+		const currentUser = await this.client.getCurrentUser();
+		if (!currentUser) throw new Error("Unable to find current user");
+
+		const story = await this.client.getStory(storyPublicId);
+
+		if (!story)
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
+
+		const branchName = `${currentUser.mention_name}/sc-${storyPublicId}/${story.name
+			.toLowerCase()
+			.replace(/\s+/g, "-")
+			.replace(/[^\w\-]/g, "")}`;
+		return toResult(`Branch name for story sc-${storyPublicId}: ${branchName.substring(0, 50)}`);
+	}
+	//amcd/sc-283926/we-got-a-404-when-trying-to-fetch-a
 	async createStory({
 		name,
 		description,
