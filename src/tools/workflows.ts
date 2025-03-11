@@ -38,7 +38,7 @@ export class WorkflowTools {
 Name: ${workflow.name}
 Description: ${workflow.description}
 States:
-${workflow.states.map((state) => `- ${state.id}: ${state.name} (default: ${state.id === workflow.default_state_id ? "yes" : "no"}, type: ${state.type})`).join('\n')}
+${workflow.states.map((state) => `- ${state.id}: ${state.name} (default: ${state.id === workflow.default_state_id ? "yes" : "no"}, type: ${state.type})`).join("\n")}
 `);
 	}
 
@@ -48,10 +48,14 @@ ${workflow.states.map((state) => `- ${state.id}: ${state.name} (default: ${state
 		if (!workflows.length) return toResult(`No workflows found.`);
 
 		return toResult(`Result (first ${workflows.length} shown of ${workflows.length} total workflows found):
-${workflows.map((workflow) => `Workflow with id: ${workflow.id}
+${workflows
+	.map(
+		(workflow) => `Workflow with id: ${workflow.id}
 Name: ${workflow.name}
 Description: ${workflow.description}
-Default State: ${workflow.states.find((state) => state.id === workflow.default_state_id)?.name || '[Unknown]'}
-`).join("\n\n")}`);
+Default State: ${workflow.states.find((state) => state.id === workflow.default_state_id)?.name || "[Unknown]"}
+`,
+	)
+	.join("\n\n")}`);
 	}
 }

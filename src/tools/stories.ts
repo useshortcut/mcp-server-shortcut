@@ -2,6 +2,8 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ShortcutClient } from "../shortcut-client";
 import { formatMemberList, formatStoryList, toResult } from "./utils";
 import { z } from "zod";
+import { date, has, is, owner, requester } from "./validation";
+import { buildSearchQuery, type QueryParams } from "./search";
 
 export class StoryTools {
 	static create(client: ShortcutClient, server: McpServer) {
@@ -16,74 +18,86 @@ export class StoryTools {
 
 		server.tool(
 			"search-stories",
-			`Find Shortcut stories. 
-
-A number of search operators are available. 
-Search operators can be negated by prefixing the operator with a "!". Example: "!type:bug" or "!is:archived".
-
-Some operators are on/off, meaning you can't supply a value:
-
-- has:attachment: Find stories with attachments
-- has:task: Find stories with tasks
-- has:epic: Find stories with epics
-- has:branch: Find stories with associated git branches
-- has:commit: Find stories with associated git commits
-- has:pr: Find stories with associated git pull requests
-- has:owner: Find stories with an owner. The value should be the user's mention name.
-- has:deadline: Find stories with a deadline
-- has:label: Find stories with a label
-- has:comment: Find stories with comments
-- is:blocked: Find stories that are blocked
-- is:blocker: Find stories that are blocking
-- is:archived: Find stories that are archived
-- is:overdue: Find stories that are overdue
-- is:unestimated: Find stories that are unestimated
-- is:unstarted: Find stories that are unstarted
-- is:started: Find stories that are started
-- is:done: Find stories that are completed
-
-Other operators allow you to search on a specific field by supplying a value. 
-These operators are used by prefixing the search with the operator name. Example: "type:bug".
-Note that values containing spaces have to be wrapped in quotation marks. Example: "title:\"my story\"".
-
-Available operators are:
-- id: The public ID of the story (e.g. "id:1234567").
-- title: The name of the story (e.g. "title:\"my story\"").
-- description: The description of the story (e.g. "description:\"my story\"").
-- comment: The comment of the story (e.g. "comment:\"my story\"").
-- type: The type of the story ("bug", "feature", or "chore") (e.g. "type:bug").
-- estimate: The numeric estimate of the story (e.g. "estimate:1")
-- branch: The git branch associated with the story (e.g. "branch:main").
-- commit: The git commit associated with the story (e.g. "commit:1234567").
-- pr: The git pull request associated with the story (e.g. "pr:1234567").
-- project: The project associated with the story (e.g. "project:react").
-- epic: The epic associated with the story (e.g. "epic:\"my epic\"").
-- objective: The objective associated with the story (e.g. "objective:\"my objective\"").
-- state: The state of the story (e.g. "state:\"in progress\"").
-- label: The label associated with the story (e.g. "label:\"my label\"").
-- owner: The owner of the story. The value should be the user's mention name. E.g. "owner:andreas".
-- requester: The requester of the story. The value should be the user's mention name. E.g. "requester:andreas".
-- team: The team of the story (e.g. "team:Engineering").
-- skill-set: The skill set of the story (e.g. "skill-set:\"my skill set\"").
-- product-area: The product area of the story (e.g. "product-area:\"my product area\"").
-- technical-area: The technical area of the story (e.g. "technical-area:\"my technical area\"").
-- priority: The priority of the story (e.g. "priority:high").
-- severity: The severity of the story (e.g. "severity:sev-1").
-
-Dates and date ranges can also be used when searching.
-For dates, use the format "YYYY-MM-DD" (e.g. "2023-01-01").
-For date ranges, use the format "YYYY-MM-DD..YYYY-MM-DD" (e.g. "2023-01-01..2023-01-02").
-Either side of the range can be replaced with "*" to represent an open range. (e.g. "*..2023-01-02" or "2023-01-01..*").
-Keywords "yesterday", "today", and "tomorrow" can also be used. But these cannot be combined with numerical dates. (e.g. "2023-01-02..today" is not valid).
-
-Available date operators are:
-- created: The date the story was created (e.g. "created:2023-01-01").
-- updated: The date the story was last updated (e.g. "updated:today").
-- completed: The date the story was completed (e.g. "completed:yesterday").
-- due: The date the story is due (e.g. "due:tomorrow").
-`,
-			{ query: z.string().describe("The query which is a combination of keywords and operators") },
-			async ({ query }) => await tools.searchStories(query),
+			"Find Shortcut stories.",
+			{
+				id: z.number().optional().describe("Find only stories with the specified public ID"),
+				name: z.string().optional().describe("Find only stories matching the specified name"),
+				description: z
+					.string()
+					.optional()
+					.describe("Find only stories matching the specified description"),
+				comment: z.string().optional().describe("Find only stories matching the specified comment"),
+				type: z
+					.enum(["feature", "bug", "chore"])
+					.optional()
+					.describe("Find only stories of the specified type"),
+				estimate: z
+					.number()
+					.optional()
+					.describe("Find only stories matching the specified estimate"),
+				branch: z.string().optional().describe("Find only stories matching the specified branch"),
+				commit: z.string().optional().describe("Find only stories matching the specified commit"),
+				pr: z.number().optional().describe("Find only stories matching the specified pull request"),
+				project: z.number().optional().describe("Find only stories matching the specified project"),
+				epic: z.number().optional().describe("Find only stories matching the specified epic"),
+				objective: z
+					.number()
+					.optional()
+					.describe("Find only stories matching the specified objective"),
+				state: z.string().optional().describe("Find only stories matching the specified state"),
+				label: z.string().optional().describe("Find only stories matching the specified label"),
+				owner: owner,
+				requester: requester,
+				team: z
+					.string()
+					.optional()
+					.describe(
+						"Find only stories matching the specified team. This can be a team mention name or team name.",
+					),
+				skillSet: z
+					.string()
+					.optional()
+					.describe("Find only stories matching the specified skill set"),
+				productArea: z
+					.string()
+					.optional()
+					.describe("Find only stories matching the specified product area"),
+				technicalArea: z
+					.string()
+					.optional()
+					.describe("Find only stories matching the specified technical area"),
+				priority: z
+					.string()
+					.optional()
+					.describe("Find only stories matching the specified priority"),
+				severity: z
+					.string()
+					.optional()
+					.describe("Find only stories matching the specified severity"),
+				isDone: is("completed"),
+				isStarted: is("started"),
+				isUnstarted: is("unstarted"),
+				isUnestimated: is("unestimated"),
+				isOverdue: is("overdue"),
+				isArchived: is("archived"),
+				isBlocker: is("blocking"),
+				isBlocked: is("blocked"),
+				hasComment: has("a comment"),
+				hasLabel: has("a label"),
+				hasDeadline: has("a deadline"),
+				hasOwner: has("an owner"),
+				hasPr: has("a pr"),
+				hasCommit: has("a commit"),
+				hasBranch: has("a branch"),
+				hasEpic: has("an epic"),
+				hasTask: has("a task"),
+				hasAttachment: has("an attachment"),
+				created: date,
+				updated: date,
+				completed: date,
+				due: date,
+			},
+			async (params) => await tools.searchStories(params),
 		);
 
 		server.tool(
@@ -216,7 +230,9 @@ The story will be added to the default state for the workflow.
 		return toResult(`Created story: ${story.id}`);
 	}
 
-	async searchStories(query: string) {
+	async searchStories(params: QueryParams) {
+		const currentUser = await this.client.getCurrentUser();
+		const query = await buildSearchQuery(params, currentUser);
 		const { stories, total } = await this.client.searchStories(query);
 
 		if (!stories) throw new Error(`Failed to search for stories matching your query: "${query}".`);

@@ -2,6 +2,8 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ShortcutClient } from "../shortcut-client";
 import { formatStoryList, toResult } from "./utils";
 import { z } from "zod";
+import { date } from "./validation";
+import { type QueryParams, buildSearchQuery } from "./search";
 
 export class IterationTools {
 	static create(client: ShortcutClient, server: McpServer) {
@@ -25,35 +27,30 @@ export class IterationTools {
 
 		server.tool(
 			"search-iterations",
-			`Find Shortcut iterations. 
-
-A number of search operators are available. 
-Search operators can be negated by prefixing the operator with a "!". Example: "!is:started".
-
-Operators are used by prefixing the search with the operator name. Example: "title:my-iteration".
-Note that values containing spaces have to be wrapped in quotation marks. Example: "title:\"my iteration\"").
-
-Available operators are:
-- id: The public ID of the iteration (e.g. "id:1234567").
-- title: The name of the iteration (e.g. "title:\"my iteration\"").
-- description: The description of the iteration (e.g. "description:\"my iteration\"").
-- state: The state of the iteration (e.g. "state:\"in progress\"").
-- team: The team of the iteration (e.g. "team:Engineering").
-
-Dates and date ranges can also be used when searching.
-For dates, use the format "YYYY-MM-DD" (e.g. "2023-01-01").
-For date ranges, use the format "YYYY-MM-DD..YYYY-MM-DD" (e.g. "2023-01-01..2023-01-02").
-Either side of the range can be replaced with "*" to represent an open range. (e.g. "*..2023-01-02" or "2023-01-01..*").
-Keywords "yesterday", "today", and "tomorrow" can also be used. But these cannot be combined with numerical dates. (e.g. "2023-01-02..today" is not valid).
-
-Available date operators are:
-- created: The date the iteration was created (e.g. "created:2023-01-01").
-- updated: The date the iteration was last updated (e.g. "updated:today").
-- start_date: The date the iteration started (e.g. "start_date:2023-01-01").
-- end_date: The date the iteration ended (e.g. "end_date:2023-01-01").
-`,
-			{ query: z.string().describe("The query which is a combination of keywords and operators") },
-			async ({ query }) => await tools.searchIterations(query),
+			"Find Shortcut iterations.",
+			{
+				id: z.number().optional().describe("Find only iterations with the specified public ID"),
+				name: z.string().optional().describe("Find only iterations matching the specified name"),
+				description: z
+					.string()
+					.optional()
+					.describe("Find only iterations matching the specified description"),
+				state: z
+					.enum(["started", "unstarted", "done"])
+					.optional()
+					.describe("Find only iterations matching the specified state"),
+				team: z
+					.string()
+					.optional()
+					.describe(
+						"Find only iterations matching the specified team. Should be a team mention name.",
+					),
+				created: date,
+				updated: date,
+				startDate: date,
+				endDate: date,
+			},
+			async (params) => await tools.searchIterations(params),
 		);
 
 		return tools;
@@ -79,7 +76,9 @@ Available date operators are:
 ${formatStoryList(stories, owners)}`);
 	}
 
-	async searchIterations(query: string) {
+	async searchIterations(params: QueryParams) {
+		const currentUser = await this.client.getCurrentUser();
+		const query = await buildSearchQuery(params, currentUser);
 		const { iterations, total } = await this.client.searchIterations(query);
 
 		if (!iterations)

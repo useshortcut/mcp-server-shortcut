@@ -31,7 +31,7 @@ export class UserTools {
 Id: ${user.id}
 Mention name: @${user.mention_name}
 Full name: ${user.name}
-`
+`,
 		);
 	}
 }

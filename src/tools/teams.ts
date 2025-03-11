@@ -14,11 +14,7 @@ export class TeamTools {
 			async ({ teamPublicId }) => await tools.getTeam(teamPublicId),
 		);
 
-		server.tool(
-			"list-teams",
-			"List all Shortcut teams",
-			async () => await tools.listTeams(),
-		);
+		server.tool("list-teams", "List all Shortcut teams", async () => await tools.listTeams());
 
 		return tools;
 	}
@@ -34,10 +30,11 @@ export class TeamTools {
 
 		if (!team) return toResult(`Team with public ID: ${teamPublicId} not found.`);
 
-		const users = await this.client.getUserMap(team.member_ids)
+		const users = await this.client.getUserMap(team.member_ids);
 
 		return toResult(`Team with id: ${team.id}
 Name: ${team.name}
+Mention name: ${team.mention_name}
 Description: ${team.description}
 Members:
 ${formatMemberList(team.member_ids, users)}
@@ -52,12 +49,16 @@ ${formatMemberList(team.member_ids, users)}
 		const workflows = await this.client.getWorkflowMap(teams.flatMap((team) => team.workflow_ids));
 
 		return toResult(`Result (first ${teams.length} shown of ${teams.length} total teams found):
-${teams.map((team) => `Team with id: ${team.id}
+${teams
+	.map(
+		(team) => `Team with id: ${team.id}
 Name: ${team.name}
 Description: ${team.description}
 Number of Members: ${team.member_ids.length}
 Workflows: 
 ${formatWorkflowList(team.workflow_ids, workflows)}
-`).join("\n\n")}`);
+`,
+	)
+	.join("\n\n")}`);
 	}
 }

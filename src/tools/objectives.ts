@@ -2,6 +2,8 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ShortcutClient } from "../shortcut-client";
 import { toResult } from "./utils";
 import { z } from "zod";
+import { date, is, has, requester, owner } from "./validation";
+import { buildSearchQuery, type QueryParams } from "./search";
 
 export class ObjectiveTools {
 	static create(client: ShortcutClient, server: McpServer) {
@@ -18,45 +20,34 @@ export class ObjectiveTools {
 
 		server.tool(
 			"search-objectives",
-			`Find Shortcut objectives. 
-
-A number of search operators are available. 
-Search operators can be negated by prefixing the operator with a "!". Example: "!is:started".
-
-Some operators are on/off, meaning you can't supply a value:
-
-- is:unstarted: Find objectives that are unstarted
-- is:started: Find objectives that are started
-- is:done: Find objectives that are completed
-- has:owner: Find objectives that have an owner
-- is:archived: Find objectives that are archived
-
-Other operators allow you to search on a specific field by supplying a value. 
-These operators are used by prefixing the search with the operator name. Example: "title:my-objective".
-Note that values containing spaces have to be wrapped in quotation marks. Example: "title:\"my objective\"".
-
-Available operators are:
-- id: The public ID of the objective (e.g. "id:1234567").
-- title: The name of the objective (e.g. "title:\"my objective\"").
-- description: The description of the objective (e.g. "description:\"my objective\"").
-- state: The state of the objective (e.g. "state:\"in progress\"").
-- owner: The owner of the objective. Value should be the user's mention name (e.g. "owner:johndoe").
-- requester: The requester of the objective. Value should be the user's mention name (e.g. "requester:johndoe").
-- team: The team of the objective (e.g. "team:Engineering").
-
-Dates and date ranges can also be used when searching.
-For dates, use the format "YYYY-MM-DD" (e.g. "2023-01-01").
-For date ranges, use the format "YYYY-MM-DD..YYYY-MM-DD" (e.g. "2023-01-01..2023-01-02").
-Either side of the range can be replaced with "*" to represent an open range. (e.g. "*..2023-01-02" or "2023-01-01..*").
-Keywords "yesterday", "today", and "tomorrow" can also be used. But these cannot be combined with numerical dates. (e.g. "2023-01-02..today" is not valid).
-
-Available date operators are:
-- created: The date the objective was created (e.g. "created:2023-01-01").
-- updated: The date the objective was last updated (e.g. "updated:today").
-- completed: The date the objective was completed (e.g. "completed:yesterday").
-`,
-			{ query: z.string().describe("The query which is a combination of keywords and operators") },
-			async ({ query }) => await tools.searchObjectives(query),
+			"Find Shortcut objectives.",
+			{
+				id: z.number().optional().describe("Find objectives matching the specified id"),
+				name: z.string().optional().describe("Find objectives matching the specified name"),
+				description: z
+					.string()
+					.optional()
+					.describe("Find objectives matching the specified description"),
+				state: z
+					.enum(["unstarted", "started", "done"])
+					.optional()
+					.describe("Find objectives matching the specified state"),
+				owner: owner,
+				requester: requester,
+				team: z
+					.string()
+					.optional()
+					.describe("Find objectives matching the specified team. Should be a team mention name."),
+				isUnstarted: is("unstarted"),
+				isStarted: is("started"),
+				isDone: is("completed"),
+				isArchived: is("archived"),
+				hasOwner: has("an owner"),
+				created: date,
+				updated: date,
+				completed: date,
+			},
+			async (params) => await tools.searchObjectives(params),
 		);
 
 		return tools;
@@ -68,7 +59,9 @@ Available date operators are:
 		this.client = client;
 	}
 
-	async searchObjectives(query: string) {
+	async searchObjectives(params: QueryParams) {
+		const currentUser = await this.client.getCurrentUser();
+		const query = await buildSearchQuery(params, currentUser);
 		const { milestones, total } = await this.client.searchMilestones(query);
 
 		if (!milestones)
@@ -83,9 +76,7 @@ ${milestones.map((milestone) => `- ${milestone.id}: ${milestone.name}`).join("\n
 		const objective = await this.client.getMilestone(objectivePublicId);
 
 		if (!objective)
-			throw new Error(
-				`Failed to retrieve Shortcut objective with public ID: ${objectivePublicId}`,
-			);
+			throw new Error(`Failed to retrieve Shortcut objective with public ID: ${objectivePublicId}`);
 
 		return toResult(`Objective: ${objectivePublicId}
 Url: ${objective.app_url}

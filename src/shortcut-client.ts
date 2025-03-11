@@ -2,6 +2,7 @@ import {
 	ShortcutClient as BaseClient,
 	type CreateStoryParams,
 	type Member,
+	type MemberInfo,
 	type UpdateStory,
 	type Workflow,
 } from "@shortcut/client";
@@ -9,6 +10,7 @@ import { Cache } from "./cache";
 
 export class ShortcutClient {
 	private client: BaseClient;
+	private currentUser: MemberInfo | null = null;
 	private userCache: Cache<string, Member>;
 	private workflowCache: Cache<number, Workflow>;
 
@@ -41,10 +43,14 @@ export class ShortcutClient {
 	}
 
 	async getCurrentUser() {
+		if (this.currentUser) return this.currentUser;
+
 		const response = await this.client.getCurrentMemberInfo();
 		const user = response?.data ?? null;
 
 		if (!user) return null;
+
+		this.currentUser = user;
 
 		return user;
 	}
