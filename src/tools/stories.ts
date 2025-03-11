@@ -114,7 +114,7 @@ Name and Workflow are required. If a team is specified, the workflow is optional
 The story will be added to the default state for the workflow.
 `,
 			{
-				name: z.string().min(1).max(512).describe("The name of the story"),
+				name: z.string().min(1).max(512).describe("The name of the story. Required."),
 				description: z.string().max(10_000).optional().describe("The description of the story"),
 				type: z
 					.enum(["feature", "bug", "chore"])
@@ -122,7 +122,12 @@ The story will be added to the default state for the workflow.
 					.describe("The type of the story"),
 				owner: z.string().optional().describe("The user id of the owner of the story"),
 				epic: z.number().optional().describe("The epic id of the epic the story belongs to"),
-				team: z.string().optional().describe("The team id of the team the story belongs to"),
+				team: z
+					.string()
+					.optional()
+					.describe(
+						"The team id of the team the story belongs to. Required unless a workflow is specified.",
+					),
 				workflow: z
 					.number()
 					.optional()
