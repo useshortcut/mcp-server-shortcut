@@ -11,6 +11,10 @@ export class Cache<TId, TValue> {
 		return this.cache.get(key) ?? null;
 	}
 
+	values() {
+		return Array.from(this.cache.values());
+	}
+
 	setMany(values: [TId, TValue][]) {
 		this.cache.clear();
 		for (const [key, value] of values) {

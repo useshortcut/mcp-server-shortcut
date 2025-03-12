@@ -15,7 +15,7 @@ export class TeamTools extends BaseTools {
 			async ({ teamPublicId }) => await tools.getTeam(teamPublicId),
 		);
 
-		server.tool("list-teams", "List all Shortcut teams", async () => await tools.listTeams());
+		server.tool("list-teams", "List all Shortcut teams", async () => await tools.getTeams());
 
 		return tools;
 	}
@@ -36,8 +36,8 @@ ${formatMemberList(team.member_ids, users)}
 `);
 	}
 
-	async listTeams() {
-		const teams = await this.client.listTeams();
+	async getTeams() {
+		const teams = await this.client.getTeams();
 
 		if (!teams.length) return this.toResult(`No teams found.`);
 

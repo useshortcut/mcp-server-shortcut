@@ -1,2 +1,5 @@
 [test]
+root="./src"
 coverage=true
+coverageSkipTestFiles=true
+preload=["__mocks__/@shortcut/client.ts"]

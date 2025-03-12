@@ -6,7 +6,7 @@ import {
 	type UpdateStory,
 	type Workflow,
 } from "@shortcut/client";
-import { Cache } from "../cache";
+import { Cache } from "./cache";
 
 export class ShortcutClient {
 	private client: BaseClient;
@@ -46,7 +46,7 @@ export class ShortcutClient {
 		if (this.currentUser) return this.currentUser;
 
 		const response = await this.client.getCurrentMemberInfo();
-		const user = response?.data ?? null;
+		const user = response?.data;
 
 		if (!user) return null;
 
@@ -57,7 +57,7 @@ export class ShortcutClient {
 
 	async getUser(userId: string) {
 		const response = await this.client.getMember(userId, {});
-		const user = response?.data ?? null;
+		const user = response?.data;
 
 		if (!user) return null;
 
@@ -90,24 +90,20 @@ export class ShortcutClient {
 	}
 
 	async getWorkflows() {
-		const response = await this.client.listWorkflows();
-		const workflows = response?.data ?? null;
-
-		if (!workflows) return [];
-
-		return workflows;
+		await this.loadWorkflows();
+		return Array.from(this.workflowCache.values());
 	}
 
 	async getWorkflow(workflowPublicId: number) {
 		const response = await this.client.getWorkflow(workflowPublicId);
-		const workflow = response?.data ?? null;
+		const workflow = response?.data;
 
 		if (!workflow) return null;
 
 		return workflow;
 	}
 
-	async listTeams() {
+	async getTeams() {
 		const response = await this.client.listGroups();
 		const groups = response?.data ?? [];
 		return groups;
@@ -115,7 +111,7 @@ export class ShortcutClient {
 
 	async getTeam(teamPublicId: string) {
 		const response = await this.client.getGroup(teamPublicId);
-		const group = response?.data ?? null;
+		const group = response?.data;
 
 		if (!group) return null;
 
@@ -220,7 +216,7 @@ export class ShortcutClient {
 		const response = await this.client.listIterationStories(iterationPublicId, {
 			includes_description: false,
 		});
-		const stories = response?.data ?? null;
+		const stories = response?.data;
 
 		if (!stories) return { stories: null, total: null };
 
