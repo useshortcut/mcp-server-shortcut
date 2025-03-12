@@ -1,5 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ShortcutClient } from "@/client/shortcut-client";
+import type { ShortcutClientWrapper } from "@/client/shortcut";
 import { formatStoryList } from "./utils/format";
 import { z } from "zod";
 import { date } from "./utils/validation";
@@ -7,7 +7,7 @@ import { type QueryParams, buildSearchQuery } from "./utils/search";
 import { BaseTools } from "./base";
 
 export class IterationTools extends BaseTools {
-	static create(client: ShortcutClient, server: McpServer) {
+	static create(client: ShortcutClientWrapper, server: McpServer) {
 		const tools = new IterationTools(client);
 
 		server.tool(

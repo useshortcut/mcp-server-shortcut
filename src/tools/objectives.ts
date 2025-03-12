@@ -1,12 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ShortcutClient } from "@/client/shortcut-client";
+import type { ShortcutClientWrapper } from "@/client/shortcut";
 import { z } from "zod";
 import { date, is, has, user } from "./utils/validation";
 import { buildSearchQuery, type QueryParams } from "./utils/search";
 import { BaseTools } from "./base";
 
 export class ObjectiveTools extends BaseTools {
-	static create(client: ShortcutClient, server: McpServer) {
+	static create(client: ShortcutClientWrapper, server: McpServer) {
 		const tools = new ObjectiveTools(client);
 
 		server.tool(

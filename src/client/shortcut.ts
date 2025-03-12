@@ -1,21 +1,19 @@
-import {
+import type {
 	ShortcutClient as BaseClient,
-	type CreateStoryParams,
-	type Member,
-	type MemberInfo,
-	type UpdateStory,
-	type Workflow,
+	CreateStoryParams,
+	Member,
+	MemberInfo,
+	UpdateStory,
+	Workflow,
 } from "@shortcut/client";
 import { Cache } from "./cache";
 
-export class ShortcutClient {
-	private client: BaseClient;
+export class ShortcutClientWrapper {
 	private currentUser: MemberInfo | null = null;
 	private userCache: Cache<string, Member>;
 	private workflowCache: Cache<number, Workflow>;
 
-	constructor(apiToken: string) {
-		this.client = new BaseClient(apiToken);
+	constructor(private client: BaseClient) {
 		this.userCache = new Cache();
 		this.workflowCache = new Cache();
 	}

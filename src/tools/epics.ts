@@ -1,12 +1,12 @@
 import { z } from "zod";
-import type { ShortcutClient } from "@/client/shortcut-client";
+import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { date, has, is, user } from "./utils/validation";
 import { buildSearchQuery, type QueryParams } from "./utils/search";
 import { BaseTools } from "./base";
 
 export class EpicTools extends BaseTools {
-	static create(client: ShortcutClient, server: McpServer) {
+	static create(client: ShortcutClientWrapper, server: McpServer) {
 		const tools = new EpicTools(client);
 
 		server.tool(

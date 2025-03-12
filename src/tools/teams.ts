@@ -1,11 +1,11 @@
 import { z } from "zod";
-import type { ShortcutClient } from "@/client/shortcut-client";
+import type { ShortcutClientWrapper } from "@/client/shortcut";
 import { formatMemberList, formatWorkflowList } from "./utils/format";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { BaseTools } from "./base";
 
 export class TeamTools extends BaseTools {
-	static create(client: ShortcutClient, server: McpServer) {
+	static create(client: ShortcutClientWrapper, server: McpServer) {
 		const tools = new TeamTools(client);
 
 		server.tool(

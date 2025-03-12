@@ -1,7 +1,8 @@
 import { name, version } from "../package.json";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { ShortcutClient } from "@/client/shortcut-client";
+import { ShortcutClient } from "@shortcut/client";
+import { ShortcutClientWrapper } from "@/client/shortcut";
 
 import { StoryTools } from "./tools/stories";
 import { UserTools } from "./tools/user";
@@ -24,7 +25,7 @@ if (!apiToken) {
 }
 
 const server = new McpServer({ name, version });
-const client = new ShortcutClient(apiToken);
+const client = new ShortcutClientWrapper(new ShortcutClient(apiToken));
 
 UserTools.create(client, server);
 StoryTools.create(client, server);

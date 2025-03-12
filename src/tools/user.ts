@@ -1,9 +1,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ShortcutClient } from "@/client/shortcut-client";
+import type { ShortcutClientWrapper } from "@/client/shortcut";
 import { BaseTools } from "./base";
 
 export class UserTools extends BaseTools {
-	static create(client: ShortcutClient, server: McpServer) {
+	static create(client: ShortcutClientWrapper, server: McpServer) {
 		const tools = new UserTools(client);
 
 		server.tool(
