@@ -72,7 +72,6 @@ const mockWorkflowsMap = new Map<number, Workflow>(
 	mockWorkflows.map((workflow) => [workflow.id, workflow]),
 );
 
-// Tests for formatStoryList
 describe("formatStoryList", () => {
 	test("should return empty string for empty stories array", () => {
 		const result = formatStoryList([], mockUsers);
@@ -129,7 +128,6 @@ describe("formatStoryList", () => {
 	});
 });
 
-// Tests for formatMemberList
 describe("formatMemberList", () => {
 	test("should return empty string for empty ids array", () => {
 		const result = formatMemberList([], mockUsers);
@@ -138,26 +136,25 @@ describe("formatMemberList", () => {
 
 	test("should format a single member", () => {
 		const result = formatMemberList(["user1"], mockUsers);
-		expect(result).toBe("- user1: john");
+		expect(result).toBe("- id=user1 @john");
 	});
 
 	test("should format multiple members", () => {
 		const result = formatMemberList(["user1", "user2"], mockUsers);
-		expect(result).toBe("- user1: john\n- user2: jane");
+		expect(result).toBe("- id=user1 @john\n- id=user2 @jane");
 	});
 
-	test("should filter out non-existent members", () => {
+	test("should not filter out non-existent members", () => {
 		const result = formatMemberList(["nonexistent"], mockUsers);
-		expect(result).toBe("");
+		expect(result).toBe("- id=nonexistent [Unknown]");
 	});
 
 	test("should handle a mix of existing and non-existing members", () => {
 		const result = formatMemberList(["user1", "nonexistent", "user2"], mockUsers);
-		expect(result).toBe("- user1: john\n- user2: jane");
+		expect(result).toBe("- id=user1 @john\n- id=nonexistent [Unknown]\n- id=user2 @jane");
 	});
 });
 
-// Tests for formatWorkflowList
 describe("formatWorkflowList", () => {
 	test("should return empty string for empty ids array", () => {
 		const result = formatWorkflowList([], mockWorkflowsMap);
@@ -166,13 +163,13 @@ describe("formatWorkflowList", () => {
 
 	test("should format a single workflow", () => {
 		const result = formatWorkflowList([1], mockWorkflowsMap);
-		expect(result).toBe("- 1: Workflow 1, default state: Unstarted");
+		expect(result).toBe("- id=1 name=Workflow 1. Default state: id=500 name=Unstarted");
 	});
 
 	test("should format multiple workflows", () => {
 		const result = formatWorkflowList([1, 2], mockWorkflowsMap);
 		expect(result).toBe(
-			"- 1: Workflow 1, default state: Unstarted\n" + "- 2: Workflow 2, default state: Started",
+			"- id=1 name=Workflow 1. Default state: id=500 name=Unstarted\n- id=2 name=Workflow 2. Default state: id=501 name=Started",
 		);
 	});
 
@@ -183,13 +180,13 @@ describe("formatWorkflowList", () => {
 
 	test("should handle a workflow with unknown default state", () => {
 		const result = formatWorkflowList([3], mockWorkflowsMap);
-		expect(result).toBe("- 3: Workflow 3, default state: [Unknown]");
+		expect(result).toBe("- id=3 name=Workflow 3. Default state: [Unknown]");
 	});
 
 	test("should handle a mix of existing and non-existing workflows", () => {
 		const result = formatWorkflowList([1, 999, 2], mockWorkflowsMap);
 		expect(result).toBe(
-			"- 1: Workflow 1, default state: Unstarted\n" + "- 2: Workflow 2, default state: Started",
+			"- id=1 name=Workflow 1. Default state: id=500 name=Unstarted\n- id=2 name=Workflow 2. Default state: id=501 name=Started",
 		);
 	});
 });

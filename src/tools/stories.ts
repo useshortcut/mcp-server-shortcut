@@ -286,15 +286,13 @@ Completed: ${story.completed ? "Yes" : "No"}
 Started: ${story.started ? "Yes" : "No"}
 Blocked: ${story.blocked ? "Yes" : "No"}
 Blocking: ${story.blocker ? "Yes" : "No"}
-Due date: ${story.deadline}
-Owners: 
-${formatMemberList(story.owner_ids, owners)}
+Due date: ${story.deadline ? story.deadline : "[None]"}
+Owners:${story.owner_ids.length ? `\n${formatMemberList(story.owner_ids, owners)}` : " [None]"}
 
 Description:
 ${story.description}
 
 Comments:
-${(story.comments || []).map((comment) => `- From: ${comment.author_id} on ${comment.created_at}.\n${comment.text || ""}`).join("\n\n")}
-`);
+${(story.comments || []).map((comment) => `- From: ${comment.author_id} on ${comment.created_at}.\n${comment.text || ""}`).join("\n\n")}`);
 	}
 }

@@ -24,8 +24,7 @@ export class UserTools extends BaseTools {
 			`Current user:
 Id: ${user.id}
 Mention name: @${user.mention_name}
-Full name: ${user.name}
-`,
+Full name: ${user.name}`,
 		);
 	}
 }

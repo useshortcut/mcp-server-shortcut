@@ -27,13 +27,11 @@ export class TeamTools extends BaseTools {
 
 		const users = await this.client.getUserMap(team.member_ids);
 
-		return this.toResult(`Team with id: ${team.id}
+		return this.toResult(`Id: ${team.id}
 Name: ${team.name}
 Mention name: ${team.mention_name}
 Description: ${team.description}
-Members:
-${formatMemberList(team.member_ids, users)}
-`);
+Members:${team.member_ids.length > 0 ? `\n${formatMemberList(team.member_ids, users)}` : " [None]"}`);
 	}
 
 	async getTeams() {
@@ -44,15 +42,14 @@ ${formatMemberList(team.member_ids, users)}
 		const workflows = await this.client.getWorkflowMap(teams.flatMap((team) => team.workflow_ids));
 
 		return this.toResult(`Result (first ${teams.length} shown of ${teams.length} total teams found):
+
 ${teams
 	.map(
-		(team) => `Team with id: ${team.id}
+		(team) => `Id: ${team.id}
 Name: ${team.name}
 Description: ${team.description}
 Number of Members: ${team.member_ids.length}
-Workflows:
-${formatWorkflowList(team.workflow_ids, workflows)}
-`,
+Workflows: ${team.workflow_ids.length > 0 ? `\n${formatWorkflowList(team.workflow_ids, workflows)}` : "[None]"}`,
 	)
 	.join("\n\n")}`);
 	}

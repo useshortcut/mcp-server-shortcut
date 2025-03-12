@@ -18,9 +18,10 @@ export const formatStoryList = (
 
 export const formatMemberList = (ids: string[], users: Map<string, Member>) => {
 	return ids
-		.map((id) => users.get(id))
-		.filter((user): user is Member => !!user)
-		.map((user) => `- ${user.id}: ${user.profile.mention_name}`)
+		.map((id) => {
+			const user = users.get(id);
+			return user ? `- id=${user.id} @${user.profile.mention_name}` : `- id=${id} [Unknown]`;
+		})
 		.join("\n");
 };
 
@@ -28,9 +29,9 @@ export const formatWorkflowList = (ids: number[], workflows: Map<number, Workflo
 	return ids
 		.map((id) => workflows.get(id))
 		.filter((workflow): workflow is Workflow => !!workflow)
-		.map(
-			(workflow) =>
-				`- ${workflow.id}: ${workflow.name}, default state: ${workflow.states.find((state) => state.id === workflow.default_state_id)?.name || "[Unknown]"}`,
-		)
+		.map((workflow) => {
+			const defaultState = workflow.states.find((state) => state.id === workflow.default_state_id);
+			return `- id=${workflow.id} name=${workflow.name}. Default state: ${defaultState ? `id=${defaultState.id} name=${defaultState.name}` : "[Unknown]"}`;
+		})
 		.join("\n");
 };

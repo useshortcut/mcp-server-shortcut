@@ -80,7 +80,6 @@ Completed: ${objective.completed ? "Yes" : "No"}
 Started: ${objective.started ? "Yes" : "No"}
 
 Description:
-${objective.description}
-`);
+${objective.description}`);
 	}
 }

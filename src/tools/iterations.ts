@@ -101,7 +101,6 @@ Completed: ${iteration.status === "completed" ? "Yes" : "No"}
 Started: ${iteration.status === "started" ? "Yes" : "No"}
 
 Description:
-${iteration.description}
-`);
+${iteration.description}`);
 	}
 }

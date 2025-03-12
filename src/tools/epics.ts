@@ -86,10 +86,9 @@ Name: ${epic.name}
 Archived: ${epic.archived ? "Yes" : "No"}
 Completed: ${epic.completed ? "Yes" : "No"}
 Started: ${epic.started ? "Yes" : "No"}
-Due date: ${epic.deadline}
+Due date: ${epic.deadline ? epic.deadline : "[Not set]"}
 
 Description:
-${epic.description}
-`);
+${epic.description}`);
 	}
 }

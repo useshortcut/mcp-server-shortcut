@@ -28,12 +28,11 @@ export class WorkflowTools extends BaseTools {
 
 		if (!workflow) return this.toResult(`Workflow with public ID: ${workflowPublicId} not found.`);
 
-		return this.toResult(`Workflow with id: ${workflow.id}
+		return this.toResult(`Id: ${workflow.id}
 Name: ${workflow.name}
 Description: ${workflow.description}
 States:
-${workflow.states.map((state) => `- ${state.id}: ${state.name} (default: ${state.id === workflow.default_state_id ? "yes" : "no"}, type: ${state.type})`).join("\n")}
-`);
+${workflow.states.map((state) => `- id=${state.id} name=${state.name} (default: ${state.id === workflow.default_state_id ? "yes" : "no"}, type: ${state.type})`).join("\n")}`);
 	}
 
 	async listWorkflows() {
@@ -42,13 +41,13 @@ ${workflow.states.map((state) => `- ${state.id}: ${state.name} (default: ${state
 		if (!workflows.length) return this.toResult(`No workflows found.`);
 
 		return this.toResult(`Result (first ${workflows.length} shown of ${workflows.length} total workflows found):
+
 ${workflows
 	.map(
-		(workflow) => `Workflow with id: ${workflow.id}
+		(workflow) => `Id: ${workflow.id}
 Name: ${workflow.name}
 Description: ${workflow.description}
-Default State: ${workflow.states.find((state) => state.id === workflow.default_state_id)?.name || "[Unknown]"}
-`,
+Default State: ${workflow.states.find((state) => state.id === workflow.default_state_id)?.name || "[Unknown]"}`,
 	)
 	.join("\n\n")}`);
 	}
