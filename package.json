@@ -21,6 +21,7 @@
 		"zod": "^3.24.2"
 	},
 	"scripts": {
+		"test": "bun test",
 		"format": "biome format --write ./",
 		"lint": "biome check ./",
 		"ts": "tsc -b",
