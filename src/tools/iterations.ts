@@ -1,5 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ShortcutClient } from "../shortcut-client";
+import type { ShortcutClient } from "@/client/shortcut-client";
 import { formatStoryList } from "./utils/format";
 import { z } from "zod";
 import { date } from "./utils/validation";

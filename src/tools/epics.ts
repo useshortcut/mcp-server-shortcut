@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ShortcutClient } from "../shortcut-client";
+import type { ShortcutClient } from "@/client/shortcut-client";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { date, has, is, user } from "./utils/validation";
 import { buildSearchQuery, type QueryParams } from "./utils/search";

@@ -1,7 +1,7 @@
 import { name, version } from "../package.json";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { ShortcutClient } from "./shortcut-client";
+import { ShortcutClient } from "@/client/shortcut-client";
 
 import { StoryTools } from "./tools/stories";
 import { UserTools } from "./tools/user";

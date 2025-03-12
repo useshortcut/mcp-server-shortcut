@@ -1,5 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { ShortcutClient } from "../shortcut-client";
+import type { ShortcutClient } from "@/client/shortcut-client";
 
 export class BaseTools {
 	constructor(protected client: ShortcutClient) {}

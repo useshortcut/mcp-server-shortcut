@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ShortcutClient } from "../shortcut-client";
+import type { ShortcutClient } from "@/client/shortcut-client";
 import { formatMemberList, formatWorkflowList } from "./utils/format";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { BaseTools } from "./base";

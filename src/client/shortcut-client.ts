@@ -6,7 +6,7 @@ import {
 	type UpdateStory,
 	type Workflow,
 } from "@shortcut/client";
-import { Cache } from "./cache";
+import { Cache } from "../cache";
 
 export class ShortcutClient {
 	private client: BaseClient;
