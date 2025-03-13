@@ -1,1 +1,2 @@
 bun run ts
+bun run test
