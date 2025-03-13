@@ -99,6 +99,7 @@ Start date: ${iteration.start_date}
 End date: ${iteration.end_date}
 Completed: ${iteration.status === "completed" ? "Yes" : "No"}
 Started: ${iteration.status === "started" ? "Yes" : "No"}
+Team: ${iteration.group_ids?.length ? `${iteration.group_ids.join(", ")}` : "[None]"}
 
 Description:
 ${iteration.description}`);

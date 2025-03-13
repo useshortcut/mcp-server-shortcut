@@ -142,14 +142,17 @@ describe("StoryTools", () => {
 				"Blocked: No",
 				"Blocking: No",
 				"Due date: 2023-12-31",
+				"Team: [None]",
 				"Owners:",
 				"- id=user1 @testuser",
+				"Epic: [None]",
+				"Iteration: [None]",
 				"",
 				"Description:",
 				"Description for Test Story 1",
 				"",
 				"Comments:",
-				"- From: user1 on 2023-01-01T12:00:00Z.",
+				"- From: @testuser on 2023-01-01T12:00:00Z.",
 				"This is a comment",
 			]);
 		});
@@ -205,8 +208,8 @@ describe("StoryTools", () => {
 			expect(result.content[0].type).toBe("text");
 			expect(String(result.content[0].text).split("\n")).toMatchObject([
 				"Result (first 2 shown of 2 total stories found):",
-				"- sc-123: Test Story 1 (Type: feature, State: In Progress, Owners: @testuser)",
-				"- sc-456: Test Story 2 (Type: bug, State: Completed, Owners: @testuser, @jane)",
+				"- sc-123: Test Story 1 (Type: feature, State: In Progress, Team: [None], Epic: [None], Iteration: [None], Owners: @testuser)",
+				"- sc-456: Test Story 2 (Type: bug, State: Completed, Team: [None], Epic: [None], Iteration: [None], Owners: @testuser, @jane)",
 			]);
 		});
 

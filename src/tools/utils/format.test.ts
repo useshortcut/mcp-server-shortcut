@@ -24,14 +24,29 @@ const mockMembers: Member[] = [
 
 const mockUsers = new Map<string, Member>(mockMembers.map((member) => [member.id, member]));
 
-const createMockStory = (
-	id: number,
-	name: string,
-	owner_ids: string[] = [],
+interface MockStoryParams {
+	id: number;
+	name: string;
+	owner_ids?: string[];
+	completed?: boolean;
+	started?: boolean;
+	story_type?: string;
+	epic_id?: number | null;
+	iteration_id?: number | null;
+	group_id?: string | null;
+}
+
+const createMockStory = ({
+	id,
+	name,
+	owner_ids = [],
 	completed = false,
 	started = false,
 	story_type = "feature",
-): Story =>
+	epic_id = null,
+	iteration_id = null,
+	group_id = null,
+}: MockStoryParams): Story =>
 	({
 		id,
 		name,
@@ -39,6 +54,9 @@ const createMockStory = (
 		completed,
 		started,
 		story_type,
+		epic_id,
+		iteration_id,
+		group_id,
 	}) as Story;
 
 const mockWorkflowStates = [
@@ -78,37 +96,59 @@ describe("formatStoryList", () => {
 		expect(result).toBe("");
 	});
 
-	test("should format a single story with no owners", () => {
-		const stories = [createMockStory(123, "Test Story")];
+	test("should format a story with team, epic, and iteration", () => {
+		const stories = [
+			createMockStory({
+				id: 123,
+				name: "Test Story",
+				epic_id: 1,
+				iteration_id: 2,
+				group_id: "group1",
+			}),
+		];
 		const result = formatStoryList(stories, mockUsers);
-		expect(result).toBe("- sc-123: Test Story (Type: feature, State: Not Started, Owners: )");
+		expect(result).toBe(
+			"- sc-123: Test Story (Type: feature, State: Not Started, Team: group1, Epic: 1, Iteration: 2, Owners: [None])",
+		);
+	});
+
+	test("should format a single story with no owners", () => {
+		const stories = [createMockStory({ id: 123, name: "Test Story" })];
+		const result = formatStoryList(stories, mockUsers);
+		expect(result).toBe(
+			"- sc-123: Test Story (Type: feature, State: Not Started, Team: [None], Epic: [None], Iteration: [None], Owners: [None])",
+		);
 	});
 
 	test("should format a single story with one owner", () => {
-		const stories = [createMockStory(123, "Test Story", ["user1"])];
+		const stories = [createMockStory({ id: 123, name: "Test Story", owner_ids: ["user1"] })];
 		const result = formatStoryList(stories, mockUsers);
-		expect(result).toBe("- sc-123: Test Story (Type: feature, State: Not Started, Owners: @john)");
+		expect(result).toBe(
+			"- sc-123: Test Story (Type: feature, State: Not Started, Team: [None], Epic: [None], Iteration: [None], Owners: @john)",
+		);
 	});
 
 	test("should format a single story with multiple owners", () => {
-		const stories = [createMockStory(123, "Test Story", ["user1", "user2"])];
+		const stories = [
+			createMockStory({ id: 123, name: "Test Story", owner_ids: ["user1", "user2"] }),
+		];
 		const result = formatStoryList(stories, mockUsers);
 		expect(result).toBe(
-			"- sc-123: Test Story (Type: feature, State: Not Started, Owners: @john, @jane)",
+			"- sc-123: Test Story (Type: feature, State: Not Started, Team: [None], Epic: [None], Iteration: [None], Owners: @john, @jane)",
 		);
 	});
 
 	test("should format multiple stories with various states", () => {
 		const stories = [
-			createMockStory(123, "Unstarted Story"),
-			createMockStory(124, "Started Story", [], false, true),
-			createMockStory(125, "Completed Story", [], true, false),
+			createMockStory({ id: 123, name: "Unstarted Story" }),
+			createMockStory({ id: 124, name: "Started Story", started: true }),
+			createMockStory({ id: 125, name: "Completed Story", completed: true }),
 		];
 		const result = formatStoryList(stories, mockUsers);
 		expect(result).toBe(
-			"- sc-123: Unstarted Story (Type: feature, State: Not Started, Owners: )\n" +
-				"- sc-124: Started Story (Type: feature, State: In Progress, Owners: )\n" +
-				"- sc-125: Completed Story (Type: feature, State: Completed, Owners: )",
+			"- sc-123: Unstarted Story (Type: feature, State: Not Started, Team: [None], Epic: [None], Iteration: [None], Owners: [None])\n" +
+				"- sc-124: Started Story (Type: feature, State: In Progress, Team: [None], Epic: [None], Iteration: [None], Owners: [None])\n" +
+				"- sc-125: Completed Story (Type: feature, State: Completed, Team: [None], Epic: [None], Iteration: [None], Owners: [None])",
 		);
 	});
 
@@ -121,10 +161,14 @@ describe("formatStoryList", () => {
 		// Set the non-existent user to null explicitly
 		customUsers.set("nonexistent", null);
 
-		const stories = [createMockStory(123, "Test Story", ["user1", "nonexistent"])];
+		const stories = [
+			createMockStory({ id: 123, name: "Test Story", owner_ids: ["user1", "nonexistent"] }),
+		];
 		const result = formatStoryList(stories, customUsers as Map<string, Member>);
 
-		expect(result).toBe("- sc-123: Test Story (Type: feature, State: Not Started, Owners: @john)");
+		expect(result).toBe(
+			"- sc-123: Test Story (Type: feature, State: Not Started, Team: [None], Epic: [None], Iteration: [None], Owners: @john)",
+		);
 	});
 });
 

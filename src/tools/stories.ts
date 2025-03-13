@@ -87,7 +87,7 @@ export class StoryTools extends BaseTools {
 				isUnstarted: is("unstarted"),
 				isUnestimated: is("unestimated"),
 				isOverdue: is("overdue"),
-				isArchived: is("archived"),
+				isArchived: is("archived").default(false),
 				isBlocker: is("blocking"),
 				isBlocked: is("blocked"),
 				hasComment: has("a comment"),
@@ -212,7 +212,7 @@ The story will be added to the default state for the workflow.
 			`Branch name for story sc-${storyPublicId}: ${branchName.substring(0, 50)}`,
 		);
 	}
-	//amcd/sc-283926/we-got-a-404-when-trying-to-fetch-a
+
 	async createStory({
 		name,
 		description,
@@ -275,7 +275,13 @@ ${formatStoryList(stories, users)}`);
 		if (!story)
 			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}.`);
 
-		const owners = await this.client.getUserMap(story.owner_ids);
+		const relatedUsers = new Set([
+			...story.owner_ids,
+			...story.comments.flatMap((c) => c.author_id),
+		]);
+		const users = await this.client.getUserMap(
+			[...relatedUsers].filter((id): id is string => !!id),
+		);
 
 		return this.toResult(`Story: sc-${storyPublicId}
 URL: ${story.app_url}
@@ -287,12 +293,22 @@ Started: ${story.started ? "Yes" : "No"}
 Blocked: ${story.blocked ? "Yes" : "No"}
 Blocking: ${story.blocker ? "Yes" : "No"}
 Due date: ${story.deadline ? story.deadline : "[None]"}
-Owners:${story.owner_ids.length ? `\n${formatMemberList(story.owner_ids, owners)}` : " [None]"}
+Team: ${story.group_id ? `${story.group_id}` : "[None]"}
+Owners:${story.owner_ids.length ? `\n${formatMemberList(story.owner_ids, users)}` : " [None]"}
+Epic: ${story.epic_id ? `${story.epic_id}` : "[None]"}
+Iteration: ${story.iteration_id ? `${story.iteration_id}` : "[None]"}
 
 Description:
 ${story.description}
 
 Comments:
-${(story.comments || []).map((comment) => `- From: ${comment.author_id} on ${comment.created_at}.\n${comment.text || ""}`).join("\n\n")}`);
+${(story.comments || [])
+	.map((comment) => {
+		const mentionName = comment.author_id
+			? users.get(comment.author_id)?.profile?.mention_name
+			: null;
+		return `- From: ${mentionName ? `@${mentionName}` : `id=${comment.author_id}` || "[Unknown]"} on ${comment.created_at}.\n${comment.text || ""}`;
+	})
+	.join("\n\n")}`);
 	}
 }

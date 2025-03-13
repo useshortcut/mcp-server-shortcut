@@ -46,7 +46,7 @@ export class EpicTools extends BaseTools {
 				isUnstarted: is("unstarted"),
 				isStarted: is("started"),
 				isDone: is("completed"),
-				isArchived: is("archived"),
+				isArchived: is("archived").default(false),
 				isOverdue: is("overdue"),
 				hasOwner: has("an owner"),
 				hasComment: has("a comment"),
@@ -87,6 +87,8 @@ Archived: ${epic.archived ? "Yes" : "No"}
 Completed: ${epic.completed ? "Yes" : "No"}
 Started: ${epic.started ? "Yes" : "No"}
 Due date: ${epic.deadline ? epic.deadline : "[Not set]"}
+Team: ${epic.group_id ? `${epic.group_id}` : "[None]"}
+Objective: ${epic.milestone_id ? `${epic.milestone_id}` : "[None]"}
 
 Description:
 ${epic.description}`);

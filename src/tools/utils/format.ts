@@ -7,11 +7,13 @@ export const formatStoryList = (
 	return stories
 		.map(
 			(story) =>
-				`- sc-${story.id}: ${story.name} (Type: ${story.story_type}, State: ${story.completed ? "Completed" : story.started ? "In Progress" : "Not Started"}, Owners: ${story.owner_ids
-					.map((ownerId) => users.get(ownerId))
-					.filter((owner): owner is Member => owner !== null)
-					.map((owner) => `@${owner.profile.mention_name}`)
-					.join(", ")})`,
+				`- sc-${story.id}: ${story.name} (Type: ${story.story_type}, State: ${story.completed ? "Completed" : story.started ? "In Progress" : "Not Started"}, Team: ${story.group_id ? `${story.group_id}` : "[None]"}, Epic: ${story.epic_id ? `${story.epic_id}` : "[None]"}, Iteration: ${story.iteration_id ? `${story.iteration_id}` : "[None]"}, Owners: ${
+					story.owner_ids
+						.map((ownerId) => users.get(ownerId))
+						.filter((owner): owner is Member => owner !== null)
+						.map((owner) => `@${owner.profile.mention_name}`)
+						.join(", ") || "[None]"
+				})`,
 		)
 		.join("\n");
 };
