@@ -1,10 +1,14 @@
 {
 	"name": "@useshortcut/mcp",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/useshortcut/mcp-server-shortcut.git"
+	},
+	"license": "MIT",
 	"version": "0.0.0",
 	"module": "dist/index.js",
 	"type": "module",
 	"main": "dist/index.js",
-	"private": true,
 	"bin": "dist/shortcut-mcp",
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
