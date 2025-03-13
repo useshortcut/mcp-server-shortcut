@@ -1,4 +1,4 @@
-import { expect, test, describe, mock, beforeEach } from "bun:test";
+import { expect, test, describe, mock, beforeEach, spyOn } from "bun:test";
 import { StoryTools } from "./stories";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -107,6 +107,50 @@ describe("StoryTools", () => {
 			expect(mockTool.mock.calls?.[3]?.[0]).toBe("create-story");
 			expect(mockTool.mock.calls?.[4]?.[0]).toBe("assign-current-user-as-owner");
 			expect(mockTool.mock.calls?.[5]?.[0]).toBe("unassign-current-user-as-owner");
+		});
+
+		test("should call correct function from tool", async () => {
+			const mockClient = {} as ShortcutClientWrapper;
+			const mockTool = mock();
+			const mockServer = { tool: mockTool } as unknown as McpServer;
+
+			const tools = StoryTools.create(mockClient, mockServer);
+
+			spyOn(tools, "getStoryBranchName").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[0]?.[3]({ storyPublicId: 123 });
+			expect(tools.getStoryBranchName).toHaveBeenCalledWith(123);
+
+			spyOn(tools, "getStory").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[1]?.[3]({ storyPublicId: 123 });
+			expect(tools.getStory).toHaveBeenCalledWith(123);
+
+			spyOn(tools, "searchStories").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[2]?.[3]({ id: 123 });
+			expect(tools.searchStories).toHaveBeenCalledWith({ id: 123 });
+
+			spyOn(tools, "createStory").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[3]?.[3]({ name: "Test Story 1" });
+			expect(tools.createStory).toHaveBeenCalledWith({ name: "Test Story 1" });
+
+			spyOn(tools, "assignCurrentUserAsOwner").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[4]?.[3]({ storyPublicId: 123 });
+			expect(tools.assignCurrentUserAsOwner).toHaveBeenCalledWith(123);
+
+			spyOn(tools, "unassignCurrentUserAsOwner").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[5]?.[3]({ storyPublicId: 123 });
+			expect(tools.unassignCurrentUserAsOwner).toHaveBeenCalledWith(123);
 		});
 	});
 

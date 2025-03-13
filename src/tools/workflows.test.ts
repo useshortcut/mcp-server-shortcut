@@ -1,4 +1,4 @@
-import { expect, test, describe, mock } from "bun:test";
+import { expect, test, describe, mock, spyOn } from "bun:test";
 import { WorkflowTools } from "./workflows";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -42,6 +42,26 @@ describe("WorkflowTools", () => {
 
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-workflow");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("list-workflows");
+		});
+
+		test("should call correct function from tool", async () => {
+			const mockClient = {} as ShortcutClientWrapper;
+			const mockTool = mock();
+			const mockServer = { tool: mockTool } as unknown as McpServer;
+
+			const tools = WorkflowTools.create(mockClient, mockServer);
+
+			spyOn(tools, "getWorkflow").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[0]?.[3]({ workflowPublicId: 1 });
+			expect(tools.getWorkflow).toHaveBeenCalledWith(1);
+
+			spyOn(tools, "listWorkflows").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[1]?.[2]();
+			expect(tools.listWorkflows).toHaveBeenCalled();
 		});
 	});
 

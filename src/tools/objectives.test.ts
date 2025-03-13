@@ -1,4 +1,4 @@
-import { expect, test, describe, mock } from "bun:test";
+import { expect, test, describe, mock, spyOn } from "bun:test";
 import { ObjectiveTools } from "./objectives";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -43,6 +43,26 @@ describe("ObjectiveTools", () => {
 			expect(mockTool).toHaveBeenCalledTimes(2);
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-objective");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-objectives");
+		});
+
+		test("should call correct function from tool", async () => {
+			const mockClient = {} as ShortcutClientWrapper;
+			const mockTool = mock();
+			const mockServer = { tool: mockTool } as unknown as McpServer;
+
+			const tools = ObjectiveTools.create(mockClient, mockServer);
+
+			spyOn(tools, "getObjective").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[0]?.[3]({ objectivePublicId: 1 });
+			expect(tools.getObjective).toHaveBeenCalledWith(1);
+
+			spyOn(tools, "searchObjectives").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[1]?.[3]({ name: "test" });
+			expect(tools.searchObjectives).toHaveBeenCalledWith({ name: "test" });
 		});
 	});
 

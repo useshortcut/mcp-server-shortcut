@@ -1,4 +1,4 @@
-import { expect, test, describe, mock } from "bun:test";
+import { expect, test, describe, mock, spyOn } from "bun:test";
 import { IterationTools } from "./iterations";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -72,6 +72,32 @@ describe("IterationTools", () => {
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-iteration-stories");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-iteration");
 			expect(mockTool.mock.calls?.[2]?.[0]).toBe("search-iterations");
+		});
+
+		test("should call correct function from tool", async () => {
+			const mockClient = {} as ShortcutClientWrapper;
+			const mockTool = mock();
+			const mockServer = { tool: mockTool } as unknown as McpServer;
+
+			const tools = IterationTools.create(mockClient, mockServer);
+
+			spyOn(tools, "getIterationStories").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[0]?.[3]({ iterationPublicId: 1 });
+			expect(tools.getIterationStories).toHaveBeenCalledWith(1);
+
+			spyOn(tools, "getIteration").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[1]?.[3]({ iterationPublicId: 1 });
+			expect(tools.getIteration).toHaveBeenCalledWith(1);
+
+			spyOn(tools, "searchIterations").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[2]?.[3]({ name: "test" });
+			expect(tools.searchIterations).toHaveBeenCalledWith({ name: "test" });
 		});
 	});
 

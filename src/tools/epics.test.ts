@@ -1,4 +1,4 @@
-import { expect, test, describe, mock, beforeEach } from "bun:test";
+import { expect, test, describe, mock, beforeEach, spyOn } from "bun:test";
 import { EpicTools } from "./epics";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -59,6 +59,26 @@ describe("EpicTools", () => {
 
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-epic");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-epics");
+		});
+
+		test("should call correct function from tool", async () => {
+			const mockClient = {} as ShortcutClientWrapper;
+			const mockTool = mock();
+			const mockServer = { tool: mockTool } as unknown as McpServer;
+
+			const tools = EpicTools.create(mockClient, mockServer);
+
+			spyOn(tools, "getEpic").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[0]?.[3]({ epicPublicId: 1 });
+			expect(tools.getEpic).toHaveBeenCalledWith(1);
+
+			spyOn(tools, "searchEpics").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[1]?.[3]({ id: 1 });
+			expect(tools.searchEpics).toHaveBeenCalledWith({ id: 1 });
 		});
 	});
 

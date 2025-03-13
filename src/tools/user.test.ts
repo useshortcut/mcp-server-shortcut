@@ -1,4 +1,4 @@
-import { expect, test, describe, mock } from "bun:test";
+import { expect, test, describe, mock, spyOn } from "bun:test";
 import { UserTools } from "./user";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -20,6 +20,20 @@ describe("UserTools", () => {
 
 			expect(mockTool).toHaveBeenCalledTimes(1);
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-current-user");
+		});
+
+		test("should call correct function from tool", async () => {
+			const mockClient = {} as ShortcutClientWrapper;
+			const mockTool = mock();
+			const mockServer = { tool: mockTool } as unknown as McpServer;
+
+			const tools = UserTools.create(mockClient, mockServer);
+
+			spyOn(tools, "getCurrentUser").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[0]?.[2]();
+			expect(tools.getCurrentUser).toHaveBeenCalled();
 		});
 	});
 
