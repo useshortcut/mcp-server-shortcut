@@ -58,6 +58,7 @@ describe("StoryTools", () => {
 					created_at: "2023-01-01T12:00:00Z",
 				} as unknown as StoryComment,
 			],
+			formatted_vcs_branch_name: "user1/sc-123/test-story-1",
 		} as unknown as Story,
 		{
 			id: 456,
@@ -481,21 +482,38 @@ describe("StoryTools", () => {
 			getCurrentUser: getCurrentUserMock,
 		} as unknown as ShortcutClientWrapper;
 
-		test("should return branch name for story", async () => {
+		test("should return branch name from api for story", async () => {
 			const storyTools = new StoryTools(mockClient);
 			const result = await storyTools.getStoryBranchName(123);
 
 			expect(result.content[0].type).toBe("text");
 			expect(result.content[0].text).toBe(
-				"Branch name for story sc-123: testuser/sc-123/test-story-1",
+				"Branch name for story sc-123: user1/sc-123/test-story-1",
 			);
 		});
 
-		test("should truncate long branch names", async () => {
+		test("should generate a custom branch name if not included in api", async () => {
 			const storyTools = new StoryTools({
 				...mockClient,
 				getStory: mock(async () => ({
 					...mockStories[0],
+					formatted_vcs_branch_name: null,
+					name: "Story 1",
+				})),
+			} as unknown as ShortcutClientWrapper);
+
+			const result = await storyTools.getStoryBranchName(123);
+
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe("Branch name for story sc-123: testuser/sc-123/story-1");
+		});
+
+		test("should truncate long branch names when building custom branch name", async () => {
+			const storyTools = new StoryTools({
+				...mockClient,
+				getStory: mock(async () => ({
+					...mockStories[0],
+					formatted_vcs_branch_name: null,
 					name: "This is a very long story name that will be truncated in the branch name because it exceeds the maximum length allowed for branch names",
 				})),
 			} as unknown as ShortcutClientWrapper);
@@ -508,11 +526,12 @@ describe("StoryTools", () => {
 			);
 		});
 
-		test("should handle special characters in story name", async () => {
+		test("should handle special characters in story name when building custom branch name", async () => {
 			const storyTools = new StoryTools({
 				...mockClient,
 				getStory: mock(async () => ({
 					...mockStories[0],
+					formatted_vcs_branch_name: null,
 					name: "Special characters: !@#$%^&*()_+{}[]|\\:;\"'<>,.?/",
 				})),
 			} as unknown as ShortcutClientWrapper);

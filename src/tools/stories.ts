@@ -5,6 +5,7 @@ import { z } from "zod";
 import { date, has, is, user } from "./utils/validation";
 import { buildSearchQuery, type QueryParams } from "./utils/search";
 import { BaseTools } from "./base";
+import type { MemberInfo, Story } from "@shortcut/client";
 
 export class StoryTools extends BaseTools {
 	static create(client: ShortcutClientWrapper, server: McpServer) {
@@ -195,6 +196,13 @@ The story will be added to the default state for the workflow.
 		return this.toResult(`Unassigned current user as owner of story sc-${storyPublicId}`);
 	}
 
+	private createBranchName(currentUser: MemberInfo, story: Story) {
+		return `${currentUser.mention_name}/sc-${story.id}/${story.name
+			.toLowerCase()
+			.replace(/\s+/g, "-")
+			.replace(/[^\w\-]/g, "")}`.substring(0, 50);
+	}
+
 	async getStoryBranchName(storyPublicId: number) {
 		const currentUser = await this.client.getCurrentUser();
 		if (!currentUser) throw new Error("Unable to find current user");
@@ -204,13 +212,10 @@ The story will be added to the default state for the workflow.
 		if (!story)
 			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
 
-		const branchName = `${currentUser.mention_name}/sc-${storyPublicId}/${story.name
-			.toLowerCase()
-			.replace(/\s+/g, "-")
-			.replace(/[^\w\-]/g, "")}`;
-		return this.toResult(
-			`Branch name for story sc-${storyPublicId}: ${branchName.substring(0, 50)}`,
-		);
+		const branchName =
+			(story as Story & { formatted_vcs_branch_name: string | null }).formatted_vcs_branch_name ||
+			this.createBranchName(currentUser, story);
+		return this.toResult(`Branch name for story sc-${storyPublicId}: ${branchName}`);
 	}
 
 	async createStory({
