@@ -1,23 +1,6 @@
-# @useshortcut/mcp
-
-> [!IMPORTANT]
-> To use the MCP server, you need to first install the dependencies and run the build step.
-
-## Installation
-
-```bash
-npm install
-```
-
-## Build
-
-```bash
-npm run build
-```
+# @shortcut/mcp
 
 ## Usage
-
-> Note: `mcp-server-shortcut` in the paths below refer to the folder name where you cloned this repo. If you used a different folder name, you'll need to use that instead.
 
 ### Windsurf
 
@@ -64,4 +47,18 @@ See the [official Cursor docs](https://docs.cursor.com/context/model-context-pro
     }
   }
 }
+```
+
+## Development
+
+## Installation
+
+```bash
+npm install
+```
+
+## Build
+
+```bash
+npm run build
 ```
