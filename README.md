@@ -16,6 +16,7 @@ See the [official Windsurf docs](https://codeium.com/docs/windsurf/mcp) for more
     "shortcut": {
       "command": "npx",
       "args": [
+        "-y",
         "@shortcut/mcp"
       ],
       "env": {
@@ -39,6 +40,7 @@ See the [official Cursor docs](https://docs.cursor.com/context/model-context-pro
     "shortcut": {
       "command": "npx",
       "args": [
+        "-y",
         "@shortcut/mcp"
       ],
       "env": {
