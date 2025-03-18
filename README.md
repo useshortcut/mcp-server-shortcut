@@ -1,5 +1,8 @@
 # @useshortcut/mcp
 
+> [!IMPORTANT]
+> To use the MCP server, you need to first install the dependencies and run the build step.
+
 ## Installation
 
 > First - install **bun** if needed: [Bun](https://bun.sh).
@@ -46,16 +49,21 @@ See the [official Windsurf docs](https://codeium.com/docs/windsurf/mcp) for more
 
 See the [official Cursor docs](https://docs.cursor.com/context/model-context-protocol) for more information.
 
-1. Go to `Cursor Settings` > `Features` > `MCP`.
-2. Click `Add New MCP Server`.
-3. Add the following to the dialog:
+1. Open (or create) the `mcp.json` file (it should be in `~/.cursor/mcp.json` or `<project-root>/.cursor/mcp.json`, but see Cursor docs for more details).
+2. Add the following details and save the file:
 
-- Name: `shortcut`
-- Type: `command`
-- Command: `node /path/to/this/repo/mcp-server-shortcut SHORTCUT_API_TOKEN=<YOUR_SHORTCUT_API_TOKEN>`
-
-If you prefer, the SHORTCUT_API_TOKEN can instead be added to your environment:
-
-```bash
-export SHORTCUT_API_TOKEN=<YOUR_SHORTCUT_API_TOKEN>
+```json
+{
+  "mcpServers": {
+    "shortcut": {
+      "command": "node",
+      "args": [
+        "/path/to/this/repo/mcp-server-shortcut"
+      ],
+      "env": {
+        "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
+      }
+    }
+  }
+}
 ```
