@@ -1,2 +1,2 @@
-bun run ts
-bun run test
+npm run ts
+npm run test

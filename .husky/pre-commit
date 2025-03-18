@@ -1,2 +1,2 @@
-bun run format
+npm run format
 git add .
