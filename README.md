@@ -5,16 +5,14 @@
 
 ## Installation
 
-> First - install **bun** if needed: [Bun](https://bun.sh).
-
 ```bash
-bun install
+npm install
 ```
 
 ## Build
 
 ```bash
-bun run build
+npm run build
 ```
 
 ## Usage
@@ -33,9 +31,9 @@ See the [official Windsurf docs](https://codeium.com/docs/windsurf/mcp) for more
 {
   "mcpServers": {
     "shortcut": {
-      "command": "node",
+      "command": "npx",
       "args": [
-        "/path/to/this/repo/mcp-server-shortcut"
+        "@shortcut/mcp"
       ],
       "env": {
         "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
@@ -56,9 +54,9 @@ See the [official Cursor docs](https://docs.cursor.com/context/model-context-pro
 {
   "mcpServers": {
     "shortcut": {
-      "command": "node",
+      "command": "npx",
       "args": [
-        "/path/to/this/repo/mcp-server-shortcut"
+        "@shortcut/mcp"
       ],
       "env": {
         "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"

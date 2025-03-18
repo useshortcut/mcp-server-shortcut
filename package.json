@@ -1,18 +1,19 @@
 {
-	"name": "@useshortcut/mcp",
+	"name": "@shortcut/mcp",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/useshortcut/mcp-server-shortcut.git"
 	},
+	"keywords": ["shortcut", "mcp", "modelcontextprotocol"],
 	"license": "MIT",
-	"version": "0.0.0",
-	"module": "dist/index.js",
+	"version": "0.1.1",
 	"type": "module",
 	"main": "dist/index.js",
-	"bin": "dist/shortcut-mcp",
+	"files": ["dist", "README.md", "LICENSE"],
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
 		"@types/bun": "latest",
+		"bun": "^1.2.5",
 		"husky": "^9.1.7",
 		"shx": "^0.3.4"
 	},
