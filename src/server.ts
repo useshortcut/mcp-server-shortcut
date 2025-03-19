@@ -37,10 +37,8 @@ WorkflowTools.create(client, server);
 
 async function startServer() {
 	try {
-		console.log("Starting server...");
 		const transport = new StdioServerTransport();
 		await server.connect(transport);
-		console.log("Server running!");
 	} catch (error) {
 		console.error("Fatal:", error);
 		process.exit(1);
