@@ -153,6 +153,24 @@ The story will be added to the default state for the workflow.
 			async ({ storyPublicId }) => await tools.unassignCurrentUserAsOwner(storyPublicId),
 		);
 
+		// New workflow status tools
+		server.tool(
+			"get-workflow-states",
+			"Get available workflow states for a story",
+			{ storyPublicId: z.number().positive().describe("The public ID of the story") },
+			async ({ storyPublicId }) => await tools.getWorkflowStatesForStory(storyPublicId),
+		);
+
+		server.tool(
+			"move-story-to-state",
+			"Move a story to a different workflow state",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+				workflowStateId: z.number().positive().describe("The public ID of the workflow state")
+			},
+			async ({ storyPublicId, workflowStateId }) => await tools.moveStoryToState(storyPublicId, workflowStateId),
+		);
+
 		return tools;
 	}
 
@@ -315,5 +333,28 @@ ${(story.comments || [])
 		return `- From: ${mentionName ? `@${mentionName}` : `id=${comment.author_id}` || "[Unknown]"} on ${comment.created_at}.\n${comment.text || ""}`;
 	})
 	.join("\n\n")}`);
+	}
+
+	async getWorkflowStatesForStory(storyPublicId: number) {
+		const states = await this.client.getWorkflowStatesForStory(storyPublicId);
+		
+		if (!states) throw new Error(`Failed to retrieve workflow states for story sc-${storyPublicId}`);
+		
+		if (states.length === 0) return this.toResult(`No workflow states found for story sc-${storyPublicId}`);
+		
+		// Format the states for display
+		const formattedStates = states.map((state) => 
+			`- State ${state.id}: ${state.name} (Type: ${state.type})`
+		).join("\n");
+		
+		return this.toResult(`Workflow states for story sc-${storyPublicId}:\n${formattedStates}`);
+	}
+
+	async moveStoryToState(storyPublicId: number, workflowStateId: number) {
+		const story = await this.client.moveStoryToState(storyPublicId, workflowStateId);
+		
+		if (!story) throw new Error(`Failed to move story sc-${storyPublicId} to state ${workflowStateId}`);
+		
+		return this.toResult(`Moved story sc-${storyPublicId} to workflow state ${workflowStateId}`);
 	}
 }
