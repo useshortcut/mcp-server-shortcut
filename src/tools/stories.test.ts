@@ -101,13 +101,20 @@ describe("StoryTools", () => {
 
 			StoryTools.create(mockClient, mockServer);
 
-			expect(mockTool).toHaveBeenCalledTimes(6);
+			expect(mockTool).toHaveBeenCalledTimes(13);
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-story-branch-name");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-story");
 			expect(mockTool.mock.calls?.[2]?.[0]).toBe("search-stories");
 			expect(mockTool.mock.calls?.[3]?.[0]).toBe("create-story");
 			expect(mockTool.mock.calls?.[4]?.[0]).toBe("assign-current-user-as-owner");
 			expect(mockTool.mock.calls?.[5]?.[0]).toBe("unassign-current-user-as-owner");
+			expect(mockTool.mock.calls?.[6]?.[0]).toBe("create-task");
+			expect(mockTool.mock.calls?.[7]?.[0]).toBe("get-tasks");
+			expect(mockTool.mock.calls?.[8]?.[0]).toBe("get-task");
+			expect(mockTool.mock.calls?.[9]?.[0]).toBe("update-task");
+			expect(mockTool.mock.calls?.[10]?.[0]).toBe("delete-task");
+			expect(mockTool.mock.calls?.[11]?.[0]).toBe("complete-task");
+			expect(mockTool.mock.calls?.[12]?.[0]).toBe("incomplete-task");
 		});
 
 		test("should call correct function from tool", async () => {
@@ -152,6 +159,58 @@ describe("StoryTools", () => {
 			}));
 			await mockTool.mock.calls?.[5]?.[3]({ storyPublicId: 123 });
 			expect(tools.unassignCurrentUserAsOwner).toHaveBeenCalledWith(123);
+
+			// Test new task operations
+			spyOn(tools, "createTask").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[6]?.[3]({ storyPublicId: 123, description: "Test task" });
+			expect(tools.createTask).toHaveBeenCalledWith(123, "Test task", undefined, undefined);
+
+			spyOn(tools, "getTasks").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[7]?.[3]({ storyPublicId: 123 });
+			expect(tools.getTasks).toHaveBeenCalledWith(123);
+
+			spyOn(tools, "getTask").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[8]?.[3]({ storyPublicId: 123, taskPublicId: 456 });
+			expect(tools.getTask).toHaveBeenCalledWith(123, 456);
+
+			spyOn(tools, "updateTask").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[9]?.[3]({ 
+				storyPublicId: 123, 
+				taskPublicId: 456, 
+				description: "Updated task",
+				complete: true
+			});
+			expect(tools.updateTask).toHaveBeenCalledWith(123, 456, { 
+				description: "Updated task", 
+				complete: true,
+				owner_ids: undefined
+			});
+
+			spyOn(tools, "deleteTask").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[10]?.[3]({ storyPublicId: 123, taskPublicId: 456 });
+			expect(tools.deleteTask).toHaveBeenCalledWith(123, 456);
+
+			spyOn(tools, "completeTask").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[11]?.[3]({ storyPublicId: 123, taskPublicId: 456 });
+			expect(tools.completeTask).toHaveBeenCalledWith(123, 456);
+
+			spyOn(tools, "incompleteTask").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[12]?.[3]({ storyPublicId: 123, taskPublicId: 456 });
+			expect(tools.incompleteTask).toHaveBeenCalledWith(123, 456);
 		});
 	});
 
@@ -542,6 +601,141 @@ describe("StoryTools", () => {
 			expect(result.content[0].text).toBe(
 				"Branch name for story sc-123: testuser/sc-123/special-characters-_",
 			);
+		});
+	});
+
+	describe("Task operations", () => {
+		const mockTaskId = 123;
+		const mockStoryId = 456;
+		const mockTask = { 
+			id: mockTaskId, 
+			description: "Test task", 
+			complete: false,
+			owner_ids: ["user1", "user2"] 
+		};
+		
+		test("createTask should create a task in a story", async () => {
+			const createTaskMock = mock(async () => mockTask);
+			const mockClient = {
+				createTask: createTaskMock,
+			} as unknown as ShortcutClientWrapper;
+			
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.createTask(mockStoryId, "Test task");
+			
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe(`Created task ${mockTaskId} in story sc-${mockStoryId}`);
+			expect(createTaskMock).toHaveBeenCalledTimes(1);
+			expect(createTaskMock).toHaveBeenCalledWith(mockStoryId, "Test task", false, undefined);
+		});
+		
+		test("getTasks should list all tasks in a story", async () => {
+			const mockTasks = [
+				{ id: 123, description: "Task 1", complete: false },
+				{ id: 456, description: "Task 2", complete: true }
+			];
+			const getTasksMock = mock(async () => mockTasks);
+			const mockClient = {
+				getTasks: getTasksMock,
+			} as unknown as ShortcutClientWrapper;
+			
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.getTasks(mockStoryId);
+			
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toContain(`Tasks for story sc-${mockStoryId}`);
+			expect(result.content[0].text).toContain("Task 123: [ ] Task 1");
+			expect(result.content[0].text).toContain("Task 456: [x] Task 2");
+			expect(getTasksMock).toHaveBeenCalledTimes(1);
+			expect(getTasksMock).toHaveBeenCalledWith(mockStoryId);
+		});
+		
+		test("getTask should retrieve a specific task", async () => {
+			const getTaskMock = mock(async () => mockTask);
+			const getUserMapMock = mock(async () => new Map([
+				["user1", { profile: { mention_name: "testuser" } }],
+				["user2", { profile: { mention_name: "jane" } }],
+			]));
+			const mockClient = {
+				getTask: getTaskMock,
+				getUserMap: getUserMapMock,
+			} as unknown as ShortcutClientWrapper;
+			
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.getTask(mockStoryId, mockTaskId);
+			
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toContain(`Task ${mockTaskId} for story sc-${mockStoryId}`);
+			expect(result.content[0].text).toContain("Description: Test task");
+			expect(result.content[0].text).toContain("Status: Incomplete");
+			expect(getTaskMock).toHaveBeenCalledTimes(1);
+			expect(getTaskMock).toHaveBeenCalledWith(mockStoryId, mockTaskId);
+		});
+		
+		test("updateTask should update a task", async () => {
+			const updateTaskMock = mock(async () => ({ ...mockTask, description: "Updated task" }));
+			const mockClient = {
+				updateTask: updateTaskMock,
+			} as unknown as ShortcutClientWrapper;
+			
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.updateTask(mockStoryId, mockTaskId, { 
+				description: "Updated task",
+				complete: true 
+			});
+			
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe(`Updated task ${mockTaskId} in story sc-${mockStoryId}`);
+			expect(updateTaskMock).toHaveBeenCalledTimes(1);
+			expect(updateTaskMock).toHaveBeenCalledWith(mockStoryId, mockTaskId, { 
+				description: "Updated task",
+				complete: true 
+			});
+		});
+		
+		test("deleteTask should delete a task", async () => {
+			const deleteTaskMock = mock(async () => true);
+			const mockClient = {
+				deleteTask: deleteTaskMock,
+			} as unknown as ShortcutClientWrapper;
+			
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.deleteTask(mockStoryId, mockTaskId);
+			
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe(`Deleted task ${mockTaskId} from story sc-${mockStoryId}`);
+			expect(deleteTaskMock).toHaveBeenCalledTimes(1);
+			expect(deleteTaskMock).toHaveBeenCalledWith(mockStoryId, mockTaskId);
+		});
+		
+		test("completeTask should mark a task as complete", async () => {
+			const updateTaskMock = mock(async () => ({ ...mockTask, complete: true }));
+			const mockClient = {
+				updateTask: updateTaskMock,
+			} as unknown as ShortcutClientWrapper;
+			
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.completeTask(mockStoryId, mockTaskId);
+			
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe(`Marked task ${mockTaskId} as complete in story sc-${mockStoryId}`);
+			expect(updateTaskMock).toHaveBeenCalledTimes(1);
+			expect(updateTaskMock).toHaveBeenCalledWith(mockStoryId, mockTaskId, { complete: true });
+		});
+		
+		test("incompleteTask should mark a task as incomplete", async () => {
+			const updateTaskMock = mock(async () => ({ ...mockTask, complete: false }));
+			const mockClient = {
+				updateTask: updateTaskMock,
+			} as unknown as ShortcutClientWrapper;
+			
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.incompleteTask(mockStoryId, mockTaskId);
+			
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe(`Marked task ${mockTaskId} as incomplete in story sc-${mockStoryId}`);
+			expect(updateTaskMock).toHaveBeenCalledTimes(1);
+			expect(updateTaskMock).toHaveBeenCalledWith(mockStoryId, mockTaskId, { complete: false });
 		});
 	});
 });

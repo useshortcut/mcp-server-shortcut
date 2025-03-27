@@ -5,6 +5,7 @@ import type {
 	MemberInfo,
 	UpdateStory,
 	Workflow,
+	Task,
 } from "@shortcut/client";
 import { Cache } from "./cache";
 
@@ -219,5 +220,56 @@ export class ShortcutClientWrapper {
 		if (!stories) return { stories: null, total: null };
 
 		return { stories, total: stories.length };
+	}
+
+	async createTask(storyPublicId: number, description: string, complete: boolean = false, ownerIds?: string[]) {
+		const response = await this.client.createTask(storyPublicId, {
+			description,
+			complete,
+			owner_ids: ownerIds,
+		});
+		const task = response?.data ?? null;
+
+		if (!task) throw new Error(`Failed to create the task: ${response.status}`);
+
+		return task;
+	}
+
+	async getTasks(storyPublicId: number) {
+		const story = await this.getStory(storyPublicId);
+		if (!story) return null;
+		
+		return story.tasks || [];
+	}
+
+	async getTask(storyPublicId: number, taskPublicId: number) {
+		const response = await this.client.getTask(storyPublicId, taskPublicId);
+		const task = response?.data ?? null;
+
+		if (!task) return null;
+
+		return task;
+	}
+
+	async updateTask(storyPublicId: number, taskPublicId: number, params: {
+		description?: string;
+		complete?: boolean;
+		owner_ids?: string[];
+	}) {
+		const response = await this.client.updateTask(storyPublicId, taskPublicId, params);
+		const task = response?.data ?? null;
+
+		if (!task) throw new Error(`Failed to update the task: ${response.status}`);
+
+		return task;
+	}
+
+	async deleteTask(storyPublicId: number, taskPublicId: number) {
+		const response = await this.client.deleteTask(storyPublicId, taskPublicId);
+		const success = response?.status === 204;
+
+		if (!success) throw new Error(`Failed to delete the task: ${response.status}`);
+
+		return success;
 	}
 }
