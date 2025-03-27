@@ -5,7 +5,6 @@ import type {
 	MemberInfo,
 	UpdateStory,
 	Workflow,
-	Task,
 } from "@shortcut/client";
 import { Cache } from "./cache";
 
