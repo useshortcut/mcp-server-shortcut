@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
-import { formatMemberList, formatStoryList } from "./utils/format";
+import { formatMemberList, formatPullRequestList, formatStoryList } from "./utils/format";
 import { z } from "zod";
 import { date, has, is, user } from "./utils/validation";
 import { buildSearchQuery, type QueryParams } from "./utils/search";
@@ -14,14 +14,18 @@ export class StoryTools extends BaseTools {
 		server.tool(
 			"get-story-branch-name",
 			'Get a valid branch name for a specific story. The branch name is a combination of story ID, owner, and story name in the format "[owner]/sc-[id]/[name]". The story name will be truncated if the total length of the branch name exceeds 50 characters.',
-			{ storyPublicId: z.number().positive().describe("The public Id of the story") },
+			{
+				storyPublicId: z.number().positive().describe("The public Id of the story"),
+			},
 			async ({ storyPublicId }) => await tools.getStoryBranchName(storyPublicId),
 		);
 
 		server.tool(
 			"get-story",
 			"Get a Shortcut story by public ID",
-			{ storyPublicId: z.number().positive().describe("The public ID of the story to get") },
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story to get"),
+			},
 			async ({ storyPublicId }) => await tools.getStory(storyPublicId),
 		);
 
@@ -136,20 +140,32 @@ The story will be added to the default state for the workflow.
 					.describe("The workflow to add the story to. Required unless a team is specified."),
 			},
 			async ({ name, description, type, owner, epic, team, workflow }) =>
-				await tools.createStory({ name, description, type, owner, epic, team, workflow }),
+				await tools.createStory({
+					name,
+					description,
+					type,
+					owner,
+					epic,
+					team,
+					workflow,
+				}),
 		);
 
 		server.tool(
 			"assign-current-user-as-owner",
 			"Assign the current user as the owner of a story",
-			{ storyPublicId: z.number().positive().describe("The public ID of the story") },
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+			},
 			async ({ storyPublicId }) => await tools.assignCurrentUserAsOwner(storyPublicId),
 		);
 
 		server.tool(
 			"unassign-current-user-as-owner",
 			"Unassign the current user as the owner of a story",
-			{ storyPublicId: z.number().positive().describe("The public ID of the story") },
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+			},
 			async ({ storyPublicId }) => await tools.unassignCurrentUserAsOwner(storyPublicId),
 		);
 
@@ -306,13 +322,22 @@ Iteration: ${story.iteration_id ? `${story.iteration_id}` : "[None]"}
 Description:
 ${story.description}
 
+Pull Requests:
+${
+	story.branches && story.branches.length > 0
+		? `${formatPullRequestList(story.branches)}`
+		: " [None]"
+}
+
 Comments:
 ${(story.comments || [])
 	.map((comment) => {
 		const mentionName = comment.author_id
 			? users.get(comment.author_id)?.profile?.mention_name
 			: null;
-		return `- From: ${mentionName ? `@${mentionName}` : `id=${comment.author_id}` || "[Unknown]"} on ${comment.created_at}.\n${comment.text || ""}`;
+		return `- From: ${
+			mentionName ? `@${mentionName}` : `id=${comment.author_id}` || "[Unknown]"
+		} on ${comment.created_at}.\n${comment.text || ""}`;
 	})
 	.join("\n\n")}`);
 	}

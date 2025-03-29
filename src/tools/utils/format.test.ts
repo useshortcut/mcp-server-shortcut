@@ -1,6 +1,11 @@
-import { expect, test, describe } from "bun:test";
-import { formatMemberList, formatStoryList, formatWorkflowList } from "./format";
-import type { Member, Story, Workflow } from "@shortcut/client";
+import type { Branch, Member, PullRequest, Story, Workflow } from "@shortcut/client";
+import { describe, expect, test } from "bun:test";
+import {
+	formatMemberList,
+	formatPullRequestList,
+	formatStoryList,
+	formatWorkflowList,
+} from "./format";
 
 // Mock data for tests
 const mockMembers: Member[] = [
@@ -90,6 +95,27 @@ const mockWorkflowsMap = new Map<number, Workflow>(
 	mockWorkflows.map((workflow) => [workflow.id, workflow]),
 );
 
+const mockBranches = [
+	{
+		id: 1,
+		name: "branch1",
+		pull_requests: [
+			{
+				id: 1,
+				title: "Test PR 1",
+				url: "https://github.com/user1/repo1/pull/1",
+				merged: true,
+			} as PullRequest,
+			{
+				id: 2,
+				title: "Test PR 2",
+				url: "https://github.com/user1/repo1/pull/2",
+				merged: false,
+			} as PullRequest,
+		],
+	} as Branch,
+];
+
 describe("formatStoryList", () => {
 	test("should return empty string for empty stories array", () => {
 		const result = formatStoryList([], mockUsers);
@@ -130,7 +156,11 @@ describe("formatStoryList", () => {
 
 	test("should format a single story with multiple owners", () => {
 		const stories = [
-			createMockStory({ id: 123, name: "Test Story", owner_ids: ["user1", "user2"] }),
+			createMockStory({
+				id: 123,
+				name: "Test Story",
+				owner_ids: ["user1", "user2"],
+			}),
 		];
 		const result = formatStoryList(stories, mockUsers);
 		expect(result).toBe(
@@ -162,7 +192,11 @@ describe("formatStoryList", () => {
 		customUsers.set("nonexistent", null);
 
 		const stories = [
-			createMockStory({ id: 123, name: "Test Story", owner_ids: ["user1", "nonexistent"] }),
+			createMockStory({
+				id: 123,
+				name: "Test Story",
+				owner_ids: ["user1", "nonexistent"],
+			}),
 		];
 		const result = formatStoryList(stories, customUsers as Map<string, Member>);
 
@@ -231,6 +265,48 @@ describe("formatWorkflowList", () => {
 		const result = formatWorkflowList([1, 999, 2], mockWorkflowsMap);
 		expect(result).toBe(
 			"- id=1 name=Workflow 1. Default state: id=500 name=Unstarted\n- id=2 name=Workflow 2. Default state: id=501 name=Started",
+		);
+	});
+});
+
+describe("formatPullRequestList", () => {
+	test("should return empty string for empty branches array", () => {
+		const result = formatPullRequestList([]);
+		expect(result).toBe("");
+	});
+
+	test("should return empty string for branch without pull requests", () => {
+		const result = formatPullRequestList([{ id: 1, name: "branch1" } as Branch]);
+		expect(result).toBe("");
+	});
+
+	test("should format a single pull request", () => {
+		const result = formatPullRequestList([
+			{
+				id: 1,
+				name: "branch1",
+				pull_requests: [
+					{
+						id: 1,
+						title: "Test PR 1",
+						url: "https://github.com/user1/repo1/pull/1",
+						merged: true,
+					} as PullRequest,
+				],
+			} as Branch,
+		]);
+		expect(result).toBe(
+			"- Title: Test PR 1, Merged: Yes, URL: https://github.com/user1/repo1/pull/1",
+		);
+	});
+
+	test("should format multiple pull requests", () => {
+		const result = formatPullRequestList(mockBranches);
+		expect(result).toBe(
+			[
+				"- Title: Test PR 1, Merged: Yes, URL: https://github.com/user1/repo1/pull/1",
+				"- Title: Test PR 2, Merged: No, URL: https://github.com/user1/repo1/pull/2",
+			].join("\n"),
 		);
 	});
 });
