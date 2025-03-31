@@ -51,6 +51,21 @@ See the [official Cursor docs](https://docs.cursor.com/context/model-context-pro
 }
 ```
 
+## Issues and Troubleshooting
+
+If you run into problems using this MCP server, you have a couple of options:
+
+- Open an issue on [GitHub](https://github.com/useshortcut/mcp-server-shortcut/issues)
+- Ask for help in the community [Slack](https://shortcut.com/join-slack)
+
+You can also check the list of [common issues](#common-issues) below to see if there is a known solution already.
+
+### Common Issues and Solutions
+
+#### NPX command not working when using MISE for version management
+
+If you are using MISE for managing Node and NPM versions, you may encounter a "Client closed" error when trying to run the MCP server. Installing this extension into your IDE might help: https://github.com/hverlin/mise-vscode/.
+
 ## Development
 
 ### Installation
