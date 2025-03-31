@@ -37,7 +37,6 @@
 		"ts": "tsc -b",
 		"build": "bun build ./index.ts --outfile dist/index.js --target node",
 		"postbuild": "shx chmod +x dist/*.js",
-		"prepare": "husky",
-		"prepublish": "bun run build"
+		"prepare": "husky"
 	}
 }
