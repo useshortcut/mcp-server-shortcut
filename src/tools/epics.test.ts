@@ -1,8 +1,8 @@
-import { expect, test, describe, mock, beforeEach, spyOn } from "bun:test";
-import { EpicTools } from "./epics";
+import { beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Epic } from "@shortcut/client";
+import { EpicTools } from "./epics";
 
 describe("EpicTools", () => {
 	const mockEpics: Epic[] = [

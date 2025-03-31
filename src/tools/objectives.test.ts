@@ -1,8 +1,8 @@
-import { expect, test, describe, mock, spyOn } from "bun:test";
-import { ObjectiveTools } from "./objectives";
+import { describe, expect, mock, spyOn, test } from "bun:test";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Milestone } from "@shortcut/client";
+import { ObjectiveTools } from "./objectives";
 
 describe("ObjectiveTools", () => {
 	const mockCurrentUser = {

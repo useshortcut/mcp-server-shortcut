@@ -1,8 +1,8 @@
-import { expect, test, describe, mock, spyOn } from "bun:test";
-import { TeamTools } from "./teams";
+import { describe, expect, mock, spyOn, test } from "bun:test";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Group, Member, Workflow } from "@shortcut/client";
+import { TeamTools } from "./teams";
 
 describe("TeamTools", () => {
 	const mockMembers: Member[] = [

@@ -1,6 +1,6 @@
-import { z } from "zod";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import { BaseTools } from "./base";
 
 export class WorkflowTools extends BaseTools {
