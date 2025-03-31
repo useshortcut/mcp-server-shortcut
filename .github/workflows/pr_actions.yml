@@ -1,0 +1,49 @@
+name: PR Checks
+env:
+  HUSKY: 0
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  pr-checks:
+    strategy:
+      fail-fast: true
+
+    permissions:
+      contents: read
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+      - uses: biomejs/setup-biome@v2
+        with:
+          version: latest
+
+      - name: Install dependencies
+        working-directory: ./
+        run: |
+          npm ci
+
+      - name: Run linter
+        working-directory: ./
+        run: |
+          biome ci .
+
+      - name: Run type checker
+        working-directory: ./
+        run: |
+          npm run ts
+
+      - name: Run tests
+        working-directory: ./
+        run: |
+          npm run test
+
+      - name: Build
+        working-directory: ./
+        run: |
+          npm run build

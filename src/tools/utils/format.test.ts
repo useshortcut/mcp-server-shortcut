@@ -1,5 +1,5 @@
-import type { Branch, Member, PullRequest, Story, Workflow } from "@shortcut/client";
 import { describe, expect, test } from "bun:test";
+import type { Branch, Member, PullRequest, Story, Workflow } from "@shortcut/client";
 import {
 	formatMemberList,
 	formatPullRequestList,

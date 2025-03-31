@@ -1,8 +1,8 @@
-import { expect, test, describe, mock, spyOn } from "bun:test";
-import { IterationTools } from "./iterations";
+import { describe, expect, mock, spyOn, test } from "bun:test";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Iteration, Member, Story } from "@shortcut/client";
+import { IterationTools } from "./iterations";
 
 describe("IterationTools", () => {
 	const mockCurrentUser = {

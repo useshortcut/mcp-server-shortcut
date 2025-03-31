@@ -1,4 +1,4 @@
-import { expect, test, describe, beforeEach, jest } from "bun:test";
+import { beforeEach, describe, expect, jest, test } from "bun:test";
 import { Cache } from "./cache";
 
 describe("Cache", () => {

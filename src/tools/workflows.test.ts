@@ -1,8 +1,8 @@
-import { expect, test, describe, mock, spyOn } from "bun:test";
-import { WorkflowTools } from "./workflows";
+import { describe, expect, mock, spyOn, test } from "bun:test";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Workflow } from "@shortcut/client";
+import { WorkflowTools } from "./workflows";
 
 describe("WorkflowTools", () => {
 	const mockWorkflows: Workflow[] = [
