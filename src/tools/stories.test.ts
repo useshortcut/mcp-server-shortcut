@@ -1,16 +1,18 @@
-import { expect, test, describe, mock, beforeEach, spyOn } from "bun:test";
-import { StoryTools } from "./stories";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type {
-	StoryComment,
-	Member,
-	Story,
-	Workflow,
+	Branch,
 	CreateStoryParams,
-	UpdateStory,
+	Member,
 	MemberInfo,
+	PullRequest,
+	Story,
+	StoryComment,
+	UpdateStory,
+	Workflow,
 } from "@shortcut/client";
+import { beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
+import { StoryTools } from "./stories";
 
 describe("StoryTools", () => {
 	const mockCurrentUser = {
@@ -50,6 +52,22 @@ describe("StoryTools", () => {
 			blocker: false,
 			deadline: "2023-12-31",
 			owner_ids: ["user1"],
+			branches: [
+				{
+					id: 1,
+					name: "user1/sc-123/test-story-1",
+					created_at: "2023-01-01T12:00:00Z",
+					pull_requests: [
+						{
+							id: 1,
+							title: "Test PR 1",
+							url: "https://github.com/user1/repo1/pull/1",
+							merged: true,
+							closed: true,
+						} as unknown as PullRequest,
+					],
+				} as unknown as Branch,
+			],
 			comments: [
 				{
 					id: "comment1",
@@ -63,6 +81,7 @@ describe("StoryTools", () => {
 		{
 			id: 456,
 			name: "Test Story 2",
+			branches: [],
 			story_type: "bug",
 			app_url: "https://app.shortcut.com/test/story/456",
 			description: "Description for Test Story 2",
@@ -195,6 +214,9 @@ describe("StoryTools", () => {
 				"",
 				"Description:",
 				"Description for Test Story 1",
+				"",
+				"Pull Requests:",
+				"- Title: Test PR 1, Merged: Yes, URL: https://github.com/user1/repo1/pull/1",
 				"",
 				"Comments:",
 				"- From: @testuser on 2023-01-01T12:00:00Z.",
@@ -368,7 +390,9 @@ describe("StoryTools", () => {
 	describe("assignCurrentUserAsOwner method", () => {
 		const getStoryMock = mock(async () => mockStories[0]);
 		const getCurrentUserMock = mock(async () => mockCurrentUser);
-		const updateStoryMock = mock(async (_id: number, _args: UpdateStory) => ({ id: 123 }));
+		const updateStoryMock = mock(async (_id: number, _args: UpdateStory) => ({
+			id: 123,
+		}));
 
 		const mockClient = {
 			getStory: getStoryMock,
@@ -431,7 +455,9 @@ describe("StoryTools", () => {
 			owner_ids: ["user1", "user2"],
 		}));
 		const getCurrentUserMock = mock(async () => mockCurrentUser);
-		const updateStoryMock = mock(async (_id: number, _args: UpdateStory) => ({ id: 123 }));
+		const updateStoryMock = mock(async (_id: number, _args: UpdateStory) => ({
+			id: 123,
+		}));
 
 		const mockClient = {
 			getStory: getStoryMock,

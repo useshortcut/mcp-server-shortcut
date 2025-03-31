@@ -1,4 +1,4 @@
-import type { Member, Story, StorySearchResult, Workflow } from "@shortcut/client";
+import type { Branch, Member, Story, StorySearchResult, Workflow } from "@shortcut/client";
 
 export const formatStoryList = (
 	stories: (Story | StorySearchResult)[],
@@ -33,7 +33,18 @@ export const formatWorkflowList = (ids: number[], workflows: Map<number, Workflo
 		.filter((workflow): workflow is Workflow => !!workflow)
 		.map((workflow) => {
 			const defaultState = workflow.states.find((state) => state.id === workflow.default_state_id);
-			return `- id=${workflow.id} name=${workflow.name}. Default state: ${defaultState ? `id=${defaultState.id} name=${defaultState.name}` : "[Unknown]"}`;
+			return `- id=${workflow.id} name=${workflow.name}. Default state: ${
+				defaultState ? `id=${defaultState.id} name=${defaultState.name}` : "[Unknown]"
+			}`;
+		})
+		.join("\n");
+};
+
+export const formatPullRequestList = (branches: Branch[]) => {
+	return branches
+		.flatMap((branch) => branch.pull_requests || [])
+		.map((pr) => {
+			return `- Title: ${pr.title}, Merged: ${pr.merged ? "Yes" : "No"}, URL: ${pr.url}`;
 		})
 		.join("\n");
 };
