@@ -3,7 +3,12 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { MemberInfo, Story } from "@shortcut/client";
 import { z } from "zod";
 import { BaseTools } from "./base";
-import { formatMemberList, formatPullRequestList, formatStoryList } from "./utils/format";
+import {
+	formatMemberList,
+	formatPullRequestList,
+	formatStoryList,
+	formatTaskList,
+} from "./utils/format";
 import { type QueryParams, buildSearchQuery } from "./utils/search";
 import { date, has, is, user } from "./utils/validation";
 
@@ -328,6 +333,9 @@ ${
 		? `${formatPullRequestList(story.branches)}`
 		: " [None]"
 }
+
+Tasks:
+${story.tasks && story.tasks.length > 0 ? `${formatTaskList(story.tasks)}` : " [None]"}
 
 Comments:
 ${(story.comments || [])

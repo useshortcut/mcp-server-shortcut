@@ -9,6 +9,7 @@ import type {
 	PullRequest,
 	Story,
 	StoryComment,
+	Task,
 	UpdateStory,
 	Workflow,
 } from "@shortcut/client";
@@ -77,6 +78,18 @@ describe("StoryTools", () => {
 				} as unknown as StoryComment,
 			],
 			formatted_vcs_branch_name: "user1/sc-123/test-story-1",
+			tasks: [
+				{
+					id: 1,
+					description: "task 1",
+					complete: false,
+				},
+				{
+					id: 2,
+					description: "task 2",
+					complete: true,
+				},
+			] satisfies Partial<Task>[],
 		} as unknown as Story,
 		{
 			id: 456,
@@ -217,6 +230,10 @@ describe("StoryTools", () => {
 				"",
 				"Pull Requests:",
 				"- Title: Test PR 1, Merged: Yes, URL: https://github.com/user1/repo1/pull/1",
+				"",
+				"Tasks:",
+				"[ ] task 1",
+				"[X] task 2",
 				"",
 				"Comments:",
 				"- From: @testuser on 2023-01-01T12:00:00Z.",

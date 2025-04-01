@@ -1,4 +1,4 @@
-import type { Branch, Member, Story, StorySearchResult, Workflow } from "@shortcut/client";
+import type { Branch, Member, Story, StorySearchResult, Task, Workflow } from "@shortcut/client";
 
 export const formatStoryList = (
 	stories: (Story | StorySearchResult)[],
@@ -45,6 +45,14 @@ export const formatPullRequestList = (branches: Branch[]) => {
 		.flatMap((branch) => branch.pull_requests || [])
 		.map((pr) => {
 			return `- Title: ${pr.title}, Merged: ${pr.merged ? "Yes" : "No"}, URL: ${pr.url}`;
+		})
+		.join("\n");
+};
+
+export const formatTaskList = (tasks: Task[]) => {
+	return tasks
+		.map((task) => {
+			return `${task.complete ? "[X]" : "[ ]"} ${task.description}`;
 		})
 		.join("\n");
 };
