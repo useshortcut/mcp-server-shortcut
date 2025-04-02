@@ -8,7 +8,7 @@
 	},
 	"keywords": ["shortcut", "mcp", "modelcontextprotocol"],
 	"license": "MIT",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"type": "module",
 	"main": "dist/index.js",
 	"bin": {
@@ -36,6 +36,7 @@
 		"lint": "biome check ./",
 		"ts": "tsc -b",
 		"build": "bun build ./index.ts --outfile dist/index.js --target node",
+		"prepublish": "bun run build",
 		"postbuild": "shx chmod +x dist/*.js",
 		"prepare": "husky"
 	}
