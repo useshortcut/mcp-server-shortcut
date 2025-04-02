@@ -318,6 +318,6 @@ describe("formatPullRequestList", () => {
 
 	test("should format task lists", () => {
 		const result = formatTaskList(mockTasks);
-		expect(result).toBe(["[ ] task 1", "[X] task 2"].join("\n"));
+		expect(result).toBe(["- [ ] task 1", "- [X] task 2"].join("\n"));
 	});
 });
