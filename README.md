@@ -51,7 +51,37 @@ See the [official Cursor docs](https://docs.cursor.com/context/model-context-pro
 }
 ```
 
+### Claude Code
+
+See the [official Claude Code docs](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/tutorials#set-up-model-context-protocol-mcp) for more information.
+
+_You can add a new MCP server from the Claude Code CLI. But modifying the json file directly is simpler!_
+
+1. Open the Claude Code configuration file (it should be in `~/.claude.json`).
+2. Find the `projects` > `mcpServers` section and add the following details and save the file:
+
+```json
+{
+  "projects": {
+    "mcpServers": {
+      "shortcut": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@shortcut/mcp"
+        ],
+        "env": {
+          "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
+        }
+      }
+    }
+  }
+}
+```
+
 ## Issues and Troubleshooting
+
+Before doing anything else, please make sure you are running the latest version!
 
 If you run into problems using this MCP server, you have a couple of options:
 
