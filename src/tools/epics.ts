@@ -2,6 +2,7 @@ import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { BaseTools } from "./base";
+import { formatAsUnorderedList } from "./utils/format";
 import { type QueryParams, buildSearchQuery } from "./utils/search";
 import { date, has, is, user } from "./utils/validation";
 
@@ -72,7 +73,7 @@ export class EpicTools extends BaseTools {
 		if (!epics.length) return this.toResult(`Result: No epics found.`);
 
 		return this.toResult(`Result (first ${epics.length} shown of ${total} total epics found):
-${epics.map((epic) => `- ${epic.id}: ${epic.name}`).join("\n")}`);
+${formatAsUnorderedList(epics.map((epic) => `${epic.id}: ${epic.name}`))}`);
 	}
 
 	async getEpic(epicPublicId: number) {

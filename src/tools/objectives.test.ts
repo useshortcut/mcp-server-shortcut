@@ -59,7 +59,7 @@ describe("ObjectiveTools", () => {
 			expect(tools.getObjective).toHaveBeenCalledWith(1);
 
 			spyOn(tools, "searchObjectives").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
+				content: [{ text: "[None]", type: "text" }],
 			}));
 			await mockTool.mock.calls?.[1]?.[3]({ name: "test" });
 			expect(tools.searchObjectives).toHaveBeenCalledWith({ name: "test" });

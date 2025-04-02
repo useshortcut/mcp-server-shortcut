@@ -4,6 +4,7 @@ import type { MemberInfo, Story } from "@shortcut/client";
 import { z } from "zod";
 import { BaseTools } from "./base";
 import {
+	formatAsUnorderedList,
 	formatMemberList,
 	formatPullRequestList,
 	formatStoryList,
@@ -320,29 +321,18 @@ Blocked: ${story.blocked ? "Yes" : "No"}
 Blocking: ${story.blocker ? "Yes" : "No"}
 Due date: ${story.deadline ? story.deadline : "[None]"}
 Team: ${story.group_id ? `${story.group_id}` : "[None]"}
-Owners:${story.owner_ids.length ? `\n${formatMemberList(story.owner_ids, users)}` : " [None]"}
+${formatMemberList(story.owner_ids, users, "Owners")}
 Epic: ${story.epic_id ? `${story.epic_id}` : "[None]"}
 Iteration: ${story.iteration_id ? `${story.iteration_id}` : "[None]"}
 
 Description:
 ${story.description}
 
-External links:
-${
-	story.external_links && story.external_links.length > 0
-		? story.external_links.map((link) => `- ${link}`).join("\n")
-		: " [None]"
-}
+${formatAsUnorderedList(story.external_links, "External Links")}
 
-Pull Requests:
-${
-	story.branches && story.branches.length > 0
-		? `${formatPullRequestList(story.branches)}`
-		: " [None]"
-}
+${formatPullRequestList(story.branches)}
 
-Tasks:
-${story.tasks && story.tasks.length > 0 ? `${formatTaskList(story.tasks)}` : " [None]"}
+${formatTaskList(story.tasks)}
 
 Comments:
 ${(story.comments || [])

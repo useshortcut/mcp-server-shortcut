@@ -230,7 +230,7 @@ describe("StoryTools", () => {
 				"Description:",
 				"Description for Test Story 1",
 				"",
-				"External links:",
+				"External Links:",
 				"- https://example.com",
 				"- https://example2.com",
 				"",

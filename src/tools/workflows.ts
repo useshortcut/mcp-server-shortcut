@@ -2,6 +2,7 @@ import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { BaseTools } from "./base";
+import { formatAsUnorderedList } from "./utils/format";
 
 export class WorkflowTools extends BaseTools {
 	static create(client: ShortcutClientWrapper, server: McpServer) {
@@ -32,7 +33,7 @@ export class WorkflowTools extends BaseTools {
 Name: ${workflow.name}
 Description: ${workflow.description}
 States:
-${workflow.states.map((state) => `- id=${state.id} name=${state.name} (default: ${state.id === workflow.default_state_id ? "yes" : "no"}, type: ${state.type})`).join("\n")}`);
+${formatAsUnorderedList(workflow.states.map((state) => `id=${state.id} name=${state.name} (default: ${state.id === workflow.default_state_id ? "yes" : "no"}, type: ${state.type})`))}`);
 	}
 
 	async listWorkflows() {

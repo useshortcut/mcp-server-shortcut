@@ -75,7 +75,7 @@ describe("EpicTools", () => {
 			expect(tools.getEpic).toHaveBeenCalledWith(1);
 
 			spyOn(tools, "searchEpics").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
+				content: [{ text: "[None]", type: "text" }],
 			}));
 			await mockTool.mock.calls?.[1]?.[3]({ id: 1 });
 			expect(tools.searchEpics).toHaveBeenCalledWith({ id: 1 });
