@@ -52,7 +52,7 @@ export const formatPullRequestList = (branches: Branch[]) => {
 export const formatTaskList = (tasks: Task[]) => {
 	return tasks
 		.map((task) => {
-			return `${task.complete ? "[X]" : "[ ]"} ${task.description}`;
+			return `- ${task.complete ? "[X]" : "[ ]"} ${task.description}`;
 		})
 		.join("\n");
 };
