@@ -1,9 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import type { Branch, Member, PullRequest, Story, Workflow } from "@shortcut/client";
+import type { Branch, Member, PullRequest, Story, Task, Workflow } from "@shortcut/client";
 import {
 	formatMemberList,
 	formatPullRequestList,
 	formatStoryList,
+	formatTaskList,
 	formatWorkflowList,
 } from "./format";
 
@@ -115,6 +116,11 @@ const mockBranches = [
 		],
 	} as Branch,
 ];
+
+const mockTasks = [
+	{ description: "task 1", complete: false },
+	{ description: "task 2", complete: true },
+] satisfies Partial<Task>[] as Task[];
 
 describe("formatStoryList", () => {
 	test("should return empty string for empty stories array", () => {
@@ -308,5 +314,10 @@ describe("formatPullRequestList", () => {
 				"- Title: Test PR 2, Merged: No, URL: https://github.com/user1/repo1/pull/2",
 			].join("\n"),
 		);
+	});
+
+	test("should format task lists", () => {
+		const result = formatTaskList(mockTasks);
+		expect(result).toBe(["- [ ] task 1", "- [X] task 2"].join("\n"));
 	});
 });
