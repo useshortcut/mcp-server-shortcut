@@ -2,6 +2,7 @@ import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { BaseTools } from "./base";
+import { formatAsUnorderedList } from "./utils/format";
 import { type QueryParams, buildSearchQuery } from "./utils/search";
 import { date, has, is, user } from "./utils/validation";
 
@@ -63,7 +64,7 @@ export class ObjectiveTools extends BaseTools {
 		if (!milestones.length) return this.toResult(`Result: No milestones found.`);
 
 		return this.toResult(`Result (first ${milestones.length} shown of ${total} total milestones found):
-${milestones.map((milestone) => `- ${milestone.id}: ${milestone.name}`).join("\n")}`);
+${formatAsUnorderedList(milestones.map((milestone) => `${milestone.id}: ${milestone.name}`))}`);
 	}
 
 	async getObjective(objectivePublicId: number) {

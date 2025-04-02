@@ -31,7 +31,7 @@ export class TeamTools extends BaseTools {
 Name: ${team.name}
 Mention name: ${team.mention_name}
 Description: ${team.description}
-Members:${team.member_ids.length > 0 ? `\n${formatMemberList(team.member_ids, users)}` : " [None]"}`);
+${formatMemberList(team.member_ids, users)}`);
 	}
 
 	async getTeams() {
@@ -49,7 +49,7 @@ ${teams
 Name: ${team.name}
 Description: ${team.description}
 Number of Members: ${team.member_ids.length}
-Workflows: ${team.workflow_ids.length > 0 ? `\n${formatWorkflowList(team.workflow_ids, workflows)}` : "[None]"}`,
+${formatWorkflowList(team.workflow_ids, workflows)}`,
 	)
 	.join("\n\n")}`);
 	}

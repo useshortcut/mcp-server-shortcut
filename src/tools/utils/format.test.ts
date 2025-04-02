@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { Branch, Member, PullRequest, Story, Task, Workflow } from "@shortcut/client";
 import {
+	formatAsUnorderedList,
 	formatMemberList,
 	formatPullRequestList,
 	formatStoryList,
@@ -122,10 +123,32 @@ const mockTasks = [
 	{ description: "task 2", complete: true },
 ] satisfies Partial<Task>[] as Task[];
 
+describe("formatAsUnorderedList", () => {
+	test("should format an empty list without label", () => {
+		const result = formatAsUnorderedList([]);
+		expect(result).toBe("[None]");
+	});
+
+	test("should format an empty list with label", () => {
+		const result = formatAsUnorderedList([], "Label");
+		expect(result).toBe("Label: [None]");
+	});
+
+	test("should format a list without label", () => {
+		const result = formatAsUnorderedList(["item1", "item2"]);
+		expect(result).toBe("- item1\n- item2");
+	});
+
+	test("should format a list with label", () => {
+		const result = formatAsUnorderedList(["item1", "item2"], "Label");
+		expect(result).toBe("Label:\n- item1\n- item2");
+	});
+});
+
 describe("formatStoryList", () => {
 	test("should return empty string for empty stories array", () => {
 		const result = formatStoryList([], mockUsers);
-		expect(result).toBe("");
+		expect(result).toBe("[None]");
 	});
 
 	test("should format a story with team, epic, and iteration", () => {
@@ -215,62 +238,62 @@ describe("formatStoryList", () => {
 describe("formatMemberList", () => {
 	test("should return empty string for empty ids array", () => {
 		const result = formatMemberList([], mockUsers);
-		expect(result).toBe("");
+		expect(result).toBe("Members: [None]");
 	});
 
 	test("should format a single member", () => {
 		const result = formatMemberList(["user1"], mockUsers);
-		expect(result).toBe("- id=user1 @john");
+		expect(result).toBe("Members:\n- id=user1 @john");
 	});
 
 	test("should format multiple members", () => {
 		const result = formatMemberList(["user1", "user2"], mockUsers);
-		expect(result).toBe("- id=user1 @john\n- id=user2 @jane");
+		expect(result).toBe("Members:\n- id=user1 @john\n- id=user2 @jane");
 	});
 
 	test("should not filter out non-existent members", () => {
 		const result = formatMemberList(["nonexistent"], mockUsers);
-		expect(result).toBe("- id=nonexistent [Unknown]");
+		expect(result).toBe("Members:\n- id=nonexistent [Unknown]");
 	});
 
 	test("should handle a mix of existing and non-existing members", () => {
 		const result = formatMemberList(["user1", "nonexistent", "user2"], mockUsers);
-		expect(result).toBe("- id=user1 @john\n- id=nonexistent [Unknown]\n- id=user2 @jane");
+		expect(result).toBe("Members:\n- id=user1 @john\n- id=nonexistent [Unknown]\n- id=user2 @jane");
 	});
 });
 
 describe("formatWorkflowList", () => {
 	test("should return empty string for empty ids array", () => {
 		const result = formatWorkflowList([], mockWorkflowsMap);
-		expect(result).toBe("");
+		expect(result).toBe("Workflows: [None]");
 	});
 
 	test("should format a single workflow", () => {
 		const result = formatWorkflowList([1], mockWorkflowsMap);
-		expect(result).toBe("- id=1 name=Workflow 1. Default state: id=500 name=Unstarted");
+		expect(result).toBe("Workflows:\n- id=1 name=Workflow 1. Default state: id=500 name=Unstarted");
 	});
 
 	test("should format multiple workflows", () => {
 		const result = formatWorkflowList([1, 2], mockWorkflowsMap);
 		expect(result).toBe(
-			"- id=1 name=Workflow 1. Default state: id=500 name=Unstarted\n- id=2 name=Workflow 2. Default state: id=501 name=Started",
+			"Workflows:\n- id=1 name=Workflow 1. Default state: id=500 name=Unstarted\n- id=2 name=Workflow 2. Default state: id=501 name=Started",
 		);
 	});
 
 	test("should filter out non-existent workflows", () => {
 		const result = formatWorkflowList([999], mockWorkflowsMap);
-		expect(result).toBe("");
+		expect(result).toBe("Workflows: [None]");
 	});
 
 	test("should handle a workflow with unknown default state", () => {
 		const result = formatWorkflowList([3], mockWorkflowsMap);
-		expect(result).toBe("- id=3 name=Workflow 3. Default state: [Unknown]");
+		expect(result).toBe("Workflows:\n- id=3 name=Workflow 3. Default state: [Unknown]");
 	});
 
 	test("should handle a mix of existing and non-existing workflows", () => {
 		const result = formatWorkflowList([1, 999, 2], mockWorkflowsMap);
 		expect(result).toBe(
-			"- id=1 name=Workflow 1. Default state: id=500 name=Unstarted\n- id=2 name=Workflow 2. Default state: id=501 name=Started",
+			"Workflows:\n- id=1 name=Workflow 1. Default state: id=500 name=Unstarted\n- id=2 name=Workflow 2. Default state: id=501 name=Started",
 		);
 	});
 });
@@ -278,12 +301,12 @@ describe("formatWorkflowList", () => {
 describe("formatPullRequestList", () => {
 	test("should return empty string for empty branches array", () => {
 		const result = formatPullRequestList([]);
-		expect(result).toBe("");
+		expect(result).toBe("Pull Requests: [None]");
 	});
 
 	test("should return empty string for branch without pull requests", () => {
 		const result = formatPullRequestList([{ id: 1, name: "branch1" } as Branch]);
-		expect(result).toBe("");
+		expect(result).toBe("Pull Requests: [None]");
 	});
 
 	test("should format a single pull request", () => {
@@ -302,7 +325,7 @@ describe("formatPullRequestList", () => {
 			} as Branch,
 		]);
 		expect(result).toBe(
-			"- Title: Test PR 1, Merged: Yes, URL: https://github.com/user1/repo1/pull/1",
+			"Pull Requests:\n- Title: Test PR 1, Merged: Yes, URL: https://github.com/user1/repo1/pull/1",
 		);
 	});
 
@@ -310,14 +333,17 @@ describe("formatPullRequestList", () => {
 		const result = formatPullRequestList(mockBranches);
 		expect(result).toBe(
 			[
+				"Pull Requests:",
 				"- Title: Test PR 1, Merged: Yes, URL: https://github.com/user1/repo1/pull/1",
 				"- Title: Test PR 2, Merged: No, URL: https://github.com/user1/repo1/pull/2",
 			].join("\n"),
 		);
 	});
+});
 
+describe("formatTaskList", () => {
 	test("should format task lists", () => {
 		const result = formatTaskList(mockTasks);
-		expect(result).toBe(["- [ ] task 1", "- [X] task 2"].join("\n"));
+		expect(result).toBe("Tasks:\n- [ ] task 1\n- [X] task 2");
 	});
 });

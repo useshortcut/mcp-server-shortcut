@@ -94,7 +94,7 @@ describe("IterationTools", () => {
 			expect(tools.getIteration).toHaveBeenCalledWith(1);
 
 			spyOn(tools, "searchIterations").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
+				content: [{ text: "[None]", type: "text" }],
 			}));
 			await mockTool.mock.calls?.[2]?.[3]({ name: "test" });
 			expect(tools.searchIterations).toHaveBeenCalledWith({ name: "test" });

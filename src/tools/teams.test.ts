@@ -194,7 +194,7 @@ describe("TeamTools", () => {
 				"Name: Team 1",
 				"Description: Description for Team 1",
 				"Number of Members: 2",
-				"Workflows: ",
+				"Workflows:",
 				"- id=1 name=Workflow 1. Default state: id=101 name=Unstarted",
 				"- id=2 name=Workflow 2. Default state: id=201 name=Backlog",
 				"",
@@ -202,7 +202,7 @@ describe("TeamTools", () => {
 				"Name: Team 2",
 				"Description: Description for Team 2",
 				"Number of Members: 1",
-				"Workflows: ",
+				"Workflows:",
 				"- id=1 name=Workflow 1. Default state: id=101 name=Unstarted",
 			]);
 		});

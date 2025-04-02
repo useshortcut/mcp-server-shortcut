@@ -2,7 +2,7 @@ import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { BaseTools } from "./base";
-import { formatStoryList } from "./utils/format";
+import { formatAsUnorderedList, formatStoryList } from "./utils/format";
 import { type QueryParams, buildSearchQuery } from "./utils/search";
 import { date } from "./utils/validation";
 
@@ -81,7 +81,7 @@ ${formatStoryList(stories, owners)}`);
 		if (!iterations.length) return this.toResult(`Result: No iterations found.`);
 
 		return this.toResult(`Result (first ${iterations.length} shown of ${total} total iterations found):
-${iterations.map((iteration) => `- ${iteration.id}: ${iteration.name} (Start date: ${iteration.start_date}, End date: ${iteration.end_date})`).join("\n")}`);
+${formatAsUnorderedList(iterations.map((iteration) => `${iteration.id}: ${iteration.name} (Start date: ${iteration.start_date}, End date: ${iteration.end_date})`))}`);
 	}
 
 	async getIteration(iterationPublicId: number) {
