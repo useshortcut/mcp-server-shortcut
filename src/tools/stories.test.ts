@@ -78,6 +78,7 @@ describe("StoryTools", () => {
 				} as unknown as StoryComment,
 			],
 			formatted_vcs_branch_name: "user1/sc-123/test-story-1",
+			external_links: ["https://example.com", "https://example2.com"],
 			tasks: [
 				{
 					id: 1,
@@ -95,6 +96,7 @@ describe("StoryTools", () => {
 			id: 456,
 			name: "Test Story 2",
 			branches: [],
+			external_links: [],
 			story_type: "bug",
 			app_url: "https://app.shortcut.com/test/story/456",
 			description: "Description for Test Story 2",
@@ -227,6 +229,10 @@ describe("StoryTools", () => {
 				"",
 				"Description:",
 				"Description for Test Story 1",
+				"",
+				"External links:",
+				"- https://example.com",
+				"- https://example2.com",
 				"",
 				"Pull Requests:",
 				"- Title: Test PR 1, Merged: Yes, URL: https://github.com/user1/repo1/pull/1",

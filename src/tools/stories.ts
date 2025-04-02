@@ -327,6 +327,13 @@ Iteration: ${story.iteration_id ? `${story.iteration_id}` : "[None]"}
 Description:
 ${story.description}
 
+External links:
+${
+	story.external_links && story.external_links.length > 0
+		? story.external_links.map((link) => `- ${link}`).join("\n")
+		: " [None]"
+}
+
 Pull Requests:
 ${
 	story.branches && story.branches.length > 0
