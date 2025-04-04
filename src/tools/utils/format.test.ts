@@ -1,9 +1,18 @@
 import { describe, expect, test } from "bun:test";
-import type { Branch, Member, PullRequest, Story, Task, Workflow } from "@shortcut/client";
+import type {
+	Branch,
+	IterationStats,
+	Member,
+	PullRequest,
+	Story,
+	Task,
+	Workflow,
+} from "@shortcut/client";
 import {
 	formatAsUnorderedList,
 	formatMemberList,
 	formatPullRequestList,
+	formatStats,
 	formatStoryList,
 	formatTaskList,
 	formatWorkflowList,
@@ -345,5 +354,47 @@ describe("formatTaskList", () => {
 	test("should format task lists", () => {
 		const result = formatTaskList(mockTasks);
 		expect(result).toBe("Tasks:\n- [ ] task 1\n- [X] task 2");
+	});
+});
+
+describe("formatStats", () => {
+	test("should format stats with points", () => {
+		const result = formatStats(
+			{
+				num_stories_backlog: 1,
+				num_stories_unstarted: 2,
+				num_stories_started: 3,
+				num_stories_done: 4,
+				num_points_backlog: 10,
+				num_points_unstarted: 20,
+				num_points_started: 30,
+				num_points_done: 40,
+				num_stories_unestimated: 1,
+			} as IterationStats,
+			true,
+		);
+		expect(result).toBe(
+			"Stats:\n- Total stories: 10 (100 points)\n- Unstarted stories: 3 (30 points)\n- Stories in progress: 3 (30 points)\n- Completed stories: 4 (40 points)\n- (1 of the stories are unestimated)",
+		);
+	});
+
+	test("should format stats without points", () => {
+		const result = formatStats(
+			{
+				num_stories_backlog: 1,
+				num_stories_unstarted: 2,
+				num_stories_started: 3,
+				num_stories_done: 4,
+				num_points_backlog: 10,
+				num_points_unstarted: 20,
+				num_points_started: 30,
+				num_points_done: 40,
+				num_stories_unestimated: 1,
+			} as IterationStats,
+			false,
+		);
+		expect(result).toBe(
+			"Stats:\n- Total stories: 10\n- Unstarted stories: 3\n- Stories in progress: 3\n- Completed stories: 4",
+		);
 	});
 });

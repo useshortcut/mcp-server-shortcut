@@ -2,7 +2,7 @@ import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { BaseTools } from "./base";
-import { formatAsUnorderedList } from "./utils/format";
+import { formatAsUnorderedList, formatStats } from "./utils/format";
 import { type QueryParams, buildSearchQuery } from "./utils/search";
 import { date, has, is, user } from "./utils/validation";
 
@@ -81,6 +81,9 @@ ${formatAsUnorderedList(epics.map((epic) => `${epic.id}: ${epic.name}`))}`);
 
 		if (!epic) throw new Error(`Failed to retrieve Shortcut epic with public ID: ${epicPublicId}`);
 
+		const currentUser = await this.client.getCurrentUser();
+		const showPoints = !!currentUser?.workspace2?.estimate_scale?.length;
+
 		return this.toResult(`Epic: ${epicPublicId}
 URL: ${epic.app_url}
 Name: ${epic.name}
@@ -90,6 +93,8 @@ Started: ${epic.started ? "Yes" : "No"}
 Due date: ${epic.deadline ? epic.deadline : "[Not set]"}
 Team: ${epic.group_id ? `${epic.group_id}` : "[None]"}
 Objective: ${epic.milestone_id ? `${epic.milestone_id}` : "[None]"}
+
+${formatStats(epic.stats, showPoints)}
 
 Description:
 ${epic.description}`);

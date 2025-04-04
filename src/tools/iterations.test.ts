@@ -1,7 +1,7 @@
 import { describe, expect, mock, spyOn, test } from "bun:test";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Iteration, Member, Story } from "@shortcut/client";
+import type { Iteration, Member, MemberInfo, Story } from "@shortcut/client";
 import { IterationTools } from "./iterations";
 
 describe("IterationTools", () => {
@@ -11,7 +11,10 @@ describe("IterationTools", () => {
 			mention_name: "testuser",
 			name: "Test User",
 		},
-	} as Member;
+		workspace2: {
+			estimate_scale: [],
+		},
+	} as unknown as Member & MemberInfo;
 
 	const mockMembers: Member[] = [
 		mockCurrentUser,
@@ -48,6 +51,12 @@ describe("IterationTools", () => {
 			end_date: "2023-01-14",
 			status: "started",
 			app_url: "https://app.shortcut.com/test/iteration/1",
+			stats: {
+				num_stories_backlog: 1,
+				num_stories_unstarted: 2,
+				num_stories_started: 3,
+				num_stories_done: 4,
+			},
 		} as Iteration,
 		{
 			id: 2,
@@ -57,12 +66,24 @@ describe("IterationTools", () => {
 			end_date: "2023-01-28",
 			status: "unstarted",
 			app_url: "https://app.shortcut.com/test/iteration/2",
+			stats: {
+				num_stories_backlog: 1,
+				num_stories_unstarted: 2,
+				num_stories_started: 3,
+				num_stories_done: 4,
+			},
 		} as Iteration,
 	];
 
+	const createMockClient = (methods?: object) =>
+		({
+			getCurrentUser: mock(async () => mockCurrentUser),
+			...methods,
+		}) as unknown as ShortcutClientWrapper;
+
 	describe("create method", () => {
 		test("should register the correct tools with the server", () => {
-			const mockClient = {} as ShortcutClientWrapper;
+			const mockClient = createMockClient();
 			const mockTool = mock();
 			const mockServer = { tool: mockTool } as unknown as McpServer;
 
@@ -75,7 +96,7 @@ describe("IterationTools", () => {
 		});
 
 		test("should call correct function from tool", async () => {
-			const mockClient = {} as ShortcutClientWrapper;
+			const mockClient = createMockClient();
 			const mockTool = mock();
 			const mockServer = { tool: mockTool } as unknown as McpServer;
 
@@ -112,10 +133,10 @@ describe("IterationTools", () => {
 			return map;
 		});
 
-		const mockClient = {
+		const mockClient = createMockClient({
 			listIterationStories: listIterationStoriesMock,
 			getUserMap: getUserMapMock,
-		} as unknown as ShortcutClientWrapper;
+		});
 
 		test("should return formatted list of stories in an iteration", async () => {
 			const iterationTools = new IterationTools(mockClient);
@@ -130,9 +151,11 @@ describe("IterationTools", () => {
 		});
 
 		test("should throw error when stories are not found", async () => {
-			const iterationTools = new IterationTools({
-				listIterationStories: mock(async () => ({ stories: null })),
-			} as unknown as ShortcutClientWrapper);
+			const iterationTools = new IterationTools(
+				createMockClient({
+					listIterationStories: mock(async () => ({ stories: null })),
+				}),
+			);
 
 			await expect(() => iterationTools.getIterationStories(1)).toThrow(
 				"Failed to retrieve Shortcut stories in iteration with public ID: 1.",
@@ -145,15 +168,13 @@ describe("IterationTools", () => {
 			iterations: mockIterations,
 			total: mockIterations.length,
 		}));
-		const getCurrentUserMock = mock(async () => mockCurrentUser);
-
-		const mockClient = {
-			searchIterations: searchIterationsMock,
-			getCurrentUser: getCurrentUserMock,
-		} as unknown as ShortcutClientWrapper;
 
 		test("should return formatted list of iterations when iterations are found", async () => {
-			const iterationTools = new IterationTools(mockClient);
+			const iterationTools = new IterationTools(
+				createMockClient({
+					searchIterations: searchIterationsMock,
+				}),
+			);
 			const result = await iterationTools.searchIterations({});
 
 			expect(result.content[0].type).toBe("text");
@@ -165,10 +186,11 @@ describe("IterationTools", () => {
 		});
 
 		test("should return no iterations found message when no iterations exist", async () => {
-			const iterationTools = new IterationTools({
-				searchIterations: mock(async () => ({ iterations: [], total: 0 })),
-				getCurrentUser: getCurrentUserMock,
-			} as unknown as ShortcutClientWrapper);
+			const iterationTools = new IterationTools(
+				createMockClient({
+					searchIterations: mock(async () => ({ iterations: [], total: 0 })),
+				}),
+			);
 
 			const result = await iterationTools.searchIterations({});
 
@@ -177,10 +199,11 @@ describe("IterationTools", () => {
 		});
 
 		test("should throw error when iterations search fails", async () => {
-			const iterationTools = new IterationTools({
-				searchIterations: mock(async () => ({ iterations: null, total: 0 })),
-				getCurrentUser: getCurrentUserMock,
-			} as unknown as ShortcutClientWrapper);
+			const iterationTools = new IterationTools(
+				createMockClient({
+					searchIterations: mock(async () => ({ iterations: null, total: 0 })),
+				}),
+			);
 
 			await expect(() => iterationTools.searchIterations({})).toThrow(
 				"Failed to search for iterations matching your query",
@@ -193,12 +216,12 @@ describe("IterationTools", () => {
 			mockIterations.find((iteration) => iteration.id === id),
 		);
 
-		const mockClient = {
-			getIteration: getIterationMock,
-		} as unknown as ShortcutClientWrapper;
-
 		test("should return formatted iteration details when iteration is found", async () => {
-			const iterationTools = new IterationTools(mockClient);
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getIteration: getIterationMock,
+				}),
+			);
 			const result = await iterationTools.getIteration(1);
 
 			expect(result.content[0].type).toBe("text");
@@ -212,15 +235,23 @@ describe("IterationTools", () => {
 				"Started: Yes",
 				"Team: [None]",
 				"",
+				"Stats:",
+				"- Total stories: 10",
+				"- Unstarted stories: 3",
+				"- Stories in progress: 3",
+				"- Completed stories: 4",
+				"",
 				"Description:",
 				"Description for Iteration 1",
 			]);
 		});
 
 		test("should handle iteration not found", async () => {
-			const iterationTools = new IterationTools({
-				getIteration: mock(async () => null),
-			} as unknown as ShortcutClientWrapper);
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getIteration: mock(async () => null),
+				}),
+			);
 
 			await expect(() => iterationTools.getIteration(999)).toThrow(
 				"Failed to retrieve Shortcut iteration with public ID: 999.",
@@ -228,12 +259,14 @@ describe("IterationTools", () => {
 		});
 
 		test("should handle completed iteration", async () => {
-			const iterationTools = new IterationTools({
-				getIteration: mock(async () => ({
-					...mockIterations[0],
-					status: "completed",
-				})),
-			} as unknown as ShortcutClientWrapper);
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getIteration: mock(async () => ({
+						...mockIterations[0],
+						status: "completed",
+					})),
+				}),
+			);
 
 			const result = await iterationTools.getIteration(1);
 

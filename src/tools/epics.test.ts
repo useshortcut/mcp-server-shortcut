@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Epic } from "@shortcut/client";
+import type { Epic, Member, MemberInfo } from "@shortcut/client";
 import { EpicTools } from "./epics";
 
 describe("EpicTools", () => {
@@ -16,6 +16,12 @@ describe("EpicTools", () => {
 			archived: false,
 			deadline: "2025-04-01",
 			app_url: "https://app.shortcut.com/test/epic/1",
+			stats: {
+				num_stories_backlog: 1,
+				num_stories_unstarted: 2,
+				num_stories_started: 3,
+				num_stories_done: 4,
+			},
 		} as Epic,
 		{
 			id: 2,
@@ -27,6 +33,12 @@ describe("EpicTools", () => {
 			archived: false,
 			deadline: null,
 			app_url: "https://app.shortcut.com/test/epic/2",
+			stats: {
+				num_stories_backlog: 1,
+				num_stories_unstarted: 2,
+				num_stories_started: 3,
+				num_stories_done: 4,
+			},
 		} as Epic,
 		{
 			id: 3,
@@ -38,6 +50,12 @@ describe("EpicTools", () => {
 			archived: true,
 			deadline: "2025-03-01",
 			app_url: "https://app.shortcut.com/test/epic/3",
+			stats: {
+				num_stories_backlog: 1,
+				num_stories_unstarted: 2,
+				num_stories_started: 3,
+				num_stories_done: 4,
+			},
 		} as Epic,
 	];
 
@@ -45,11 +63,20 @@ describe("EpicTools", () => {
 		id: "user1",
 		mention_name: "testuser",
 		name: "Test User",
-	};
+		workspace2: {
+			estimate_scale: [],
+		},
+	} as unknown as Member & MemberInfo;
+
+	const createMockClient = (methods?: object) =>
+		({
+			getCurrentUser: mock(async () => mockCurrentUser),
+			...methods,
+		}) as unknown as ShortcutClientWrapper;
 
 	describe("create method", () => {
 		test("should register the correct tools with the server", () => {
-			const mockClient = {} as ShortcutClientWrapper;
+			const mockClient = createMockClient();
 			const mockTool = mock();
 			const mockServer = { tool: mockTool } as unknown as McpServer;
 
@@ -62,7 +89,7 @@ describe("EpicTools", () => {
 		});
 
 		test("should call correct function from tool", async () => {
-			const mockClient = {} as ShortcutClientWrapper;
+			const mockClient = createMockClient();
 			const mockTool = mock();
 			const mockServer = { tool: mockTool } as unknown as McpServer;
 
@@ -84,7 +111,7 @@ describe("EpicTools", () => {
 
 	describe("getEpic method", () => {
 		const getEpicMock = mock(async (id: number) => mockEpics.find((epic) => epic.id === id));
-		const mockClient = { getEpic: getEpicMock } as unknown as ShortcutClientWrapper;
+		const mockClient = createMockClient({ getEpic: getEpicMock });
 
 		test("should return formatted epic details when epic is found", async () => {
 			const epicTools = new EpicTools(mockClient);
@@ -101,6 +128,12 @@ describe("EpicTools", () => {
 				"Due date: 2025-04-01",
 				"Team: [None]",
 				"Objective: [None]",
+				"",
+				"Stats:",
+				"- Total stories: 10",
+				"- Unstarted stories: 3",
+				"- Stories in progress: 3",
+				"- Completed stories: 4",
 				"",
 				"Description:",
 				"Description for Epic 1",
@@ -123,6 +156,12 @@ describe("EpicTools", () => {
 				"Team: [None]",
 				"Objective: [None]",
 				"",
+				"Stats:",
+				"- Total stories: 10",
+				"- Unstarted stories: 3",
+				"- Stories in progress: 3",
+				"- Completed stories: 4",
+				"",
 				"Description:",
 				"Description for Epic 3",
 			]);
@@ -144,6 +183,12 @@ describe("EpicTools", () => {
 				"Team: [None]",
 				"Objective: [None]",
 				"",
+				"Stats:",
+				"- Total stories: 10",
+				"- Unstarted stories: 3",
+				"- Stories in progress: 3",
+				"- Completed stories: 4",
+				"",
 				"Description:",
 				"Description for Epic 2",
 			]);
@@ -162,10 +207,9 @@ describe("EpicTools", () => {
 			epics: mockEpics,
 			total: mockEpics.length,
 		}));
-		const mockClient = {
-			getCurrentUser: mock(async () => mockCurrentUser),
+		const mockClient = createMockClient({
 			searchEpics: searchEpicsMock,
-		} as unknown as ShortcutClientWrapper;
+		});
 
 		beforeEach(() => {
 			searchEpicsMock.mockClear();
@@ -188,10 +232,11 @@ describe("EpicTools", () => {
 		});
 
 		test("should return no epics found message when no epics match", async () => {
-			const epicTools = new EpicTools({
-				...mockClient,
-				searchEpics: mock(async () => ({ epics: [], total: 0 })),
-			} as unknown as ShortcutClientWrapper);
+			const epicTools = new EpicTools(
+				createMockClient({
+					searchEpics: mock(async () => ({ epics: [], total: 0 })),
+				}),
+			);
 			const result = await epicTools.searchEpics({});
 
 			expect(result.content[0].type).toBe("text");
@@ -199,10 +244,11 @@ describe("EpicTools", () => {
 		});
 
 		test("should throw error when epics is null", async () => {
-			const epicTools = new EpicTools({
-				...mockClient,
-				searchEpics: mock(async () => ({ epics: null, total: 0 })),
-			} as unknown as ShortcutClientWrapper);
+			const epicTools = new EpicTools(
+				createMockClient({
+					searchEpics: mock(async () => ({ epics: null, total: 0 })),
+				}),
+			);
 			await expect(() => epicTools.searchEpics({})).toThrow(
 				'Failed to search for epics matching your query: ""',
 			);
