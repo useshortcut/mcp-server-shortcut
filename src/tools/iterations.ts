@@ -101,6 +101,12 @@ Completed: ${iteration.status === "completed" ? "Yes" : "No"}
 Started: ${iteration.status === "started" ? "Yes" : "No"}
 Team: ${iteration.group_ids?.length ? `${iteration.group_ids.join(", ")}` : "[None]"}
 
+Stats:
+- Total number of stories: ${iteration.stats.num_stories_backlog + iteration.stats.num_stories_unstarted + iteration.stats.num_stories_started + iteration.stats.num_stories_done}
+- Unstarted stories: ${iteration.stats.num_stories_backlog + iteration.stats.num_stories_unstarted}
+- Stories in progress: ${iteration.stats.num_stories_started}
+- Completed stories: ${iteration.stats.num_stories_done}
+
 Description:
 ${iteration.description}`);
 	}
