@@ -2,7 +2,7 @@ import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { BaseTools } from "./base";
-import { formatAsUnorderedList, formatStoryList } from "./utils/format";
+import { formatAsUnorderedList, formatStats, formatStoryList } from "./utils/format";
 import { type QueryParams, buildSearchQuery } from "./utils/search";
 import { date } from "./utils/validation";
 
@@ -92,6 +92,9 @@ ${formatAsUnorderedList(iterations.map((iteration) => `${iteration.id}: ${iterat
 				`Failed to retrieve Shortcut iteration with public ID: ${iterationPublicId}.`,
 			);
 
+		const currentUser = await this.client.getCurrentUser();
+		const showPoints = !!currentUser?.workspace2?.estimate_scale?.length;
+
 		return this.toResult(`Iteration: ${iterationPublicId}
 Url: ${iteration.app_url}
 Name: ${iteration.name}
@@ -100,6 +103,8 @@ End date: ${iteration.end_date}
 Completed: ${iteration.status === "completed" ? "Yes" : "No"}
 Started: ${iteration.status === "started" ? "Yes" : "No"}
 Team: ${iteration.group_ids?.length ? `${iteration.group_ids.join(", ")}` : "[None]"}
+
+${formatStats(iteration.stats, showPoints)}
 
 Description:
 ${iteration.description}`);
