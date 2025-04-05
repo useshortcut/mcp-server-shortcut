@@ -175,6 +175,24 @@ The story will be added to the default state for the workflow.
 			async ({ storyPublicId }) => await tools.unassignCurrentUserAsOwner(storyPublicId),
 		);
 
+		server.tool(
+			"create-story-comment",
+			"Create a comment on a story",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+				text: z.string().min(1).describe("The text of the comment"),
+				authorId: z
+					.string()
+					.uuid()
+					.optional()
+					.describe(
+						"The ID of the author of the comment. If not, the current user will be used from SHORTCUT_API_TOKEN.",
+					),
+			},
+			async ({ storyPublicId, text, authorId }) =>
+				await tools.createStoryComment({ storyPublicId, text, authorId }),
+		);
+
 		return tools;
 	}
 
@@ -345,5 +363,35 @@ ${(story.comments || [])
 		} on ${comment.created_at}.\n${comment.text || ""}`;
 	})
 	.join("\n\n")}`);
+	}
+
+	async createStoryComment({
+		storyPublicId,
+		text,
+		authorId,
+	}: {
+		storyPublicId: number;
+		text: string;
+		authorId?: string;
+	}) {
+		if (!storyPublicId) throw new Error("Story public ID is required");
+		if (!text) throw new Error("Story comment text is required");
+
+		const story = await this.client.getStory(storyPublicId);
+		if (!story) {
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
+		}
+
+		const storyComment = await this.client.createStoryComment(storyPublicId, text, authorId);
+
+		let responseMessage = `Message: Created comment on story sc-${storyPublicId}
+Comment ID: ${storyComment.id}
+Comment Text: ${storyComment.text}`;
+
+		if (authorId) {
+			responseMessage += `\nAuthor ID: ${authorId}`;
+		}
+
+		return this.toResult(responseMessage);
 	}
 }
