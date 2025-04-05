@@ -3,6 +3,7 @@ import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type {
 	Branch,
+	CreateStoryCommentParams,
 	CreateStoryParams,
 	Member,
 	MemberInfo,
@@ -135,13 +136,14 @@ describe("StoryTools", () => {
 
 			StoryTools.create(mockClient, mockServer);
 
-			expect(mockTool).toHaveBeenCalledTimes(6);
+			expect(mockTool).toHaveBeenCalledTimes(7);
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-story-branch-name");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-story");
 			expect(mockTool.mock.calls?.[2]?.[0]).toBe("search-stories");
 			expect(mockTool.mock.calls?.[3]?.[0]).toBe("create-story");
 			expect(mockTool.mock.calls?.[4]?.[0]).toBe("assign-current-user-as-owner");
 			expect(mockTool.mock.calls?.[5]?.[0]).toBe("unassign-current-user-as-owner");
+			expect(mockTool.mock.calls?.[6]?.[0]).toBe("create-story-comment");
 		});
 
 		test("should call correct function from tool", async () => {
@@ -186,6 +188,15 @@ describe("StoryTools", () => {
 			}));
 			await mockTool.mock.calls?.[5]?.[3]({ storyPublicId: 123 });
 			expect(tools.unassignCurrentUserAsOwner).toHaveBeenCalledWith(123);
+
+			spyOn(tools, "createStoryComment").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[6]?.[3]({ storyPublicId: 123, text: "Test comment" });
+			expect(tools.createStoryComment).toHaveBeenCalledWith({
+				storyPublicId: 123,
+				text: "Test comment",
+			});
 		});
 	});
 
@@ -591,6 +602,81 @@ describe("StoryTools", () => {
 			expect(result.content[0].text).toBe(
 				"Branch name for story sc-123: testuser/sc-123/special-characters-_",
 			);
+		});
+	});
+
+	describe("createStoryComment method", () => {
+		const createStoryCommentMock = mock(async (_: CreateStoryCommentParams) => ({
+			id: 1000,
+			text: "Added comment to story sc-123.",
+		}));
+		const getStoryMock = mock(async (id: number) => mockStories.find((story) => story.id === id));
+
+		const mockClient = {
+			getStory: getStoryMock,
+			createStoryComment: createStoryCommentMock,
+		} as unknown as ShortcutClientWrapper;
+
+		beforeEach(() => {
+			createStoryCommentMock.mockClear();
+		});
+
+		test("should create a story comment", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.createStoryComment({
+				storyPublicId: 123,
+				text: "Added comment to story sc-123.",
+			});
+
+			expect(result.content[0].type).toBe("text");
+			expect(String(result.content[0].text).split("\n")).toMatchObject([
+				"Message: Created comment on story sc-123",
+				"Comment ID: 1000",
+				"Comment Text: Added comment to story sc-123.",
+			]);
+			expect(createStoryCommentMock).toHaveBeenCalledTimes(1);
+		});
+
+		test("should create a story comment with author ID", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.createStoryComment({
+				storyPublicId: 123,
+				text: "This is a story comment",
+				authorId: "user2",
+			});
+
+			expect(result.content[0].type).toBe("text");
+			expect(String(result.content[0].text).split("\n")).toMatchObject([
+				"Message: Created comment on story sc-123",
+				"Comment ID: 1000",
+				"Comment Text: Added comment to story sc-123.",
+				"Author ID: user2",
+			]);
+			expect(createStoryCommentMock).toHaveBeenCalledTimes(1);
+		});
+		test("should throw error if comment is not specified", async () => {
+			const storyTools = new StoryTools(mockClient);
+
+			await expect(() =>
+				storyTools.createStoryComment({
+					storyPublicId: 123,
+					text: "",
+				}),
+			).toThrow("Story comment text is required");
+		});
+
+		test("should throw error if story ID is not found", async () => {
+			const storyTools = new StoryTools({
+				...mockClient,
+				createStoryComment: mock(async () => null),
+			} as unknown as ShortcutClientWrapper);
+
+			await expect(() =>
+				storyTools.createStoryComment({
+					storyPublicId: 124,
+					text: "This is a new comment",
+				}),
+			).toThrow("Failed to retrieve Shortcut story with public ID: 124");
 		});
 	});
 });
