@@ -1,8 +1,10 @@
 import type {
 	ShortcutClient as BaseClient,
+	CreateStoryComment,
 	CreateStoryParams,
 	Member,
 	MemberInfo,
+	StoryComment,
 	UpdateStory,
 	Workflow,
 } from "@shortcut/client";
@@ -219,5 +221,38 @@ export class ShortcutClientWrapper {
 		if (!stories) return { stories: null, total: null };
 
 		return { stories, total: stories.length };
+	}
+
+	/**
+	 * Create story comment using public ID.
+	 *
+	 * @param storyPublicId - The public ID of the story to comment on.
+	 * @param comment - The comment to add to the story.
+	 * @param authorId - The ID of the author of the comment. If not, the current user will be used from SHORTCUT_API_TOKEN.
+	 *
+	 * @returns {Promise<StoryComment>} The created story comment.
+	 */
+	async createStoryComment(
+		storyPublicId: number,
+		comment: string,
+		authorId?: string,
+	): Promise<StoryComment> {
+		const createStoryCommentParams = {
+			text: comment,
+		} as CreateStoryComment;
+
+		if (authorId) {
+			const author = await this.getUser(authorId);
+			if (!author) throw new Error(`User with ID ${authorId} not found`);
+
+			createStoryCommentParams.author_id = author.id;
+		}
+
+		const response = await this.client.createStoryComment(storyPublicId, createStoryCommentParams);
+		const storyComment = response?.data ?? null;
+
+		if (!storyComment) throw new Error(`Failed to create the comment: ${response.status}`);
+
+		return storyComment;
 	}
 }
