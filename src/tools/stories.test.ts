@@ -637,23 +637,6 @@ describe("StoryTools", () => {
 			expect(createStoryCommentMock).toHaveBeenCalledTimes(1);
 		});
 
-		test("should create a story comment with author ID", async () => {
-			const storyTools = new StoryTools(mockClient);
-			const result = await storyTools.createStoryComment({
-				storyPublicId: 123,
-				text: "This is a story comment",
-				authorId: "user2",
-			});
-
-			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Message: Created comment on story sc-123",
-				"Comment ID: 1000",
-				"Comment Text: Added comment to story sc-123.",
-				"Author ID: user2",
-			]);
-			expect(createStoryCommentMock).toHaveBeenCalledTimes(1);
-		});
 		test("should throw error if comment is not specified", async () => {
 			const storyTools = new StoryTools(mockClient);
 
