@@ -14,7 +14,8 @@ import { WorkflowTools } from "./tools/workflows";
 
 let apiToken = process.env.SHORTCUT_API_TOKEN;
 
-if (process.argv.length > 2) {
+// If a SHORTCUT_API_TOKEN is provided as an argument, use it instead of the environment variable.
+if (process.argv.length === 3) {
 	const [name, token] = String(process.argv[2]).split("=");
 	if (name === "SHORTCUT_API_TOKEN") apiToken = token;
 }

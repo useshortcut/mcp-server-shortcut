@@ -1,3 +1,9 @@
+/**
+ * Simple key/value cache.
+ *
+ * It only supports setting **all** values at once. You cannot add to the cache over time.
+ * It tracks staleness and is hard coded to expire after 5 minutes.
+ */
 export class Cache<TId, TValue> {
 	private cache: Map<TId, TValue>;
 	private age: number;
