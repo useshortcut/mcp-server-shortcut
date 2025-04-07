@@ -10,6 +10,14 @@ import type {
 } from "@shortcut/client";
 import { Cache } from "./cache";
 
+/**
+ * This is a thin wrapper over the official Shortcut API client.
+ *
+ * Its main reasons for existing are:
+ * - Add a caching layer for common calls like fetching members or teams.
+ * - Unwrap and simplify some response types.
+ * - Only expose a subset of methods and a subset of the possible input parameters to those methods.
+ */
 export class ShortcutClientWrapper {
 	private currentUser: MemberInfo | null = null;
 	private userCache: Cache<string, Member>;
