@@ -224,23 +224,23 @@ export class ShortcutClientWrapper {
 	async getWorkflowStatesForStory(storyPublicId: number) {
 		const story = await this.getStory(storyPublicId);
 		if (!story) return null;
-		
+
 		if (!story.workflow_id) return null;
-		
+
 		const workflow = await this.getWorkflow(story.workflow_id);
 		if (!workflow) return null;
-		
+
 		return workflow.states || [];
 	}
 
 	async moveStoryToState(storyPublicId: number, workflowStateId: number) {
 		const response = await this.client.updateStory(storyPublicId, {
-			workflow_state_id: workflowStateId
+			workflow_state_id: workflowStateId,
 		});
-		
+
 		const story = response?.data ?? null;
 		if (!story) throw new Error(`Failed to update the story: ${response.status}`);
-		
+
 		return story;
 	}
 }

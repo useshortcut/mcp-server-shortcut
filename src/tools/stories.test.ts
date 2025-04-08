@@ -188,13 +188,13 @@ describe("StoryTools", () => {
 			}));
 			await mockTool.mock.calls?.[5]?.[3]({ storyPublicId: 123 });
 			expect(tools.unassignCurrentUserAsOwner).toHaveBeenCalledWith(123);
-			
+
 			spyOn(tools, "getWorkflowStatesForStory").mockImplementation(async () => ({
 				content: [{ text: "", type: "text" }],
 			}));
 			await mockTool.mock.calls?.[6]?.[3]({ storyPublicId: 123 });
 			expect(tools.getWorkflowStatesForStory).toHaveBeenCalledWith(123);
-			
+
 			spyOn(tools, "moveStoryToState").mockImplementation(async () => ({
 				content: [{ text: "", type: "text" }],
 			}));
@@ -613,18 +613,18 @@ describe("StoryTools", () => {
 			const mockWorkflowStates = [
 				{ id: 101, name: "Unstarted", type: "unstarted" },
 				{ id: 102, name: "Started", type: "started" },
-				{ id: 103, name: "Done", type: "done" }
+				{ id: 103, name: "Done", type: "done" },
 			];
-			
+
 			const getWorkflowStatesForStoryMock = mock(async () => mockWorkflowStates);
 			const mockClient = {
-				getWorkflowStatesForStory: getWorkflowStatesForStoryMock
+				getWorkflowStatesForStory: getWorkflowStatesForStoryMock,
 			} as unknown as ShortcutClientWrapper;
-			
+
 			test("should return formatted list of workflow states", async () => {
 				const storyTools = new StoryTools(mockClient);
 				const result = await storyTools.getWorkflowStatesForStory(123);
-				
+
 				expect(result.content[0].type).toBe("text");
 				expect(result.content[0].text).toContain("Workflow states for story sc-123");
 				expect(result.content[0].text).toContain("State 101: Unstarted (Type: unstarted)");
@@ -633,52 +633,52 @@ describe("StoryTools", () => {
 				expect(getWorkflowStatesForStoryMock).toHaveBeenCalledTimes(1);
 				expect(getWorkflowStatesForStoryMock).toHaveBeenCalledWith(123);
 			});
-			
+
 			test("should handle no workflow states found", async () => {
 				const storyTools = new StoryTools({
-					getWorkflowStatesForStory: mock(async () => [])
+					getWorkflowStatesForStory: mock(async () => []),
 				} as unknown as ShortcutClientWrapper);
-				
+
 				const result = await storyTools.getWorkflowStatesForStory(123);
-				
+
 				expect(result.content[0].type).toBe("text");
 				expect(result.content[0].text).toBe("No workflow states found for story sc-123");
 			});
-			
+
 			test("should throw error when states cannot be retrieved", async () => {
 				const storyTools = new StoryTools({
-					getWorkflowStatesForStory: mock(async () => null)
+					getWorkflowStatesForStory: mock(async () => null),
 				} as unknown as ShortcutClientWrapper);
-				
+
 				await expect(() => storyTools.getWorkflowStatesForStory(123)).toThrow(
-					"Failed to retrieve workflow states for story sc-123"
+					"Failed to retrieve workflow states for story sc-123",
 				);
 			});
 		});
-		
+
 		describe("moveStoryToState method", () => {
 			const moveStoryToStateMock = mock(async () => ({ id: 123, name: "Test Story" }));
 			const mockClient = {
-				moveStoryToState: moveStoryToStateMock
+				moveStoryToState: moveStoryToStateMock,
 			} as unknown as ShortcutClientWrapper;
-			
+
 			test("should move a story to a different workflow state", async () => {
 				const storyTools = new StoryTools(mockClient);
 				const result = await storyTools.moveStoryToState(123, 456);
-				
+
 				expect(result.content[0].type).toBe("text");
 				expect(result.content[0].text).toBe("Moved story sc-123 to workflow state 456");
 				expect(moveStoryToStateMock).toHaveBeenCalledTimes(1);
 				expect(moveStoryToStateMock).toHaveBeenCalledWith(123, 456);
 			});
-			
+
 			test("should throw error when story cannot be moved", async () => {
 				const storyTools = new StoryTools({
-					moveStoryToState: mock(async () => null)
+					moveStoryToState: mock(async () => null),
 				} as unknown as ShortcutClientWrapper);
-				
+
 				await expect(() => storyTools.moveStoryToState(123, 456)).toThrow(
-					"Failed to move story sc-123 to state 456"
+					"Failed to move story sc-123 to state 456",
 				);
 			});
 		});
