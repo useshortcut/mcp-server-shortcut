@@ -221,7 +221,12 @@ export class ShortcutClientWrapper {
 		return { stories, total: stories.length };
 	}
 
-	async createTask(storyPublicId: number, description: string, complete: boolean = false, ownerIds?: string[]) {
+	async createTask(
+		storyPublicId: number,
+		description: string,
+		complete = false,
+		ownerIds?: string[],
+	) {
 		const response = await this.client.createTask(storyPublicId, {
 			description,
 			complete,
@@ -237,7 +242,7 @@ export class ShortcutClientWrapper {
 	async getTasks(storyPublicId: number) {
 		const story = await this.getStory(storyPublicId);
 		if (!story) return null;
-		
+
 		return story.tasks || [];
 	}
 
@@ -250,11 +255,15 @@ export class ShortcutClientWrapper {
 		return task;
 	}
 
-	async updateTask(storyPublicId: number, taskPublicId: number, params: {
-		description?: string;
-		complete?: boolean;
-		owner_ids?: string[];
-	}) {
+	async updateTask(
+		storyPublicId: number,
+		taskPublicId: number,
+		params: {
+			description?: string;
+			complete?: boolean;
+			owner_ids?: string[];
+		},
+	) {
 		const response = await this.client.updateTask(storyPublicId, taskPublicId, params);
 		const task = response?.data ?? null;
 

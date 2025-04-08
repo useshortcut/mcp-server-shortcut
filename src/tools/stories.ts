@@ -183,9 +183,12 @@ The story will be added to the default state for the workflow.
 				storyPublicId: z.number().positive().describe("The public ID of the story"),
 				description: z.string().min(1).describe("The description of the task"),
 				complete: z.boolean().optional().describe("Whether the task is complete"),
-				ownerIds: z.array(z.string()).optional().describe("Array of owner IDs to assign to the task"),
+				ownerIds: z
+					.array(z.string())
+					.optional()
+					.describe("Array of owner IDs to assign to the task"),
 			},
-			async ({ storyPublicId, description, complete, ownerIds }) => 
+			async ({ storyPublicId, description, complete, ownerIds }) =>
 				await tools.createTask(storyPublicId, description, complete, ownerIds),
 		);
 
@@ -199,7 +202,7 @@ The story will be added to the default state for the workflow.
 		server.tool(
 			"get-task",
 			"Get a specific task from a story",
-			{ 
+			{
 				storyPublicId: z.number().positive().describe("The public ID of the story"),
 				taskPublicId: z.number().positive().describe("The public ID of the task"),
 			},
@@ -214,10 +217,17 @@ The story will be added to the default state for the workflow.
 				taskPublicId: z.number().positive().describe("The public ID of the task"),
 				description: z.string().optional().describe("The updated description of the task"),
 				complete: z.boolean().optional().describe("Whether the task is complete"),
-				ownerIds: z.array(z.string()).optional().describe("Array of owner IDs to assign to the task"),
+				ownerIds: z
+					.array(z.string())
+					.optional()
+					.describe("Array of owner IDs to assign to the task"),
 			},
-			async ({ storyPublicId, taskPublicId, description, complete, ownerIds }) => 
-				await tools.updateTask(storyPublicId, taskPublicId, { description, complete, owner_ids: ownerIds }),
+			async ({ storyPublicId, taskPublicId, description, complete, ownerIds }) =>
+				await tools.updateTask(storyPublicId, taskPublicId, {
+					description,
+					complete,
+					owner_ids: ownerIds,
+				}),
 		);
 
 		server.tool(
@@ -227,7 +237,8 @@ The story will be added to the default state for the workflow.
 				storyPublicId: z.number().positive().describe("The public ID of the story"),
 				taskPublicId: z.number().positive().describe("The public ID of the task"),
 			},
-			async ({ storyPublicId, taskPublicId }) => await tools.deleteTask(storyPublicId, taskPublicId),
+			async ({ storyPublicId, taskPublicId }) =>
+				await tools.deleteTask(storyPublicId, taskPublicId),
 		);
 
 		server.tool(
@@ -237,7 +248,8 @@ The story will be added to the default state for the workflow.
 				storyPublicId: z.number().positive().describe("The public ID of the story"),
 				taskPublicId: z.number().positive().describe("The public ID of the task"),
 			},
-			async ({ storyPublicId, taskPublicId }) => await tools.completeTask(storyPublicId, taskPublicId),
+			async ({ storyPublicId, taskPublicId }) =>
+				await tools.completeTask(storyPublicId, taskPublicId),
 		);
 
 		server.tool(
@@ -247,7 +259,8 @@ The story will be added to the default state for the workflow.
 				storyPublicId: z.number().positive().describe("The public ID of the story"),
 				taskPublicId: z.number().positive().describe("The public ID of the task"),
 			},
-			async ({ storyPublicId, taskPublicId }) => await tools.incompleteTask(storyPublicId, taskPublicId),
+			async ({ storyPublicId, taskPublicId }) =>
+				await tools.incompleteTask(storyPublicId, taskPublicId),
 		);
 
 		return tools;
@@ -423,34 +436,40 @@ ${(story.comments || [])
 	}
 
 	// New Task CRUD operation methods
-	async createTask(storyPublicId: number, description: string, complete: boolean = false, ownerIds?: string[]) {
+	async createTask(
+		storyPublicId: number,
+		description: string,
+		complete = false,
+		ownerIds?: string[],
+	) {
 		const task = await this.client.createTask(storyPublicId, description, complete, ownerIds);
-		
+
 		if (!task) throw new Error(`Failed to create task in story sc-${storyPublicId}`);
-		
+
 		return this.toResult(`Created task ${task.id} in story sc-${storyPublicId}`);
 	}
 
 	async getTasks(storyPublicId: number) {
 		const tasks = await this.client.getTasks(storyPublicId);
-		
+
 		if (!tasks) throw new Error(`Failed to retrieve tasks for story sc-${storyPublicId}`);
-		
+
 		if (tasks.length === 0) return this.toResult(`No tasks found for story sc-${storyPublicId}`);
-		
+
 		// Format the tasks for display
-		const formattedTasks = tasks.map((task) => 
-			`- Task ${task.id}: ${task.complete ? "[x]" : "[ ]"} ${task.description}`
-		).join("\n");
-		
+		const formattedTasks = tasks
+			.map((task) => `- Task ${task.id}: ${task.complete ? "[x]" : "[ ]"} ${task.description}`)
+			.join("\n");
+
 		return this.toResult(`Tasks for story sc-${storyPublicId}:\n${formattedTasks}`);
 	}
 
 	async getTask(storyPublicId: number, taskPublicId: number) {
 		const task = await this.client.getTask(storyPublicId, taskPublicId);
-		
-		if (!task) throw new Error(`Failed to retrieve task ${taskPublicId} for story sc-${storyPublicId}`);
-		
+
+		if (!task)
+			throw new Error(`Failed to retrieve task ${taskPublicId} for story sc-${storyPublicId}`);
+
 		let result = `Task ${task.id} for story sc-${storyPublicId}:
 Description: ${task.description}
 Status: ${task.complete ? "Complete" : "Incomplete"}`;
@@ -461,43 +480,53 @@ Status: ${task.complete ? "Complete" : "Incomplete"}`;
 		} else {
 			result += "\nOwners: [None]";
 		}
-		
+
 		return this.toResult(result);
 	}
 
-	async updateTask(storyPublicId: number, taskPublicId: number, params: {
-		description?: string;
-		complete?: boolean;
-		owner_ids?: string[];
-	}) {
+	async updateTask(
+		storyPublicId: number,
+		taskPublicId: number,
+		params: {
+			description?: string;
+			complete?: boolean;
+			owner_ids?: string[];
+		},
+	) {
 		const task = await this.client.updateTask(storyPublicId, taskPublicId, params);
-		
-		if (!task) throw new Error(`Failed to update task ${taskPublicId} in story sc-${storyPublicId}`);
-		
+
+		if (!task)
+			throw new Error(`Failed to update task ${taskPublicId} in story sc-${storyPublicId}`);
+
 		return this.toResult(`Updated task ${task.id} in story sc-${storyPublicId}`);
 	}
 
 	async deleteTask(storyPublicId: number, taskPublicId: number) {
 		const success = await this.client.deleteTask(storyPublicId, taskPublicId);
-		
-		if (!success) throw new Error(`Failed to delete task ${taskPublicId} from story sc-${storyPublicId}`);
-		
+
+		if (!success)
+			throw new Error(`Failed to delete task ${taskPublicId} from story sc-${storyPublicId}`);
+
 		return this.toResult(`Deleted task ${taskPublicId} from story sc-${storyPublicId}`);
 	}
 
 	async completeTask(storyPublicId: number, taskPublicId: number) {
 		const task = await this.client.updateTask(storyPublicId, taskPublicId, { complete: true });
-		
-		if (!task) throw new Error(`Failed to complete task ${taskPublicId} in story sc-${storyPublicId}`);
-		
+
+		if (!task)
+			throw new Error(`Failed to complete task ${taskPublicId} in story sc-${storyPublicId}`);
+
 		return this.toResult(`Marked task ${task.id} as complete in story sc-${storyPublicId}`);
 	}
 
 	async incompleteTask(storyPublicId: number, taskPublicId: number) {
 		const task = await this.client.updateTask(storyPublicId, taskPublicId, { complete: false });
-		
-		if (!task) throw new Error(`Failed to mark task ${taskPublicId} as incomplete in story sc-${storyPublicId}`);
-		
+
+		if (!task)
+			throw new Error(
+				`Failed to mark task ${taskPublicId} as incomplete in story sc-${storyPublicId}`,
+			);
+
 		return this.toResult(`Marked task ${task.id} as incomplete in story sc-${storyPublicId}`);
 	}
 }
