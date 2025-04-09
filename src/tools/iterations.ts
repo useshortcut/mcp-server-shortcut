@@ -45,7 +45,7 @@ export class IterationTools extends BaseTools {
 					.string()
 					.optional()
 					.describe(
-						"Find only iterations matching the specified team. Should be a team mention name.",
+						"Find only iterations matching the specified team. This can be a team ID or mention name.",
 					),
 				created: date,
 				updated: date,
@@ -60,9 +60,9 @@ export class IterationTools extends BaseTools {
 			"Create a new Shortcut iteration",
 			{
 				name: z.string().describe("The name of the iteration"),
-				startDate: z.string().describe("The start date of the iteration"),
-				endDate: z.string().describe("The end date of the iteration"),
-				team: z.string().optional().describe("The ID of a team to assign the iteration to"),
+				startDate: z.string().describe("The start date of the iteration in YYYY-MM-DD format"),
+				endDate: z.string().describe("The end date of the iteration in YYYY-MM-DD format"),
+				teamId: z.string().optional().describe("The ID of a team to assign the iteration to"),
 				description: z.string().optional().describe("A description of the iteration"),
 			},
 			async (params) => await tools.createIteration(params),
@@ -128,20 +128,20 @@ ${iteration.description}`);
 		name,
 		startDate,
 		endDate,
-		team,
+		teamId,
 		description,
 	}: {
 		name: string;
 		startDate: string;
 		endDate: string;
-		team?: string;
+		teamId?: string;
 		description?: string;
 	}): Promise<CallToolResult> {
 		const iteration = await this.client.createIteration({
 			name,
 			start_date: startDate,
 			end_date: endDate,
-			group_ids: team ? [team] : undefined,
+			group_ids: teamId ? [teamId] : undefined,
 			description,
 		});
 
