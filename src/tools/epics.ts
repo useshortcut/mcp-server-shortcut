@@ -66,11 +66,11 @@ export class EpicTools extends BaseTools {
 			"create-epic",
 			"Create a new Shortcut epic.",
 			{
-				teamId: z.string().describe("The ID of the team to assign the epic to"),
 				name: z.string().describe("The name of the epic"),
+				teamId: z.string().optional().describe("The ID of the team to assign the epic to"),
 				description: z.string().optional().describe("The description of the epic"),
 			},
-			async ({ teamId, name, description }) => await tools.createEpic(teamId, name, description),
+			async (params) => await tools.createEpic(params),
 		);
 
 		return tools;
@@ -112,28 +112,18 @@ Description:
 ${epic.description}`);
 	}
 
-	/**
-	 * Create a new Shortcut epic.
-	 *
-	 * @param groupId - The ID of the group or team to assign the epic to.
-	 * @param name - The name of the epic.
-	 * @param description - The description of the epic.
-	 *
-	 * @returns The created epic.
-	 */
-	async createEpic(groupId: string, name: string, description?: string): Promise<CallToolResult> {
-		if (!groupId) {
-			throw new Error("Group ID is required to create an epic.");
+	async createEpic({
+		name,
+		teamId,
+		description,
+	}: { name: string; teamId?: string; description?: string }): Promise<CallToolResult> {
+		if (teamId) {
+			const team = await this.client.getTeam(teamId);
+			if (!team) throw new Error(`Team with ID ${teamId} not found`);
 		}
 
-		const group = await this.client.getTeam(groupId);
-		if (!group) throw new Error(`Group with ID ${groupId} not found`);
+		const epic = await this.client.createEpic({ name, group_id: teamId, description });
 
-		const epic = await this.client.createEpic(group.id, name, description);
-
-		return this.toResult(`Epic created: ${epic.id}
-URL: ${epic.app_url}
-Name: ${epic.name}
-Description: ${epic.description}`);
+		return this.toResult(`Epic created with ID: ${epic.id}.`);
 	}
 }

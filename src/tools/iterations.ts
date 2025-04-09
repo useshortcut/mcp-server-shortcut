@@ -63,11 +63,9 @@ export class IterationTools extends BaseTools {
 				description: z.string().optional().describe("The description of the iteration"),
 				startDate: z.string().describe("The start date of the iteration"),
 				endDate: z.string().describe("The end date of the iteration"),
-				teamId: z.string().describe("The ID of the team to assign the iteration to"),
+				teamId: z.string().optional().describe("The ID of the team to assign the iteration to"),
 			},
-			async ({ name, description, startDate, endDate, teamId }) => {
-				return await tools.createIteration(teamId, startDate, endDate, name, description);
-			},
+			async (params) => await tools.createIteration(params),
 		);
 
 		return tools;
@@ -126,46 +124,34 @@ Description:
 ${iteration.description}`);
 	}
 
-	/**
-	 * Create a new Shortcut iteration.
-	 *
-	 * @param groupId - The ID of the group to assign the iteration to.
-	 * @param startDate - The start date of the iteration.
-	 * @param endDate - The end date of the iteration.
-	 * @param name - The name of the iteration.
-	 * @param description - The description of the iteration.
-	 *
-	 * @returns The result of the iteration creation.
-	 */
-	async createIteration(
-		groupId: string,
-		startDate: string,
-		endDate: string,
-		name: string,
-		description?: string,
-	): Promise<CallToolResult> {
-		if (!groupId) {
-			throw new Error("Group ID is required to create an iteration.");
+	async createIteration({
+		name,
+		startDate,
+		endDate,
+		teamId,
+		description,
+	}: {
+		name: string;
+		startDate: string;
+		endDate: string;
+		teamId?: string;
+		description?: string;
+	}): Promise<CallToolResult> {
+		if (teamId) {
+			const team = await this.client.getTeam(teamId);
+			if (!team) throw new Error(`Team with ID ${teamId} not found`);
 		}
 
-		const group = await this.client.getTeam(groupId);
-		if (!group) throw new Error(`Group with ID ${groupId} not found`);
-
-		const iteration = await this.client.createIteration(
-			group.id,
-			startDate,
-			endDate,
+		const iteration = await this.client.createIteration({
 			name,
+			start_date: startDate,
+			end_date: endDate,
+			group_ids: teamId ? [teamId] : undefined,
 			description,
-		);
+		});
 
 		if (!iteration) throw new Error(`Failed to create the iteration.`);
 
-		return this.toResult(`Iteration created successfully:
-Iteration ID: ${iteration.id}
-Iteration URL: ${iteration.app_url}
-Iteration Name: ${iteration.name}
-Iteration Start Date: ${iteration.start_date}
-Iteration End Date: ${iteration.end_date}`);
+		return this.toResult(`Iteration created with ID: ${iteration.id}.`);
 	}
 }

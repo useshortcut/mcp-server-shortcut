@@ -313,36 +313,18 @@ describe("IterationTools", () => {
 
 		test("should create a new iteration and return its details", async () => {
 			const iterationTools = new IterationTools(mockClient);
-			const result = await iterationTools.createIteration(
-				"team1",
-				"2023-01-01",
-				"2023-01-14",
-				"Test Iteration",
-				"Test Iteration created by the Shortcut MCP server",
-			);
+			const result = await iterationTools.createIteration({
+				teamId: mockTeam.id,
+				startDate: "2023-01-01",
+				endDate: "2023-01-14",
+				name: "Test Iteration",
+				description: "Test Iteration created by the Shortcut MCP server",
+			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toContain("Iteration created successfully:");
-			expect(result.content[0].text).toContain("Iteration ID: 1");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Iteration created successfully:",
-				"Iteration ID: 1",
-				"Iteration URL: https://app.shortcut.com/test/iteration/1",
-				"Iteration Name: Iteration 1",
-				"Iteration Start Date: 2023-01-01",
-				"Iteration End Date: 2023-01-14",
-			]);
+			expect(result.content[0].text).toBe("Iteration created with ID: 1.");
 		});
 
-		test("should throw error when group ID is not provided", async () => {
-			const iterationTools = new IterationTools(mockClient);
-
-			await expect(() =>
-				iterationTools.createIteration("", "2023-01-01", "2023-01-14", "Test Iteration"),
-			).toThrow("Group ID is required to create an iteration.");
-		});
-
-		test("should throw error when group is not found", async () => {
+		test("should throw error when team is not found", async () => {
 			const iterationTools = new IterationTools(
 				createMockClient({
 					getTeam: mock(async () => null),
@@ -350,13 +332,13 @@ describe("IterationTools", () => {
 			);
 
 			await expect(() =>
-				iterationTools.createIteration(
-					"nonexistent-group",
-					"2023-01-01",
-					"2023-01-14",
-					"Test Iteration",
-				),
-			).toThrow("Group with ID nonexistent-group not found");
+				iterationTools.createIteration({
+					teamId: "nonexistent-group",
+					startDate: "2023-01-01",
+					endDate: "2023-01-14",
+					name: "Test Iteration",
+				}),
+			).toThrow("Team with ID nonexistent-group not found");
 		});
 	});
 });

@@ -235,32 +235,11 @@ export class ShortcutClientWrapper {
 		return { stories, total: stories.length };
 	}
 
-	/**
-	 * Create story comment using public ID.
-	 *
-	 * @param storyPublicId - The public ID of the story to comment on.
-	 * @param comment - The comment to add to the story.
-	 * @param authorId - The ID of the author of the comment. If not, the current user will be used from SHORTCUT_API_TOKEN.
-	 *
-	 * @returns {Promise<StoryComment>} The created story comment.
-	 */
 	async createStoryComment(
 		storyPublicId: number,
-		comment: string,
-		authorId?: string,
+		params: CreateStoryComment,
 	): Promise<StoryComment> {
-		const createStoryCommentParams = {
-			text: comment,
-		} as CreateStoryComment;
-
-		if (authorId) {
-			const author = await this.getUser(authorId);
-			if (!author) throw new Error(`User with ID ${authorId} not found`);
-
-			createStoryCommentParams.author_id = author.id;
-		}
-
-		const response = await this.client.createStoryComment(storyPublicId, createStoryCommentParams);
+		const response = await this.client.createStoryComment(storyPublicId, params);
 		const storyComment = response?.data ?? null;
 
 		if (!storyComment) throw new Error(`Failed to create the comment: ${response.status}`);
@@ -268,31 +247,8 @@ export class ShortcutClientWrapper {
 		return storyComment;
 	}
 
-	/**
-	 * Create iteration
-	 *
-	 * @param groupId - The ID of the group to assign the iteration to. Group means team in Shortcut.
-	 * @param startDate - The start date of the iteration in ISO 8601 format.
-	 * @param endDate - The end date of the iteration in ISO 8601 format.
-	 * @param name - The name of the iteration.
-	 * @param description - The description of the iteration.
-	 */
-	async createIteration(
-		groupId: string,
-		startDate: string,
-		endDate: string,
-		name: string,
-		description?: string,
-	): Promise<Iteration> {
-		const createIterationParams: CreateIteration = {
-			name,
-			description,
-			start_date: startDate,
-			end_date: endDate,
-			group_ids: [groupId],
-		};
-
-		const response = await this.client.createIteration(createIterationParams);
+	async createIteration(params: CreateIteration): Promise<Iteration> {
+		const response = await this.client.createIteration(params);
 		const iteration = response?.data ?? null;
 
 		if (!iteration) throw new Error(`Failed to create the iteration: ${response.status}`);
@@ -300,21 +256,8 @@ export class ShortcutClientWrapper {
 		return iteration;
 	}
 
-	/**
-	 * Create epic
-	 *
-	 * @param groupId - The ID of the group to assign the epic to. Group means team in Shortcut.
-	 * @param name - The name of the epic.
-	 * @param description - The description of the epic.
-	 */
-	async createEpic(groupId: string, name: string, description?: string): Promise<Epic> {
-		const createEpicParams: CreateEpic = {
-			name,
-			description,
-			group_id: groupId,
-		};
-
-		const response = await this.client.createEpic(createEpicParams);
+	async createEpic(params: CreateEpic): Promise<Epic> {
+		const response = await this.client.createEpic(params);
 		const epic = response?.data ?? null;
 
 		if (!epic) throw new Error(`Failed to create the epic: ${response.status}`);
