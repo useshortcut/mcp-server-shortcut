@@ -304,41 +304,20 @@ describe("IterationTools", () => {
 			app_url: "https://app.shortcut.com/test/iteration/1",
 		}));
 
-		const getTeamMock = mock(async () => mockTeam);
-
 		const mockClient = createMockClient({
 			createIteration: createIterationMock,
-			getTeam: getTeamMock,
 		});
 
 		test("should create a new iteration and return its details", async () => {
 			const iterationTools = new IterationTools(mockClient);
 			const result = await iterationTools.createIteration({
-				teamId: mockTeam.id,
+				name: "Test Iteration",
 				startDate: "2023-01-01",
 				endDate: "2023-01-14",
-				name: "Test Iteration",
 				description: "Test Iteration created by the Shortcut MCP server",
 			});
 
 			expect(result.content[0].text).toBe("Iteration created with ID: 1.");
-		});
-
-		test("should throw error when team is not found", async () => {
-			const iterationTools = new IterationTools(
-				createMockClient({
-					getTeam: mock(async () => null),
-				}),
-			);
-
-			await expect(() =>
-				iterationTools.createIteration({
-					teamId: "nonexistent-group",
-					startDate: "2023-01-01",
-					endDate: "2023-01-14",
-					name: "Test Iteration",
-				}),
-			).toThrow("Team with ID nonexistent-group not found");
 		});
 	});
 });
