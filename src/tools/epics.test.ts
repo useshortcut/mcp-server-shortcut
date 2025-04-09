@@ -68,12 +68,6 @@ describe("EpicTools", () => {
 		},
 	} as unknown as Member & MemberInfo;
 
-	const mockTeam = {
-		id: "team1",
-		name: "Test Team",
-		workflow_ids: [1],
-	};
-
 	const createMockClient = (methods?: object) =>
 		({
 			getCurrentUser: mock(async () => mockCurrentUser),
