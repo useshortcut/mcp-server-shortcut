@@ -1,7 +1,7 @@
 import { describe, expect, mock, spyOn, test } from "bun:test";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Iteration, Member, MemberInfo, Story } from "@shortcut/client";
+import type { CreateIteration, Iteration, Member, MemberInfo, Story } from "@shortcut/client";
 import { IterationTools } from "./iterations";
 
 describe("IterationTools", () => {
@@ -75,6 +75,12 @@ describe("IterationTools", () => {
 		} as Iteration,
 	];
 
+	const mockTeam = {
+		id: "team1",
+		name: "Test Team",
+		workflow_ids: [1],
+	};
+
 	const createMockClient = (methods?: object) =>
 		({
 			getCurrentUser: mock(async () => mockCurrentUser),
@@ -89,10 +95,11 @@ describe("IterationTools", () => {
 
 			IterationTools.create(mockClient, mockServer);
 
-			expect(mockTool).toHaveBeenCalledTimes(3);
+			expect(mockTool).toHaveBeenCalledTimes(4);
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-iteration-stories");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-iteration");
 			expect(mockTool.mock.calls?.[2]?.[0]).toBe("search-iterations");
+			expect(mockTool.mock.calls?.[3]?.[0]).toBe("create-iteration");
 		});
 
 		test("should call correct function from tool", async () => {
@@ -119,6 +126,17 @@ describe("IterationTools", () => {
 			}));
 			await mockTool.mock.calls?.[2]?.[3]({ name: "test" });
 			expect(tools.searchIterations).toHaveBeenCalledWith({ name: "test" });
+
+			spyOn(tools, "createIteration").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[3]?.[3]({
+				name: "Test Iteration",
+				description: "Test Iteration created by the Shortcut MCP server",
+				startDate: "2023-01-01",
+				endDate: "2023-01-14",
+				groupId: "group1",
+			});
 		});
 	});
 
@@ -273,6 +291,72 @@ describe("IterationTools", () => {
 			expect(result.content[0].type).toBe("text");
 			expect(result.content[0].text).toContain("Completed: Yes");
 			expect(result.content[0].text).toContain("Started: No");
+		});
+	});
+
+	describe("createIteration method", () => {
+		const createIterationMock = mock(async (_: CreateIteration) => ({
+			id: 1,
+			name: "Iteration 1",
+			description: "Description for Iteration 1",
+			start_date: "2023-01-01",
+			end_date: "2023-01-14",
+			app_url: "https://app.shortcut.com/test/iteration/1",
+		}));
+
+		const getTeamMock = mock(async () => mockTeam);
+
+		const mockClient = createMockClient({
+			createIteration: createIterationMock,
+			getTeam: getTeamMock,
+		});
+
+		test("should create a new iteration and return its details", async () => {
+			const iterationTools = new IterationTools(mockClient);
+			const result = await iterationTools.createIteration(
+				"team1",
+				"2023-01-01",
+				"2023-01-14",
+				"Test Iteration",
+				"Test Iteration created by the Shortcut MCP server",
+			);
+
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toContain("Iteration created successfully:");
+			expect(result.content[0].text).toContain("Iteration ID: 1");
+			expect(String(result.content[0].text).split("\n")).toMatchObject([
+				"Iteration created successfully:",
+				"Iteration ID: 1",
+				"Iteration URL: https://app.shortcut.com/test/iteration/1",
+				"Iteration Name: Iteration 1",
+				"Iteration Start Date: 2023-01-01",
+				"Iteration End Date: 2023-01-14",
+			]);
+		});
+
+		test("should throw error when group ID is not provided", async () => {
+			const iterationTools = new IterationTools(mockClient);
+
+			await expect(() =>
+				iterationTools.createIteration("", "2023-01-01", "2023-01-14", "Test Iteration"),
+			).toThrow("Group ID is required to create an iteration.");
+		});
+
+		test("should throw error when group is not found", async () => {
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getTeam: mock(async () => null),
+				}),
+			);
+
+			await expect(() =>
+				iterationTools.createIteration(
+					"nonexistent-group",
+					"2023-01-01",
+					"2023-01-14",
+					"Test Iteration",
+				),
+			).toThrow("Group with ID nonexistent-group not found");
 		});
 	});
 });

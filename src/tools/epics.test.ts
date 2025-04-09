@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Epic, Member, MemberInfo } from "@shortcut/client";
+import type { CreateEpic, Epic, Member, MemberInfo } from "@shortcut/client";
 import { EpicTools } from "./epics";
 
 describe("EpicTools", () => {
@@ -68,6 +68,12 @@ describe("EpicTools", () => {
 		},
 	} as unknown as Member & MemberInfo;
 
+	const mockTeam = {
+		id: "team1",
+		name: "Test Team",
+		workflow_ids: [1],
+	};
+
 	const createMockClient = (methods?: object) =>
 		({
 			getCurrentUser: mock(async () => mockCurrentUser),
@@ -82,10 +88,11 @@ describe("EpicTools", () => {
 
 			EpicTools.create(mockClient, mockServer);
 
-			expect(mockTool).toHaveBeenCalledTimes(2);
+			expect(mockTool).toHaveBeenCalledTimes(3);
 
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-epic");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-epics");
+			expect(mockTool.mock.calls?.[2]?.[0]).toBe("create-epic");
 		});
 
 		test("should call correct function from tool", async () => {
@@ -106,6 +113,16 @@ describe("EpicTools", () => {
 			}));
 			await mockTool.mock.calls?.[1]?.[3]({ id: 1 });
 			expect(tools.searchEpics).toHaveBeenCalledWith({ id: 1 });
+
+			spyOn(tools, "createEpic").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[2]?.[3]({
+				name: "Epic 1",
+				description: "Description for Epic 1",
+				team: "Test Team",
+				dueDate: "2025-04-01",
+			});
 		});
 	});
 
@@ -309,6 +326,50 @@ describe("EpicTools", () => {
 			expect(searchEpicsMock.mock.calls?.[0]?.[0]).toBe(
 				"is:unstarted !is:started is:done !is:archived is:overdue has:owner !has:comment has:deadline !has:label",
 			);
+		});
+	});
+
+	describe("createEpic method", () => {
+		const createEpicMock = mock(async (_: CreateEpic) => ({
+			id: 1,
+			name: "Epic 1",
+			description: "Description for Epic 1",
+			app_url: "https://app.shortcut.com/test/epic/1",
+		}));
+
+		const getTeamMock = mock(async () => mockTeam);
+
+		const mockClient = createMockClient({
+			createEpic: createEpicMock,
+			getTeam: getTeamMock,
+		});
+
+		test("should return formatted epic details when epic is created", async () => {
+			const epicTools = new EpicTools(mockClient);
+			const result = await epicTools.createEpic(mockTeam.id, "Epic 1", "Description for Epic 1");
+
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toContain("Epic created: 1");
+			expect(String(result.content[0].text).split("\n")).toMatchObject([
+				"Epic created: 1",
+				"URL: https://app.shortcut.com/test/epic/1",
+				"Name: Epic 1",
+				"Description: Description for Epic 1",
+			]);
+		});
+
+		test("should throw error when group is not found", async () => {
+			const epicTools = new EpicTools(
+				createMockClient({
+					createEpic: mock(async () => {
+						throw new Error("Epic creation failed");
+					}),
+					getTeam: mock(async () => null),
+				}),
+			);
+			await expect(() =>
+				epicTools.createEpic(mockTeam.id, "Epic 1", "Description for Epic 1"),
+			).toThrow("Group with ID team1 not found");
 		});
 	});
 });

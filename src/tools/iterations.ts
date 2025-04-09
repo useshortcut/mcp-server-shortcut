@@ -1,5 +1,6 @@
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { BaseTools } from "./base";
 import { formatAsUnorderedList, formatStats, formatStoryList } from "./utils/format";
@@ -52,6 +53,21 @@ export class IterationTools extends BaseTools {
 				endDate: date,
 			},
 			async (params) => await tools.searchIterations(params),
+		);
+
+		server.tool(
+			"create-iteration",
+			"Create a new Shortcut iteration",
+			{
+				name: z.string().describe("The name of the iteration"),
+				description: z.string().optional().describe("The description of the iteration"),
+				startDate: z.string().describe("The start date of the iteration"),
+				endDate: z.string().describe("The end date of the iteration"),
+				teamId: z.string().describe("The ID of the team to assign the iteration to"),
+			},
+			async ({ name, description, startDate, endDate, teamId }) => {
+				return await tools.createIteration(teamId, startDate, endDate, name, description);
+			},
 		);
 
 		return tools;
@@ -108,5 +124,48 @@ ${formatStats(iteration.stats, showPoints)}
 
 Description:
 ${iteration.description}`);
+	}
+
+	/**
+	 * Create a new Shortcut iteration.
+	 *
+	 * @param groupId - The ID of the group to assign the iteration to.
+	 * @param startDate - The start date of the iteration.
+	 * @param endDate - The end date of the iteration.
+	 * @param name - The name of the iteration.
+	 * @param description - The description of the iteration.
+	 *
+	 * @returns The result of the iteration creation.
+	 */
+	async createIteration(
+		groupId: string,
+		startDate: string,
+		endDate: string,
+		name: string,
+		description?: string,
+	): Promise<CallToolResult> {
+		if (!groupId) {
+			throw new Error("Group ID is required to create an iteration.");
+		}
+
+		const group = await this.client.getTeam(groupId);
+		if (!group) throw new Error(`Group with ID ${groupId} not found`);
+
+		const iteration = await this.client.createIteration(
+			group.id,
+			startDate,
+			endDate,
+			name,
+			description,
+		);
+
+		if (!iteration) throw new Error(`Failed to create the iteration.`);
+
+		return this.toResult(`Iteration created successfully:
+Iteration ID: ${iteration.id}
+Iteration URL: ${iteration.app_url}
+Iteration Name: ${iteration.name}
+Iteration Start Date: ${iteration.start_date}
+Iteration End Date: ${iteration.end_date}`);
 	}
 }
