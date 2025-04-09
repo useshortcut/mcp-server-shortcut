@@ -69,7 +69,7 @@ export class EpicTools extends BaseTools {
 				name: z.string().describe("The name of the epic"),
 				owner: z.string().optional().describe("The user ID of the owner of the epic"),
 				description: z.string().optional().describe("A description of the epic"),
-				team: z.string().optional().describe("The ID of a team to assign the epic to"),
+				teamId: z.string().optional().describe("The ID of a team to assign the epic to"),
 			},
 			async (params) => await tools.createEpic(params),
 		);
@@ -116,12 +116,12 @@ ${epic.description}`);
 	async createEpic({
 		name,
 		owner,
-		team: group_id,
+		teamId: group_id,
 		description,
 	}: {
 		name: string;
 		owner?: string;
-		team?: string;
+		teamId?: string;
 		description?: string;
 	}): Promise<CallToolResult> {
 		const epic = await this.client.createEpic({

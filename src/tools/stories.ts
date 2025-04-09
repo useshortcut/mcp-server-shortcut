@@ -19,7 +19,7 @@ export class StoryTools extends BaseTools {
 
 		server.tool(
 			"get-story-branch-name",
-			'Get a valid branch name for a specific story. The branch name is a combination of story ID, owner, and story name in the format "[owner]/sc-[id]/[name]". The story name will be truncated if the total length of the branch name exceeds 50 characters.',
+			"Get a valid branch name for a specific story.",
 			{
 				storyPublicId: z.number().positive().describe("The public Id of the story"),
 			},
@@ -122,7 +122,9 @@ export class StoryTools extends BaseTools {
 		server.tool(
 			"create-story",
 			`Create a new Shortcut story. 
-Name and Workflow are required. If a team is specified, the workflow is optional, and we will use the default workflow for that team instead.
+Name is required, and either a Team or Workflow must be specified:
+- If only Team is specified, we will use the default workflow for that team.
+- If Workflow is specified, it will be used regardless of Team.
 The story will be added to the default state for the workflow.
 `,
 			{
@@ -138,12 +140,12 @@ The story will be added to the default state for the workflow.
 					.string()
 					.optional()
 					.describe(
-						"The team id of the team the story belongs to. Required unless a workflow is specified.",
+						"The team ID or mention name of the team the story belongs to. Required unless a workflow is specified.",
 					),
 				workflow: z
 					.number()
 					.optional()
-					.describe("The workflow to add the story to. Required unless a team is specified."),
+					.describe("The workflow ID to add the story to. Required unless a team is specified."),
 			},
 			async ({ name, description, type, owner, epic, team, workflow }) =>
 				await tools.createStory({
