@@ -63,10 +63,10 @@ export class IterationTools extends BaseTools {
 				description: z.string().optional().describe("The description of the iteration"),
 				startDate: z.string().describe("The start date of the iteration"),
 				endDate: z.string().describe("The end date of the iteration"),
-				groupId: z.string().describe("The ID of the group to assign the iteration to"),
+				teamId: z.string().describe("The ID of the team to assign the iteration to"),
 			},
-			async ({ name, description, startDate, endDate, groupId }) => {
-				return await tools.createIteration(groupId, startDate, endDate, name, description);
+			async ({ name, description, startDate, endDate, teamId }) => {
+				return await tools.createIteration(teamId, startDate, endDate, name, description);
 			},
 		);
 

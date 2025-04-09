@@ -284,13 +284,13 @@ export class ShortcutClientWrapper {
 		name: string,
 		description?: string,
 	): Promise<Iteration> {
-		const createIterationParams = {
+		const createIterationParams: CreateIteration = {
 			name,
 			description,
 			start_date: startDate,
 			end_date: endDate,
 			group_ids: [groupId],
-		} as CreateIteration;
+		};
 
 		const response = await this.client.createIteration(createIterationParams);
 		const iteration = response?.data ?? null;
@@ -308,11 +308,11 @@ export class ShortcutClientWrapper {
 	 * @param description - The description of the epic.
 	 */
 	async createEpic(groupId: string, name: string, description?: string): Promise<Epic> {
-		const createEpicParams = {
+		const createEpicParams: CreateEpic = {
 			name,
 			description,
 			group_id: groupId,
-		} as CreateEpic;
+		};
 
 		const response = await this.client.createEpic(createEpicParams);
 		const epic = response?.data ?? null;

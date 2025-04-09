@@ -66,11 +66,11 @@ export class EpicTools extends BaseTools {
 			"create-epic",
 			"Create a new Shortcut epic.",
 			{
-				groupId: z.string().describe("The ID of the group or team to assign the epic to"),
+				teamId: z.string().describe("The ID of the team to assign the epic to"),
 				name: z.string().describe("The name of the epic"),
 				description: z.string().optional().describe("The description of the epic"),
 			},
-			async ({ groupId, name, description }) => await tools.createEpic(groupId, name, description),
+			async ({ teamId, name, description }) => await tools.createEpic(teamId, name, description),
 		);
 
 		return tools;
