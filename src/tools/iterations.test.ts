@@ -116,7 +116,7 @@ describe("IterationTools", () => {
 			expect(tools.getIteration).toHaveBeenCalledWith(1);
 
 			spyOn(tools, "searchIterations").mockImplementation(async () => ({
-				content: [{ text: "[None]", type: "text" }],
+				content: [{ text: "(none)", type: "text" }],
 			}));
 			await mockTool.mock.calls?.[2]?.[3]({ name: "test" });
 			expect(tools.searchIterations).toHaveBeenCalledWith({ name: "test" });
@@ -157,8 +157,8 @@ describe("IterationTools", () => {
 			expect(result.content[0].type).toBe("text");
 			expect(String(result.content[0].text).split("\n")).toMatchObject([
 				"Result (2 stories found):",
-				"- sc-123: Test Story 1 (Type: feature, State: Not Started, Team: [None], Epic: [None], Iteration: [None], Owners: @testuser)",
-				"- sc-456: Test Story 2 (Type: bug, State: Not Started, Team: [None], Epic: [None], Iteration: [None], Owners: @testuser, @jane)",
+				"- sc-123: Test Story 1 (Type: feature, State: Not Started, Team: (none), Epic: (none), Iteration: (none), Owners: @testuser)",
+				"- sc-456: Test Story 2 (Type: bug, State: Not Started, Team: (none), Epic: (none), Iteration: (none), Owners: @testuser, @jane)",
 			]);
 		});
 
@@ -245,7 +245,7 @@ describe("IterationTools", () => {
 				"End date: 2023-01-14",
 				"Completed: No",
 				"Started: Yes",
-				"Team: [None]",
+				"Team: (none)",
 				"",
 				"Stats:",
 				"- Total stories: 10",

@@ -161,7 +161,7 @@ describe("TeamTools", () => {
 				"Name: Team 1",
 				"Mention name: team-one",
 				"Description: Description for Team 1",
-				"Members: [None]",
+				"Members: (none)",
 			]);
 		});
 	});
@@ -239,7 +239,7 @@ describe("TeamTools", () => {
 				"Name: Team 1",
 				"Description: Description for Team 1",
 				"Number of Members: 2",
-				"Workflows: [None]",
+				"Workflows: (none)",
 			]);
 		});
 	});

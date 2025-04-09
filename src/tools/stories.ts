@@ -331,11 +331,11 @@ Completed: ${story.completed ? "Yes" : "No"}
 Started: ${story.started ? "Yes" : "No"}
 Blocked: ${story.blocked ? "Yes" : "No"}
 Blocking: ${story.blocker ? "Yes" : "No"}
-Due date: ${story.deadline ? story.deadline : "[None]"}
-Team: ${story.group_id ? `${story.group_id}` : "[None]"}
+Due date: ${story.deadline ? story.deadline : "(none)"}
+Team: ${story.group_id ? `${story.group_id}` : "(none)"}
 ${formatMemberList(story.owner_ids, users, "Owners")}
-Epic: ${story.epic_id ? `${story.epic_id}` : "[None]"}
-Iteration: ${story.iteration_id ? `${story.iteration_id}` : "[None]"}
+Epic: ${story.epic_id ? `${story.epic_id}` : "(none)"}
+Iteration: ${story.iteration_id ? `${story.iteration_id}` : "(none)"}
 
 Description:
 ${story.description}

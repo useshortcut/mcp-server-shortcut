@@ -9,8 +9,118 @@ import type {
 	Workflow,
 } from "@shortcut/client";
 
+type PropInclude = Record<string, string[] | true | Record<string, string[] | true>>;
+
+export type FormatOptions = {
+	/** Properties to include (if undefined, include all) */
+	include?: string[] | PropInclude;
+	/** How deep to go into nested structures (default: unlimited) */
+	depth?: number;
+	/** Format for indentation (internal use) */
+	indent?: string;
+};
+
+export function jsonToText(data: unknown, options: FormatOptions = {}): string {
+	const indent = options.indent || "";
+
+	if (data === null || data === undefined) return "";
+	if (Array.isArray(data)) return formatArray(data, { ...options, indent });
+	if (typeof data === "object")
+		return formatObject(data as Record<string, unknown>, { ...options, indent });
+	return formatPrimitive(data);
+}
+
+function formatPrimitive(value: unknown): string {
+	if (typeof value === "boolean") return value ? "Yes" : "No";
+	return String(value);
+}
+
+function formatArray(arr: Array<unknown>, options: FormatOptions = {}): string {
+	if (arr.length === 0) return "(empty)";
+
+	const indent = options.indent || "";
+	const nextIndent = `${indent}  `;
+
+	return arr
+		.map((item) => {
+			let formattedItem: string;
+
+			if (typeof item === "object" && item !== null) {
+				formattedItem = jsonToText(item, {
+					...options,
+					indent: nextIndent,
+					depth: options.depth !== undefined ? options.depth - 1 : undefined,
+				});
+
+				if (formattedItem.includes("\n")) return `${indent}- \n${formattedItem}`;
+			} else formattedItem = formatPrimitive(item);
+
+			return `${indent}- ${formattedItem}`;
+		})
+		.join("\n");
+}
+
+function formatObject(obj: Record<string, unknown>, options: FormatOptions = {}): string {
+	const indent = options.indent || "";
+	const nextIndent = `${indent}  `;
+
+	if (options.depth !== undefined && options.depth <= 0) return `${indent}[Object]`;
+	if (Object.keys(obj).length === 0) return `${indent}(empty)`;
+
+	let keys: string[];
+
+	if (!options.include) {
+		keys = Object.keys(obj);
+	} else if (Array.isArray(options.include)) {
+		const arr = options.include as string[];
+		keys = Object.keys(obj).filter((key) => arr.includes(key));
+	} else {
+		keys = Object.keys(obj).filter((key) => {
+			const include = options.include as Record<string, unknown>;
+			return key in include;
+		});
+	}
+
+	return keys
+		.map((key) => {
+			const value = obj[key];
+			const formattedKey = formatKey(key);
+
+			let nestedInclude: FormatOptions["include"];
+			if (options.include && !Array.isArray(options.include)) {
+				const includeValue = (options.include as Record<string, string[] | true>)[key];
+				if (includeValue === true) nestedInclude = undefined;
+				else nestedInclude = includeValue;
+			}
+
+			const formattedValue = jsonToText(value, {
+				...options,
+				include: nestedInclude,
+				indent: nextIndent,
+				depth: options.depth !== undefined ? options.depth - 1 : undefined,
+			});
+
+			if (!formattedValue.includes("\n")) {
+				return `${indent}${formattedKey}: ${formattedValue}`;
+			}
+
+			return `${indent}${formattedKey}:\n${formattedValue}`;
+		})
+		.join("\n");
+}
+
+function formatKey(key: string): string {
+	return key
+		.replace(/([A-Z])/g, " $1") // Insert space before capitals
+		.replace(/_/g, " ") // Replace underscores with spaces
+		.trim()
+		.split(" ")
+		.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+		.join(" ");
+}
+
 export const formatAsUnorderedList = (items: string[], label?: string) => {
-	return `${label ? `${label}:` : ""}${items?.length ? `${label ? "\n" : ""}${items.map((item) => `- ${item}`).join("\n")}` : `${label ? " " : ""}[None]`}`;
+	return `${label ? `${label}:` : ""}${items?.length ? `${label ? "\n" : ""}${formatArray(items)}` : `${label ? " " : ""}(none)`}`;
 };
 
 export const formatStoryList = (
@@ -21,12 +131,12 @@ export const formatStoryList = (
 	return formatAsUnorderedList(
 		stories.map(
 			(story) =>
-				`sc-${story.id}: ${story.name} (Type: ${story.story_type}, State: ${story.completed ? "Completed" : story.started ? "In Progress" : "Not Started"}, Team: ${story.group_id ? `${story.group_id}` : "[None]"}, Epic: ${story.epic_id ? `${story.epic_id}` : "[None]"}, Iteration: ${story.iteration_id ? `${story.iteration_id}` : "[None]"}, Owners: ${
+				`sc-${story.id}: ${story.name} (Type: ${story.story_type}, State: ${story.completed ? "Completed" : story.started ? "In Progress" : "Not Started"}, Team: ${story.group_id ? `${story.group_id}` : "(none)"}, Epic: ${story.epic_id ? `${story.epic_id}` : "(none)"}, Iteration: ${story.iteration_id ? `${story.iteration_id}` : "(none)"}, Owners: ${
 					story.owner_ids
 						.map((ownerId) => users.get(ownerId))
 						.filter((owner): owner is Member => owner !== null)
 						.map((owner) => `@${owner.profile.mention_name}`)
-						.join(", ") || "[None]"
+						.join(", ") || "(none)"
 				})`,
 		),
 		label,

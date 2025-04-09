@@ -232,11 +232,11 @@ describe("StoryTools", () => {
 				"Blocked: No",
 				"Blocking: No",
 				"Due date: 2023-12-31",
-				"Team: [None]",
+				"Team: (none)",
 				"Owners:",
 				"- id=user1 @testuser",
-				"Epic: [None]",
-				"Iteration: [None]",
+				"Epic: (none)",
+				"Iteration: (none)",
 				"",
 				"Description:",
 				"Description for Test Story 1",
@@ -277,7 +277,7 @@ describe("StoryTools", () => {
 			const result = await storyTools.getStory(456);
 
 			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toContain("Due date: [None]");
+			expect(result.content[0].text).toContain("Due date: (none)");
 		});
 	});
 
@@ -309,8 +309,8 @@ describe("StoryTools", () => {
 			expect(result.content[0].type).toBe("text");
 			expect(String(result.content[0].text).split("\n")).toMatchObject([
 				"Result (first 2 shown of 2 total stories found):",
-				"- sc-123: Test Story 1 (Type: feature, State: In Progress, Team: [None], Epic: [None], Iteration: [None], Owners: @testuser)",
-				"- sc-456: Test Story 2 (Type: bug, State: Completed, Team: [None], Epic: [None], Iteration: [None], Owners: @testuser, @jane)",
+				"- sc-123: Test Story 1 (Type: feature, State: In Progress, Team: (none), Epic: (none), Iteration: (none), Owners: @testuser)",
+				"- sc-456: Test Story 2 (Type: bug, State: Completed, Team: (none), Epic: (none), Iteration: (none), Owners: @testuser, @jane)",
 			]);
 		});
 

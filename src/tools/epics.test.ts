@@ -103,7 +103,7 @@ describe("EpicTools", () => {
 			expect(tools.getEpic).toHaveBeenCalledWith(1);
 
 			spyOn(tools, "searchEpics").mockImplementation(async () => ({
-				content: [{ text: "[None]", type: "text" }],
+				content: [{ text: "(none)", type: "text" }],
 			}));
 			await mockTool.mock.calls?.[1]?.[3]({ id: 1 });
 			expect(tools.searchEpics).toHaveBeenCalledWith({ id: 1 });
@@ -137,8 +137,8 @@ describe("EpicTools", () => {
 				"Completed: No",
 				"Started: No",
 				"Due date: 2025-04-01",
-				"Team: [None]",
-				"Objective: [None]",
+				"Team: (none)",
+				"Objective: (none)",
 				"",
 				"Stats:",
 				"- Total stories: 10",
@@ -164,8 +164,8 @@ describe("EpicTools", () => {
 				"Completed: Yes",
 				"Started: Yes",
 				"Due date: 2025-03-01",
-				"Team: [None]",
-				"Objective: [None]",
+				"Team: (none)",
+				"Objective: (none)",
 				"",
 				"Stats:",
 				"- Total stories: 10",
@@ -191,8 +191,8 @@ describe("EpicTools", () => {
 				"Completed: No",
 				"Started: Yes",
 				"Due date: [Not set]",
-				"Team: [None]",
-				"Objective: [None]",
+				"Team: (none)",
+				"Objective: (none)",
 				"",
 				"Stats:",
 				"- Total stories: 10",
