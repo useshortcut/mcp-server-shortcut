@@ -346,16 +346,13 @@ describe("EpicTools", () => {
 
 		test("should return formatted epic details when epic is created", async () => {
 			const epicTools = new EpicTools(mockClient);
-			const result = await epicTools.createEpic(mockTeam.id, "Epic 1", "Description for Epic 1");
+			const result = await epicTools.createEpic({
+				teamId: mockTeam.id,
+				name: "Epic 1",
+				description: "Description for Epic 1",
+			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toContain("Epic created: 1");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Epic created: 1",
-				"URL: https://app.shortcut.com/test/epic/1",
-				"Name: Epic 1",
-				"Description: Description for Epic 1",
-			]);
+			expect(result.content[0].text).toBe("Epic created with ID: 1.");
 		});
 
 		test("should throw error when group is not found", async () => {
@@ -368,8 +365,12 @@ describe("EpicTools", () => {
 				}),
 			);
 			await expect(() =>
-				epicTools.createEpic(mockTeam.id, "Epic 1", "Description for Epic 1"),
-			).toThrow("Group with ID team1 not found");
+				epicTools.createEpic({
+					teamId: mockTeam.id,
+					name: "Epic 1",
+					description: "Description for Epic 1",
+				}),
+			).toThrow("Team with ID team1 not found");
 		});
 	});
 });

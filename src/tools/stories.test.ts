@@ -628,12 +628,9 @@ describe("StoryTools", () => {
 				text: "Added comment to story sc-123.",
 			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Message: Created comment on story sc-123",
-				"Comment ID: 1000",
-				"Comment Text: Added comment to story sc-123.",
-			]);
+			expect(result.content[0].text).toBe(
+				`Created comment on story sc-123. Comment URL: ${mockStories[0].comments[0].app_url}.`,
+			);
 			expect(createStoryCommentMock).toHaveBeenCalledTimes(1);
 		});
 

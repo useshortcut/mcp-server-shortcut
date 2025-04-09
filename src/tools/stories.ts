@@ -182,7 +182,7 @@ The story will be added to the default state for the workflow.
 				storyPublicId: z.number().positive().describe("The public ID of the story"),
 				text: z.string().min(1).describe("The text of the comment"),
 			},
-			async ({ storyPublicId, text }) => await tools.createStoryComment({ storyPublicId, text }),
+			async (params) => await tools.createStoryComment(params),
 		);
 
 		return tools;
@@ -368,16 +368,13 @@ ${(story.comments || [])
 		if (!text) throw new Error("Story comment text is required");
 
 		const story = await this.client.getStory(storyPublicId);
-		if (!story) {
+		if (!story)
 			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
-		}
 
-		const storyComment = await this.client.createStoryComment(storyPublicId, text);
+		const storyComment = await this.client.createStoryComment(storyPublicId, { text });
 
-		const responseMessage = `Message: Created comment on story sc-${storyPublicId}
-Comment ID: ${storyComment.id}
-Comment Text: ${storyComment.text}`;
-
-		return this.toResult(responseMessage);
+		return this.toResult(
+			`Created comment on story sc-${storyPublicId}. Comment URL: ${storyComment.app_url}.`,
+		);
 	}
 }
