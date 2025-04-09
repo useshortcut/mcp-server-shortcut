@@ -68,12 +68,6 @@ describe("EpicTools", () => {
 		},
 	} as unknown as Member & MemberInfo;
 
-	const mockTeam = {
-		id: "team1",
-		name: "Test Team",
-		workflow_ids: [1],
-	};
-
 	const createMockClient = (methods?: object) =>
 		({
 			getCurrentUser: mock(async () => mockCurrentUser),
@@ -337,40 +331,18 @@ describe("EpicTools", () => {
 			app_url: "https://app.shortcut.com/test/epic/1",
 		}));
 
-		const getTeamMock = mock(async () => mockTeam);
-
 		const mockClient = createMockClient({
 			createEpic: createEpicMock,
-			getTeam: getTeamMock,
 		});
 
-		test("should return formatted epic details when epic is created", async () => {
+		test("should create epic", async () => {
 			const epicTools = new EpicTools(mockClient);
 			const result = await epicTools.createEpic({
-				teamId: mockTeam.id,
 				name: "Epic 1",
 				description: "Description for Epic 1",
 			});
 
 			expect(result.content[0].text).toBe("Epic created with ID: 1.");
-		});
-
-		test("should throw error when group is not found", async () => {
-			const epicTools = new EpicTools(
-				createMockClient({
-					createEpic: mock(async () => {
-						throw new Error("Epic creation failed");
-					}),
-					getTeam: mock(async () => null),
-				}),
-			);
-			await expect(() =>
-				epicTools.createEpic({
-					teamId: mockTeam.id,
-					name: "Epic 1",
-					description: "Description for Epic 1",
-				}),
-			).toThrow("Team with ID team1 not found");
 		});
 	});
 });

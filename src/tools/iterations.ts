@@ -60,10 +60,10 @@ export class IterationTools extends BaseTools {
 			"Create a new Shortcut iteration",
 			{
 				name: z.string().describe("The name of the iteration"),
-				description: z.string().optional().describe("The description of the iteration"),
 				startDate: z.string().describe("The start date of the iteration"),
 				endDate: z.string().describe("The end date of the iteration"),
-				teamId: z.string().optional().describe("The ID of the team to assign the iteration to"),
+				team: z.string().optional().describe("The ID of a team to assign the iteration to"),
+				description: z.string().optional().describe("A description of the iteration"),
 			},
 			async (params) => await tools.createIteration(params),
 		);
@@ -128,25 +128,20 @@ ${iteration.description}`);
 		name,
 		startDate,
 		endDate,
-		teamId,
+		team,
 		description,
 	}: {
 		name: string;
 		startDate: string;
 		endDate: string;
-		teamId?: string;
+		team?: string;
 		description?: string;
 	}): Promise<CallToolResult> {
-		if (teamId) {
-			const team = await this.client.getTeam(teamId);
-			if (!team) throw new Error(`Team with ID ${teamId} not found`);
-		}
-
 		const iteration = await this.client.createIteration({
 			name,
 			start_date: startDate,
 			end_date: endDate,
-			group_ids: teamId ? [teamId] : undefined,
+			group_ids: team ? [team] : undefined,
 			description,
 		});
 
