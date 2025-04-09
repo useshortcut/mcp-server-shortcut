@@ -104,8 +104,8 @@ Archived: ${epic.archived ? "Yes" : "No"}
 Completed: ${epic.completed ? "Yes" : "No"}
 Started: ${epic.started ? "Yes" : "No"}
 Due date: ${epic.deadline ? epic.deadline : "[Not set]"}
-Team: ${epic.group_id ? `${epic.group_id}` : "[None]"}
-Objective: ${epic.milestone_id ? `${epic.milestone_id}` : "[None]"}
+Team: ${epic.group_id ? `${epic.group_id}` : "(none)"}
+Objective: ${epic.milestone_id ? `${epic.milestone_id}` : "(none)"}
 
 ${formatStats(epic.stats, showPoints)}
 

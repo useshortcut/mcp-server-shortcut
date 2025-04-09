@@ -135,12 +135,12 @@ const mockTasks = [
 describe("formatAsUnorderedList", () => {
 	test("should format an empty list without label", () => {
 		const result = formatAsUnorderedList([]);
-		expect(result).toBe("[None]");
+		expect(result).toBe("(none)");
 	});
 
 	test("should format an empty list with label", () => {
 		const result = formatAsUnorderedList([], "Label");
-		expect(result).toBe("Label: [None]");
+		expect(result).toBe("Label: (none)");
 	});
 
 	test("should format a list without label", () => {
@@ -157,7 +157,7 @@ describe("formatAsUnorderedList", () => {
 describe("formatStoryList", () => {
 	test("should return empty string for empty stories array", () => {
 		const result = formatStoryList([], mockUsers);
-		expect(result).toBe("[None]");
+		expect(result).toBe("(none)");
 	});
 
 	test("should format a story with team, epic, and iteration", () => {
@@ -172,7 +172,7 @@ describe("formatStoryList", () => {
 		];
 		const result = formatStoryList(stories, mockUsers);
 		expect(result).toBe(
-			"- sc-123: Test Story (Type: feature, State: Not Started, Team: group1, Epic: 1, Iteration: 2, Owners: [None])",
+			"- sc-123: Test Story (Type: feature, State: Not Started, Team: group1, Epic: 1, Iteration: 2, Owners: (none))",
 		);
 	});
 
@@ -180,7 +180,7 @@ describe("formatStoryList", () => {
 		const stories = [createMockStory({ id: 123, name: "Test Story" })];
 		const result = formatStoryList(stories, mockUsers);
 		expect(result).toBe(
-			"- sc-123: Test Story (Type: feature, State: Not Started, Team: [None], Epic: [None], Iteration: [None], Owners: [None])",
+			"- sc-123: Test Story (Type: feature, State: Not Started, Team: (none), Epic: (none), Iteration: (none), Owners: (none))",
 		);
 	});
 
@@ -188,7 +188,7 @@ describe("formatStoryList", () => {
 		const stories = [createMockStory({ id: 123, name: "Test Story", owner_ids: ["user1"] })];
 		const result = formatStoryList(stories, mockUsers);
 		expect(result).toBe(
-			"- sc-123: Test Story (Type: feature, State: Not Started, Team: [None], Epic: [None], Iteration: [None], Owners: @john)",
+			"- sc-123: Test Story (Type: feature, State: Not Started, Team: (none), Epic: (none), Iteration: (none), Owners: @john)",
 		);
 	});
 
@@ -202,7 +202,7 @@ describe("formatStoryList", () => {
 		];
 		const result = formatStoryList(stories, mockUsers);
 		expect(result).toBe(
-			"- sc-123: Test Story (Type: feature, State: Not Started, Team: [None], Epic: [None], Iteration: [None], Owners: @john, @jane)",
+			"- sc-123: Test Story (Type: feature, State: Not Started, Team: (none), Epic: (none), Iteration: (none), Owners: @john, @jane)",
 		);
 	});
 
@@ -214,9 +214,9 @@ describe("formatStoryList", () => {
 		];
 		const result = formatStoryList(stories, mockUsers);
 		expect(result).toBe(
-			"- sc-123: Unstarted Story (Type: feature, State: Not Started, Team: [None], Epic: [None], Iteration: [None], Owners: [None])\n" +
-				"- sc-124: Started Story (Type: feature, State: In Progress, Team: [None], Epic: [None], Iteration: [None], Owners: [None])\n" +
-				"- sc-125: Completed Story (Type: feature, State: Completed, Team: [None], Epic: [None], Iteration: [None], Owners: [None])",
+			"- sc-123: Unstarted Story (Type: feature, State: Not Started, Team: (none), Epic: (none), Iteration: (none), Owners: (none))\n" +
+				"- sc-124: Started Story (Type: feature, State: In Progress, Team: (none), Epic: (none), Iteration: (none), Owners: (none))\n" +
+				"- sc-125: Completed Story (Type: feature, State: Completed, Team: (none), Epic: (none), Iteration: (none), Owners: (none))",
 		);
 	});
 
@@ -239,7 +239,7 @@ describe("formatStoryList", () => {
 		const result = formatStoryList(stories, customUsers as Map<string, Member>);
 
 		expect(result).toBe(
-			"- sc-123: Test Story (Type: feature, State: Not Started, Team: [None], Epic: [None], Iteration: [None], Owners: @john)",
+			"- sc-123: Test Story (Type: feature, State: Not Started, Team: (none), Epic: (none), Iteration: (none), Owners: @john)",
 		);
 	});
 });
@@ -247,7 +247,7 @@ describe("formatStoryList", () => {
 describe("formatMemberList", () => {
 	test("should return empty string for empty ids array", () => {
 		const result = formatMemberList([], mockUsers);
-		expect(result).toBe("Members: [None]");
+		expect(result).toBe("Members: (none)");
 	});
 
 	test("should format a single member", () => {
@@ -274,7 +274,7 @@ describe("formatMemberList", () => {
 describe("formatWorkflowList", () => {
 	test("should return empty string for empty ids array", () => {
 		const result = formatWorkflowList([], mockWorkflowsMap);
-		expect(result).toBe("Workflows: [None]");
+		expect(result).toBe("Workflows: (none)");
 	});
 
 	test("should format a single workflow", () => {
@@ -291,7 +291,7 @@ describe("formatWorkflowList", () => {
 
 	test("should filter out non-existent workflows", () => {
 		const result = formatWorkflowList([999], mockWorkflowsMap);
-		expect(result).toBe("Workflows: [None]");
+		expect(result).toBe("Workflows: (none)");
 	});
 
 	test("should handle a workflow with unknown default state", () => {
@@ -310,12 +310,12 @@ describe("formatWorkflowList", () => {
 describe("formatPullRequestList", () => {
 	test("should return empty string for empty branches array", () => {
 		const result = formatPullRequestList([]);
-		expect(result).toBe("Pull Requests: [None]");
+		expect(result).toBe("Pull Requests: (none)");
 	});
 
 	test("should return empty string for branch without pull requests", () => {
 		const result = formatPullRequestList([{ id: 1, name: "branch1" } as Branch]);
-		expect(result).toBe("Pull Requests: [None]");
+		expect(result).toBe("Pull Requests: (none)");
 	});
 
 	test("should format a single pull request", () => {
