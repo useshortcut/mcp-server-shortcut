@@ -136,14 +136,15 @@ describe("StoryTools", () => {
 
 			StoryTools.create(mockClient, mockServer);
 
-			expect(mockTool).toHaveBeenCalledTimes(7);
+			expect(mockTool).toHaveBeenCalledTimes(8);
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-story-branch-name");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-story");
 			expect(mockTool.mock.calls?.[2]?.[0]).toBe("search-stories");
 			expect(mockTool.mock.calls?.[3]?.[0]).toBe("create-story");
-			expect(mockTool.mock.calls?.[4]?.[0]).toBe("assign-current-user-as-owner");
-			expect(mockTool.mock.calls?.[5]?.[0]).toBe("unassign-current-user-as-owner");
-			expect(mockTool.mock.calls?.[6]?.[0]).toBe("create-story-comment");
+			expect(mockTool.mock.calls?.[4]?.[0]).toBe("update-story");
+			expect(mockTool.mock.calls?.[5]?.[0]).toBe("assign-current-user-as-owner");
+			expect(mockTool.mock.calls?.[6]?.[0]).toBe("unassign-current-user-as-owner");
+			expect(mockTool.mock.calls?.[7]?.[0]).toBe("create-story-comment");
 		});
 
 		test("should call correct function from tool", async () => {
@@ -177,22 +178,28 @@ describe("StoryTools", () => {
 			await mockTool.mock.calls?.[3]?.[3]({ name: "Test Story 1" });
 			expect(tools.createStory).toHaveBeenCalledWith({ name: "Test Story 1" });
 
+			spyOn(tools, "updateStory").mockImplementation(async () => ({
+				content: [{ text: "", type: "text" }],
+			}));
+			await mockTool.mock.calls?.[4]?.[3]({ storyPublicId: 123, name: "Updated Story" });
+			expect(tools.updateStory).toHaveBeenCalledWith({ storyPublicId: 123, name: "Updated Story" });
+
 			spyOn(tools, "assignCurrentUserAsOwner").mockImplementation(async () => ({
 				content: [{ text: "", type: "text" }],
 			}));
-			await mockTool.mock.calls?.[4]?.[3]({ storyPublicId: 123 });
+			await mockTool.mock.calls?.[5]?.[3]({ storyPublicId: 123 });
 			expect(tools.assignCurrentUserAsOwner).toHaveBeenCalledWith(123);
 
 			spyOn(tools, "unassignCurrentUserAsOwner").mockImplementation(async () => ({
 				content: [{ text: "", type: "text" }],
 			}));
-			await mockTool.mock.calls?.[5]?.[3]({ storyPublicId: 123 });
+			await mockTool.mock.calls?.[6]?.[3]({ storyPublicId: 123 });
 			expect(tools.unassignCurrentUserAsOwner).toHaveBeenCalledWith(123);
 
 			spyOn(tools, "createStoryComment").mockImplementation(async () => ({
 				content: [{ text: "", type: "text" }],
 			}));
-			await mockTool.mock.calls?.[6]?.[3]({ storyPublicId: 123, text: "Test comment" });
+			await mockTool.mock.calls?.[7]?.[3]({ storyPublicId: 123, text: "Test comment" });
 			expect(tools.createStoryComment).toHaveBeenCalledWith({
 				storyPublicId: 123,
 				text: "Test comment",
@@ -418,6 +425,96 @@ describe("StoryTools", () => {
 					workflow: 999,
 				}),
 			).toThrow("Failed to find workflow");
+		});
+	});
+
+	describe("updateStory method", () => {
+		const getStoryMock = mock(async (id: number) => mockStories.find((story) => story.id === id));
+		const updateStoryMock = mock(async (_id: number, _args: UpdateStory) => ({
+			id: 123,
+			app_url: "https://app.shortcut.com/test/story/123",
+		}));
+
+		const mockClient = {
+			getStory: getStoryMock,
+			updateStory: updateStoryMock,
+		} as unknown as ShortcutClientWrapper;
+
+		beforeEach(() => {
+			updateStoryMock.mockClear();
+		});
+
+		test("should update a story with provided fields", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.updateStory({
+				storyPublicId: 123,
+				name: "Updated Story Name",
+				description: "Updated description",
+				type: "bug",
+			});
+
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe(
+				"Updated story sc-123. Story URL: https://app.shortcut.com/test/story/123",
+			);
+			expect(updateStoryMock).toHaveBeenCalledTimes(1);
+			expect(updateStoryMock.mock.calls?.[0]?.[0]).toBe(123);
+			expect(updateStoryMock.mock.calls?.[0]?.[1]).toMatchObject({
+				name: "Updated Story Name",
+				description: "Updated description",
+				story_type: "bug",
+			});
+		});
+
+		test("should handle null values for optional fields", async () => {
+			const storyTools = new StoryTools(mockClient);
+			await storyTools.updateStory({
+				storyPublicId: 123,
+				epic: null,
+				estimate: null,
+			});
+
+			expect(updateStoryMock).toHaveBeenCalledTimes(1);
+			expect(updateStoryMock.mock.calls?.[0]?.[1]).toMatchObject({
+				epic_id: null,
+				estimate: null,
+			});
+		});
+
+		test("should update owner_ids and workflow_state_id", async () => {
+			const storyTools = new StoryTools(mockClient);
+			await storyTools.updateStory({
+				storyPublicId: 123,
+				owner_ids: ["user1", "user2"],
+				workflow_state_id: 102,
+			});
+
+			expect(updateStoryMock).toHaveBeenCalledTimes(1);
+			expect(updateStoryMock.mock.calls?.[0]?.[1]).toMatchObject({
+				owner_ids: ["user1", "user2"],
+				workflow_state_id: 102,
+			});
+		});
+
+		test("should throw error when story is not found", async () => {
+			const storyTools = new StoryTools({
+				...mockClient,
+				getStory: mock(async () => null),
+			} as unknown as ShortcutClientWrapper);
+
+			await expect(() =>
+				storyTools.updateStory({
+					storyPublicId: 999,
+					name: "Updated Story",
+				}),
+			).toThrow("Failed to retrieve Shortcut story with public ID: 999");
+		});
+
+		test("should throw error when story ID is not provided", async () => {
+			const storyTools = new StoryTools(mockClient);
+
+			// @ts-ignore - Testing runtime check for missing ID
+			await expect(() => storyTools.updateStory({})).toThrow("Story public ID is required");
 		});
 	});
 
