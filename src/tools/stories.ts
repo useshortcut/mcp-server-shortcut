@@ -161,7 +161,7 @@ The story will be added to the default state for the workflow.
 
 		server.tool(
 			"update-story",
-			"Update an existing Shortcut story. Only provide fields you want to update.",
+			"Update an existing Shortcut story. Only provide fields you want to update. The story public ID will always be included in updates.",
 			{
 				storyPublicId: z.number().positive().describe("The public ID of the story to update"),
 				name: z.string().max(512).optional().describe("The name of the story"),
