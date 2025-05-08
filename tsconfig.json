@@ -18,8 +18,9 @@
 		"noUncheckedSideEffectImports": true,
 		"baseUrl": ".",
 		"paths": {
-			"@/*": ["./src/*"]
+			"@/*": ["./src/*"],
+			"@shortcut/mcp-tools": ["./shortcut-mcp-tools/src"]
 		}
 	},
-	"include": ["src"]
+	"include": ["src", "shortcut-mcp-tools/src"]
 }
