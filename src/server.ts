@@ -1,16 +1,19 @@
-import { ShortcutClientWrapper } from "@/client/shortcut";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { ShortcutClient } from "@shortcut/client";
 import { name, version } from "../package.json";
 
-import { EpicTools } from "./tools/epics";
-import { IterationTools } from "./tools/iterations";
-import { ObjectiveTools } from "./tools/objectives";
-import { StoryTools } from "./tools/stories";
-import { TeamTools } from "./tools/teams";
-import { UserTools } from "./tools/user";
-import { WorkflowTools } from "./tools/workflows";
+// Import shared tools
+import {
+	EpicTools,
+	IterationTools,
+	ObjectiveTools,
+	ShortcutClientWrapper,
+	StoryTools,
+	TeamTools,
+	UserTools,
+	WorkflowTools,
+} from "@shortcut/mcp-tools";
 
 let apiToken = process.env.SHORTCUT_API_TOKEN;
 
