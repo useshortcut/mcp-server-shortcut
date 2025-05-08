@@ -160,6 +160,46 @@ The story will be added to the default state for the workflow.
 		);
 
 		server.tool(
+			"update-story",
+			"Update an existing Shortcut story. Only provide fields you want to update. The story public ID will always be included in updates.",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story to update"),
+				name: z.string().max(512).optional().describe("The name of the story"),
+				description: z.string().max(10_000).optional().describe("The description of the story"),
+				type: z.enum(["feature", "bug", "chore"]).optional().describe("The type of the story"),
+				epic: z
+					.number()
+					.nullable()
+					.optional()
+					.describe("The epic id of the epic the story belongs to, or null to unset"),
+				estimate: z
+					.number()
+					.nullable()
+					.optional()
+					.describe("The point estimate of the story, or null to unset"),
+				owner_ids: z
+					.array(z.string())
+					.optional()
+					.describe("Array of user UUIDs to assign as owners of the story"),
+				workflow_state_id: z
+					.number()
+					.optional()
+					.describe("The workflow state ID to move the story to"),
+				labels: z
+					.array(
+						z.object({
+							name: z.string().describe("The name of the label"),
+							color: z.string().optional().describe("The color of the label"),
+							description: z.string().optional().describe("The description of the label"),
+						}),
+					)
+					.optional()
+					.describe("Labels to assign to the story"),
+			},
+			async (params) => await tools.updateStory(params),
+		);
+
+		server.tool(
 			"assign-current-user-as-owner",
 			"Assign the current user as the owner of a story",
 			{
@@ -378,5 +418,49 @@ ${(story.comments || [])
 		return this.toResult(
 			`Created comment on story sc-${storyPublicId}. Comment URL: ${storyComment.app_url}.`,
 		);
+	}
+
+	async updateStory({
+		storyPublicId,
+		...updates
+	}: {
+		storyPublicId: number;
+		name?: string;
+		description?: string;
+		type?: "feature" | "bug" | "chore";
+		epic?: number | null;
+		estimate?: number | null;
+		owner_ids?: string[];
+		workflow_state_id?: number;
+		labels?: Array<{
+			name: string;
+			color?: string;
+			description?: string;
+		}>;
+	}) {
+		if (!storyPublicId) throw new Error("Story public ID is required");
+
+		// Verify the story exists
+		const story = await this.client.getStory(storyPublicId);
+		if (!story)
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
+
+		// Convert API parameters
+		const updateParams: Record<string, unknown> = {};
+
+		if (updates.name !== undefined) updateParams.name = updates.name;
+		if (updates.description !== undefined) updateParams.description = updates.description;
+		if (updates.type !== undefined) updateParams.story_type = updates.type;
+		if (updates.epic !== undefined) updateParams.epic_id = updates.epic;
+		if (updates.estimate !== undefined) updateParams.estimate = updates.estimate;
+		if (updates.owner_ids !== undefined) updateParams.owner_ids = updates.owner_ids;
+		if (updates.workflow_state_id !== undefined)
+			updateParams.workflow_state_id = updates.workflow_state_id;
+		if (updates.labels !== undefined) updateParams.labels = updates.labels;
+
+		// Update the story
+		const updatedStory = await this.client.updateStory(storyPublicId, updateParams);
+
+		return this.toResult(`Updated story sc-${storyPublicId}. Story URL: ${updatedStory.app_url}`);
 	}
 }
