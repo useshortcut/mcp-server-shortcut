@@ -18,8 +18,9 @@ describe("UserTools", () => {
 
 			UserTools.create(mockClient, mockServer);
 
-			expect(mockTool).toHaveBeenCalledTimes(1);
+			expect(mockTool).toHaveBeenCalledTimes(2);
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-current-user");
+			expect(mockTool.mock.calls?.[1]?.[0]).toBe("list-members");
 		});
 
 		test("should call correct function from tool", async () => {
@@ -70,6 +71,37 @@ describe("UserTools", () => {
 			} as unknown as ShortcutClientWrapper);
 
 			await expect(() => userTools.getCurrentUser()).toThrow("API error");
+		});
+	});
+
+	describe("listMembers method", () => {
+		const mockMembers = [
+			{ id: "user1", name: "User One", profile: { mention_name: "user1" } },
+			{ id: "user2", name: "User Two", profile: { mention_name: "user2" } },
+		];
+
+		const listMembersMock = mock(async () => mockMembers);
+		const mockClient = { listMembers: listMembersMock } as unknown as ShortcutClientWrapper;
+
+		test("should return formatted list of members", async () => {
+			const userTools = new UserTools(mockClient);
+			const result = await userTools.listMembers();
+
+			console.log(JSON.stringify(result.content, null, 2));
+			expect(result.content[0].type).toBe("text");
+			expect(String(result.content[0].text)).toContain("Found 2 members,");
+			expect(String(result.content[0].text)).toContain("@user1");
+			expect(String(result.content[0].text)).toContain("@user2");
+		});
+
+		test("should propagate errors from client", async () => {
+			const userTools = new UserTools({
+				listMembers: mock(async () => {
+					throw new Error("API error");
+				}),
+			} as unknown as ShortcutClientWrapper);
+
+			await expect(() => userTools.listMembers()).toThrow("API error");
 		});
 	});
 });
