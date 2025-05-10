@@ -211,3 +211,7 @@ export const formatStats = (stats: EpicStats | IterationStats, showPoints: boole
 
 	return statsString;
 };
+
+export const formatUsersList = (users: Member[]) => {
+	return formatAsUnorderedList(users.map((user) => `id=${user.id} @${user.profile.mention_name}`));
+};
