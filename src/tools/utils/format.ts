@@ -213,5 +213,10 @@ export const formatStats = (stats: EpicStats | IterationStats, showPoints: boole
 };
 
 export const formatUsersList = (users: Member[]) => {
-	return formatAsUnorderedList(users.map((user) => `id=${user.id} @${user.profile.mention_name}`));
+	return formatAsUnorderedList(
+		users.map(
+			(user) =>
+				`id=${user.id} ${user?.profile?.mention_name ? `@${user.profile.mention_name}` : ""} : ""}`,
+		),
+	);
 };
