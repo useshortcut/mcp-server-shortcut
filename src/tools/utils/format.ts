@@ -129,19 +129,49 @@ export const formatStoryList = (
 	label?: string,
 ) => {
 	return formatAsUnorderedList(
-		stories.map(
-			(story) =>
-				`sc-${story.id}: ${story.name} (Type: ${story.story_type}, State: ${story.completed ? "Completed" : story.started ? "In Progress" : "Not Started"}, Team: ${story.group_id ? `${story.group_id}` : "(none)"}, Epic: ${story.epic_id ? `${story.epic_id}` : "(none)"}, Iteration: ${story.iteration_id ? `${story.iteration_id}` : "(none)"}, Owners: ${
-					story.owner_ids
-						.map((ownerId) => users.get(ownerId))
-						.filter((owner): owner is Member => owner !== null)
-						.map((owner) => `@${owner.profile.mention_name}`)
-						.join(", ") || "(none)"
-				})`,
-		),
+		stories.map((story) => formatStory(story, users)),
 		label,
 	);
 };
+
+export const formatStory = (story: Story | StorySearchResult, users: Map<string, Member>) => {
+	return `Story: sc-${story.id}: ${story.name} 
+(
+	URL: ${story.app_url},
+	Name: ${story.name},
+	Type: ${story.story_type}, 
+	State: ${story.completed ? "Completed" : story.started ? "In Progress" : "Not Started"}, 
+	Blocked: ${story.blocked ? "Yes" : "No"},
+	Blocking: ${story.blocker ? "Yes" : "No"},
+	Archived: ${story.archived ? "Yes" : "No"},
+	Team: ${story.group_id ? `${story.group_id}` : "(none)"}, 
+	Epic: ${story.epic_id ? `${story.epic_id}` : "(none)"}, 
+	Estimate: ${story.estimate ? `${story.estimate}` : "(none)"},
+	${formatMemberList(story.owner_ids, users, "Owners")},
+	Iteration: ${story.iteration_id ? `${story.iteration_id}` : "(none)"},
+	Due date: ${story.deadline ? story.deadline : "(none)"},
+	Description: ${story.description}
+)`;
+};
+
+// ADDITIONAL FORMATTING OPTIONS
+// ${formatAsUnorderedList(story.external_links, "External Links")}
+
+// ${formatPullRequestList(story.branches)}
+
+// ${formatTaskList(story.tasks)}
+
+// Comments:
+// ${(story.comments || [])
+// 	.map((comment) => {
+// 		const mentionName = comment.author_id
+// 			? users.get(comment.author_id)?.profile?.mention_name
+// 			: null;
+// 		return `- From: ${
+// 			mentionName ? `@${mentionName}` : `id=${comment.author_id}` || "[Unknown]"
+// 		} on ${comment.created_at}.\n${comment.text || ""}`;
+// 	})
+// 	.join("\n\n")}`);
 
 export const formatMemberList = (ids: string[], users: Map<string, Member>, label = "Members") => {
 	return formatAsUnorderedList(

@@ -3,13 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { MemberInfo, Story } from "@shortcut/client";
 import { z } from "zod";
 import { BaseTools } from "./base";
-import {
-	formatAsUnorderedList,
-	formatMemberList,
-	formatPullRequestList,
-	formatStoryList,
-	formatTaskList,
-} from "./utils/format";
+import { formatStory, formatStoryList } from "./utils/format";
 import { type QueryParams, buildSearchQuery } from "./utils/search";
 import { date, has, is, user } from "./utils/validation";
 
@@ -362,41 +356,7 @@ ${formatStoryList(stories, users)}`);
 			[...relatedUsers].filter((id): id is string => !!id),
 		);
 
-		return this.toResult(`Story: sc-${storyPublicId}
-URL: ${story.app_url}
-Name: ${story.name}
-Type: ${story.story_type}
-Archived: ${story.archived ? "Yes" : "No"}
-Completed: ${story.completed ? "Yes" : "No"}
-Started: ${story.started ? "Yes" : "No"}
-Blocked: ${story.blocked ? "Yes" : "No"}
-Blocking: ${story.blocker ? "Yes" : "No"}
-Due date: ${story.deadline ? story.deadline : "(none)"}
-Team: ${story.group_id ? `${story.group_id}` : "(none)"}
-${formatMemberList(story.owner_ids, users, "Owners")}
-Epic: ${story.epic_id ? `${story.epic_id}` : "(none)"}
-Iteration: ${story.iteration_id ? `${story.iteration_id}` : "(none)"}
-
-Description:
-${story.description}
-
-${formatAsUnorderedList(story.external_links, "External Links")}
-
-${formatPullRequestList(story.branches)}
-
-${formatTaskList(story.tasks)}
-
-Comments:
-${(story.comments || [])
-	.map((comment) => {
-		const mentionName = comment.author_id
-			? users.get(comment.author_id)?.profile?.mention_name
-			: null;
-		return `- From: ${
-			mentionName ? `@${mentionName}` : `id=${comment.author_id}` || "[Unknown]"
-		} on ${comment.created_at}.\n${comment.text || ""}`;
-	})
-	.join("\n\n")}`);
+		return this.toResult(formatStory(story, users));
 	}
 
 	async createStoryComment({
