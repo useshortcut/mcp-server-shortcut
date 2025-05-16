@@ -262,6 +262,7 @@ The story will be added to the default state for the workflow.
 					.array(z.string())
 					.optional()
 					.describe("Array of user IDs to assign as owners of the task"),
+				isCompleted: z.boolean().optional().describe("Whether the task is completed or not"),
 			},
 			async (params) => await tools.updateTask(params),
 		);
@@ -521,7 +522,6 @@ ${(story.comments || [])
 
 		if (taskOwnerIds?.length) {
 			const owners = await this.client.getUserMap(taskOwnerIds as string[]);
-			console.log(owners);
 			if (!owners) throw new Error(`Failed to retrieve users with IDs: ${taskOwnerIds.join(", ")}`);
 		}
 
@@ -538,11 +538,13 @@ ${(story.comments || [])
 		taskPublicId,
 		taskDescription,
 		taskOwnerIds,
+		isCompleted,
 	}: {
 		storyPublicId: number;
 		taskPublicId: number;
 		taskDescription?: string;
 		taskOwnerIds?: string[];
+		isCompleted?: boolean;
 	}) {
 		if (!storyPublicId) throw new Error("Story public ID is required");
 		if (!taskPublicId) throw new Error("Task public ID is required");
@@ -557,9 +559,15 @@ ${(story.comments || [])
 		const updatedTask = await this.client.updateTask(storyPublicId, taskPublicId, {
 			description: taskDescription,
 			ownerIds: taskOwnerIds,
+			isCompleted,
 		});
 
-		return this.toResult(`Updated task for story sc-${storyPublicId}. Task ID: ${updatedTask.id}.`);
+		let message = `Updated task for story sc-${storyPublicId}. Task ID: ${updatedTask.id}.`;
+		if (isCompleted) {
+			message = `Completed task for story sc-${storyPublicId}. Task ID: ${updatedTask.id}.`;
+		}
+
+		return this.toResult(message);
 	}
 
 	async addRelationToStory({

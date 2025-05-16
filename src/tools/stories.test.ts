@@ -852,6 +852,7 @@ describe("StoryTools", () => {
 			id: 1,
 			description: "Updated task",
 			owner_ids: ["user1", "user2"],
+			isCompleted: true,
 		}));
 
 		const mockClient = {
@@ -907,6 +908,19 @@ describe("StoryTools", () => {
 					taskOwnerIds: ["user1"],
 				}),
 			).toThrow("Failed to retrieve Shortcut story with public ID: 999");
+		});
+
+		test("should mark task as completed", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.updateTask({
+				storyPublicId: 123,
+				taskPublicId: 1,
+				isCompleted: true,
+			});
+
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe("Completed task for story sc-123. Task ID: 1.");
+			expect(updateTaskMock).toHaveBeenCalledTimes(1);
 		});
 	});
 

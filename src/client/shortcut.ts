@@ -275,21 +275,20 @@ export class ShortcutClientWrapper {
 	}
 
 	async addTaskToStory(
-		storyPublic: number,
+		storyPublicId: number,
 		taskParams: {
 			description: string;
 			ownerIds?: string[];
 		},
 	): Promise<Task> {
 		const { description, ownerIds } = taskParams;
-		console.log("Adding task to story", { storyPublic, description, ownerIds });
 
 		const params = {
 			description,
 			owner_ids: ownerIds,
 		};
 
-		const response = await this.client.createTask(storyPublic, params);
+		const response = await this.client.createTask(storyPublicId, params);
 		const task = response?.data ?? null;
 
 		if (!task) throw new Error(`Failed to create the task: ${response.status}`);
@@ -299,8 +298,8 @@ export class ShortcutClientWrapper {
 
 	async addRelationToStory(storyPublicId: number, linkedStoryId: number): Promise<StoryLink> {
 		const response = await this.client.createStoryLink({
-			object_id: storyPublicId,
-			subject_id: linkedStoryId,
+			object_id: linkedStoryId,
+			subject_id: storyPublicId,
 			verb: "relates to",
 		});
 		const storyLink = response?.data ?? null;
@@ -324,6 +323,7 @@ export class ShortcutClientWrapper {
 		taskParams: {
 			description?: string;
 			ownerIds?: string[];
+			isCompleted?: boolean;
 		},
 	): Promise<Task> {
 		const { description, ownerIds } = taskParams;
@@ -331,6 +331,7 @@ export class ShortcutClientWrapper {
 		const params = {
 			description,
 			owner_ids: ownerIds,
+			complete: taskParams.isCompleted,
 		};
 
 		const response = await this.client.updateTask(storyPublicId, taskPublicId, params);
