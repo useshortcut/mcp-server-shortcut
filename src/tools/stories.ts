@@ -227,6 +227,46 @@ The story will be added to the default state for the workflow.
 			async (params) => await tools.createStoryComment(params),
 		);
 
+		server.tool(
+			"add-task-to-story",
+			"Add a task to a story",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+				taskDescription: z.string().min(1).describe("The description of the task"),
+				taskOwnerIds: z
+					.array(z.string())
+					.optional()
+					.describe("Array of user IDs to assign as owners of the task"),
+			},
+			async (params) => await tools.addTaskToStory(params),
+		);
+
+		server.tool(
+			"add-relation-to-story",
+			"Add a relation to a story",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+				relatedStoryPublicId: z.number().positive().describe("The public ID of the related story"),
+			},
+			async (params) => await tools.addRelationToStory(params),
+		);
+
+		server.tool(
+			"update-task",
+			"Update a task in a story",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+				taskPublicId: z.number().positive().describe("The public ID of the task"),
+				taskDescription: z.string().optional().describe("The description of the task"),
+				taskOwnerIds: z
+					.array(z.string())
+					.optional()
+					.describe("Array of user IDs to assign as owners of the task"),
+				isCompleted: z.boolean().optional().describe("Whether the task is completed or not"),
+			},
+			async (params) => await tools.updateTask(params),
+		);
+
 		return tools;
 	}
 
@@ -462,5 +502,96 @@ ${(story.comments || [])
 		const updatedStory = await this.client.updateStory(storyPublicId, updateParams);
 
 		return this.toResult(`Updated story sc-${storyPublicId}. Story URL: ${updatedStory.app_url}`);
+	}
+
+	async addTaskToStory({
+		storyPublicId,
+		taskDescription,
+		taskOwnerIds,
+	}: {
+		storyPublicId: number;
+		taskDescription: string;
+		taskOwnerIds?: string[];
+	}) {
+		if (!storyPublicId) throw new Error("Story public ID is required");
+		if (!taskDescription) throw new Error("Task description is required");
+
+		const story = await this.client.getStory(storyPublicId);
+		if (!story)
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
+
+		if (taskOwnerIds?.length) {
+			const owners = await this.client.getUserMap(taskOwnerIds as string[]);
+			if (!owners) throw new Error(`Failed to retrieve users with IDs: ${taskOwnerIds.join(", ")}`);
+		}
+
+		const task = await this.client.addTaskToStory(storyPublicId, {
+			description: taskDescription,
+			ownerIds: taskOwnerIds,
+		});
+
+		return this.toResult(`Created task for story sc-${storyPublicId}. Task ID: ${task.id}.`);
+	}
+
+	async updateTask({
+		storyPublicId,
+		taskPublicId,
+		taskDescription,
+		taskOwnerIds,
+		isCompleted,
+	}: {
+		storyPublicId: number;
+		taskPublicId: number;
+		taskDescription?: string;
+		taskOwnerIds?: string[];
+		isCompleted?: boolean;
+	}) {
+		if (!storyPublicId) throw new Error("Story public ID is required");
+		if (!taskPublicId) throw new Error("Task public ID is required");
+
+		const story = await this.client.getStory(storyPublicId);
+		if (!story)
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
+
+		const task = await this.client.getTask(storyPublicId, taskPublicId);
+		if (!task) throw new Error(`Failed to retrieve Shortcut task with public ID: ${taskPublicId}`);
+
+		const updatedTask = await this.client.updateTask(storyPublicId, taskPublicId, {
+			description: taskDescription,
+			ownerIds: taskOwnerIds,
+			isCompleted,
+		});
+
+		let message = `Updated task for story sc-${storyPublicId}. Task ID: ${updatedTask.id}.`;
+		if (isCompleted) {
+			message = `Completed task for story sc-${storyPublicId}. Task ID: ${updatedTask.id}.`;
+		}
+
+		return this.toResult(message);
+	}
+
+	async addRelationToStory({
+		storyPublicId,
+		relatedStoryPublicId,
+	}: {
+		storyPublicId: number;
+		relatedStoryPublicId: number;
+	}) {
+		if (!storyPublicId) throw new Error("Story public ID is required");
+		if (!relatedStoryPublicId) throw new Error("Related story public ID is required");
+
+		const story = await this.client.getStory(storyPublicId);
+		if (!story)
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
+
+		const relatedStory = await this.client.getStory(relatedStoryPublicId);
+		if (!relatedStory)
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${relatedStoryPublicId}`);
+
+		await this.client.addRelationToStory(storyPublicId, relatedStoryPublicId);
+
+		return this.toResult(
+			`Added relation between stories sc-${storyPublicId} and sc-${relatedStoryPublicId}.`,
+		);
 	}
 }

@@ -9,6 +9,8 @@ import type {
 	Member,
 	MemberInfo,
 	StoryComment,
+	StoryLink,
+	Task,
 	UpdateStory,
 	Workflow,
 } from "@shortcut/client";
@@ -90,6 +92,13 @@ export class ShortcutClientWrapper {
 		return userIds
 			.map((id) => this.userCache.get(id))
 			.filter((user): user is Member => user !== null);
+	}
+
+	async listMembers() {
+		await this.loadMembers();
+		const members: Member[] = Array.from(this.userCache.values());
+
+		return members;
 	}
 
 	async getWorkflowMap(workflowIds: number[]) {
@@ -263,5 +272,73 @@ export class ShortcutClientWrapper {
 		if (!epic) throw new Error(`Failed to create the epic: ${response.status}`);
 
 		return epic;
+	}
+
+	async addTaskToStory(
+		storyPublicId: number,
+		taskParams: {
+			description: string;
+			ownerIds?: string[];
+		},
+	): Promise<Task> {
+		const { description, ownerIds } = taskParams;
+
+		const params = {
+			description,
+			owner_ids: ownerIds,
+		};
+
+		const response = await this.client.createTask(storyPublicId, params);
+		const task = response?.data ?? null;
+
+		if (!task) throw new Error(`Failed to create the task: ${response.status}`);
+
+		return task;
+	}
+
+	async addRelationToStory(storyPublicId: number, linkedStoryId: number): Promise<StoryLink> {
+		const response = await this.client.createStoryLink({
+			object_id: linkedStoryId,
+			subject_id: storyPublicId,
+			verb: "relates to",
+		});
+		const storyLink = response?.data ?? null;
+
+		if (!storyLink) throw new Error(`Failed to create the story links: ${response.status}`);
+
+		return storyLink;
+	}
+
+	async getTask(storyPublicId: number, taskPublicId: number): Promise<Task> {
+		const response = await this.client.getTask(storyPublicId, taskPublicId);
+		const task = response?.data ?? null;
+
+		if (!task) throw new Error(`Failed to get the task: ${response.status}`);
+		return task;
+	}
+
+	async updateTask(
+		storyPublicId: number,
+		taskPublicId: number,
+		taskParams: {
+			description?: string;
+			ownerIds?: string[];
+			isCompleted?: boolean;
+		},
+	): Promise<Task> {
+		const { description, ownerIds } = taskParams;
+
+		const params = {
+			description,
+			owner_ids: ownerIds,
+			complete: taskParams.isCompleted,
+		};
+
+		const response = await this.client.updateTask(storyPublicId, taskPublicId, params);
+		const task = response?.data ?? null;
+
+		if (!task) throw new Error(`Failed to update the task: ${response.status}`);
+
+		return task;
 	}
 }
