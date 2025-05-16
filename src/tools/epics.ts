@@ -3,7 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { BaseTools } from "./base";
-import { formatAsUnorderedList, formatStats } from "./utils/format";
+import { formatAsUnorderedList } from "./utils/format";
 import { type QueryParams, buildSearchQuery } from "./utils/search";
 import { date, has, is, user } from "./utils/validation";
 
@@ -106,11 +106,7 @@ Started: ${epic.started ? "Yes" : "No"}
 Due date: ${epic.deadline ? epic.deadline : "[Not set]"}
 Team: ${epic.group_id ? `${epic.group_id}` : "(none)"}
 Objective: ${epic.milestone_id ? `${epic.milestone_id}` : "(none)"}
-
-${formatStats(epic.stats, showPoints)}
-
-Description:
-${epic.description}`);
+Description: ${epic.description}`);
 	}
 
 	async createEpic({
@@ -134,3 +130,5 @@ ${epic.description}`);
 		return this.toResult(`Epic created with ID: ${epic.id}.`);
 	}
 }
+
+// ${formatStats(epic.stats, showPoints)}
