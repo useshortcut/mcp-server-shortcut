@@ -3,7 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { BaseTools } from "./base";
-import { formatAsUnorderedList } from "./utils/format";
+import { formatAsUnorderedList, formatStats } from "./utils/format";
 import { type QueryParams, buildSearchQuery } from "./utils/search";
 import { date, has, is, user } from "./utils/validation";
 
@@ -89,13 +89,16 @@ export class EpicTools extends BaseTools {
 ${formatAsUnorderedList(epics.map((epic) => `${epic.id}: ${epic.name}`))}`);
 	}
 
-	async getEpic(epicPublicId: number) {
+	async getEpic(epicPublicId: number, includeStats = false) {
 		const epic = await this.client.getEpic(epicPublicId);
 
 		if (!epic) throw new Error(`Failed to retrieve Shortcut epic with public ID: ${epicPublicId}`);
 
-		const currentUser = await this.client.getCurrentUser();
-		const showPoints = !!currentUser?.workspace2?.estimate_scale?.length;
+		let showPoints = false;
+		if (includeStats) {
+			const currentUser = await this.client.getCurrentUser();
+			showPoints = !!currentUser?.workspace2?.estimate_scale?.length;
+		}
 
 		return this.toResult(`Epic: ${epicPublicId}
 URL: ${epic.app_url}
@@ -106,8 +109,8 @@ Started: ${epic.started ? "Yes" : "No"}
 Due date: ${epic.deadline ? epic.deadline : "[Not set]"}
 Team: ${epic.group_id ? `${epic.group_id}` : "(none)"}
 Objective: ${epic.milestone_id ? `${epic.milestone_id}` : "(none)"}
+${includeStats ? formatStats(epic.stats, showPoints) : ""}
 Description: ${epic.description}`);
-		// ${formatStats(epic.stats, showPoints)} // TODO: include stats as optional in interface
 	}
 
 	async createEpic({
