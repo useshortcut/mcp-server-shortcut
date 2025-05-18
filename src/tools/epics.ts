@@ -107,6 +107,7 @@ Due date: ${epic.deadline ? epic.deadline : "[Not set]"}
 Team: ${epic.group_id ? `${epic.group_id}` : "(none)"}
 Objective: ${epic.milestone_id ? `${epic.milestone_id}` : "(none)"}
 Description: ${epic.description}`);
+		// ${formatStats(epic.stats, showPoints)} // TODO: include stats as optional in interface
 	}
 
 	async createEpic({
@@ -130,5 +131,3 @@ Description: ${epic.description}`);
 		return this.toResult(`Epic created with ID: ${epic.id}.`);
 	}
 }
-
-// ${formatStats(epic.stats, showPoints)}

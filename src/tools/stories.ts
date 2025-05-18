@@ -356,7 +356,7 @@ ${formatStoryList(stories, users)}`);
 			[...relatedUsers].filter((id): id is string => !!id),
 		);
 
-		return this.toResult(formatStory(story, users));
+		return this.toResult(formatStory(story, users, true));
 	}
 
 	async createStoryComment({

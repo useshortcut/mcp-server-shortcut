@@ -4,6 +4,7 @@ import type {
 	IterationStats,
 	Member,
 	Story,
+	StoryComment,
 	StorySearchResult,
 	Task,
 	Workflow,
@@ -134,7 +135,11 @@ export const formatStoryList = (
 	);
 };
 
-export const formatStory = (story: Story | StorySearchResult, users: Map<string, Member>) => {
+export const formatStory = (
+	story: Story | StorySearchResult,
+	users: Map<string, Member>,
+	includeComments = false,
+) => {
 	return `Story: sc-${story.id}: ${story.name} 
 (
 	URL: ${story.app_url},
@@ -152,27 +157,25 @@ export const formatStory = (story: Story | StorySearchResult, users: Map<string,
 	Iteration: ${story.iteration_id ? `${story.iteration_id}` : "(none)"},
 	Due date: ${story.deadline ? story.deadline : "(none)"},
 	Description: ${story.description}
-)`;
+	${formatAsUnorderedList(story.external_links, "External Links")}
+	${story.branches ? formatPullRequestList(story.branches) : ""}
+	${story.tasks ? formatTaskList(story.tasks) : ""}
+	${includeComments && story.comments ? formatComments(story.comments, users) : ""}
+	)`;
 };
 
-// ADDITIONAL FORMATTING OPTIONS
-// ${formatAsUnorderedList(story.external_links, "External Links")}
-
-// ${formatPullRequestList(story.branches)}
-
-// ${formatTaskList(story.tasks)}
-
-// Comments:
-// ${(story.comments || [])
-// 	.map((comment) => {
-// 		const mentionName = comment.author_id
-// 			? users.get(comment.author_id)?.profile?.mention_name
-// 			: null;
-// 		return `- From: ${
-// 			mentionName ? `@${mentionName}` : `id=${comment.author_id}` || "[Unknown]"
-// 		} on ${comment.created_at}.\n${comment.text || ""}`;
-// 	})
-// 	.join("\n\n")}`);
+export const formatComments = (comments: StoryComment[], users: Map<string, Member>) => {
+	return `Comments:\n${comments
+		.map((comment) => {
+			const mentionName = comment.author_id
+				? users.get(comment.author_id)?.profile?.mention_name
+				: null;
+			return `- From: ${
+				mentionName ? `@${mentionName}` : `id=${comment.author_id}` || "[Unknown]"
+			} on ${comment.created_at}.\n${comment.text || ""}`;
+		})
+		.join("\n\n")}`;
+};
 
 export const formatMemberList = (ids: string[], users: Map<string, Member>, label = "Members") => {
 	return formatAsUnorderedList(
