@@ -102,4 +102,12 @@ describe("buildSearchQuery", () => {
 		const result = await buildSearchQuery(params, mockCurrentUser);
 		expect(result).toBe("owner:janedoe");
 	});
+
+	test("should not include @ prefix for user names", async () => {
+		const params: QueryParams = {
+			owner: "@janedoe",
+		};
+		const result = await buildSearchQuery(params, mockCurrentUser);
+		expect(result).toBe("owner:janedoe");
+	});
 });

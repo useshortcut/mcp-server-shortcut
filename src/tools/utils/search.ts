@@ -12,8 +12,11 @@ export const buildSearchQuery = async (params: QueryParams, currentUser: MemberI
 	const query = Object.entries(params)
 		.map(([key, value]) => {
 			const q = getKey(key);
-			if ((key === "owner" || key === "requester") && value === "me")
-				return `${q}:${currentUser?.mention_name || value}`;
+			if (key === "owner" || key === "requester") {
+				if (value === "me") return `${q}:${currentUser?.mention_name || value}`;
+				return `${q}:${String(value || "").replace(/^@/, "")}`;
+			}
+
 			if (typeof value === "boolean") return value ? q : `!${q}`;
 			if (typeof value === "number") return `${q}:${value}`;
 			if (typeof value === "string" && value.includes(" ")) return `${q}:"${value}"`;
