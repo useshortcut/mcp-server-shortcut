@@ -17,7 +17,7 @@ See the [official Windsurf docs](https://codeium.com/docs/windsurf/mcp) for more
       "command": "npx",
       "args": [
         "-y",
-        "@shortcut/mcp"
+        "@shortcut/mcp@latest"
       ],
       "env": {
         "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
@@ -41,7 +41,7 @@ See the [official Cursor docs](https://docs.cursor.com/context/model-context-pro
       "command": "npx",
       "args": [
         "-y",
-        "@shortcut/mcp"
+        "@shortcut/mcp@latest"
       ],
       "env": {
         "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
@@ -68,7 +68,7 @@ _You can add a new MCP server from the Claude Code CLI. But modifying the json f
         "command": "npx",
         "args": [
           "-y",
-          "@shortcut/mcp"
+          "@shortcut/mcp@latest"
         ],
         "env": {
           "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
