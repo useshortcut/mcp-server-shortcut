@@ -1,9 +1,17 @@
 import type { MemberInfo } from "@shortcut/client";
 
+const keyRenames = { team: "group", name: "title" } as const;
+
+const mapKeyName = (key: string) => {
+	const lowercaseKey = key.toLowerCase();
+
+	return keyRenames[lowercaseKey as keyof typeof keyRenames] || lowercaseKey;
+};
+
 const getKey = (prop: string) => {
-	if (prop.startsWith("is")) return `is:${prop.slice(2).toLowerCase()}`;
-	if (prop.startsWith("has")) return `has:${prop.slice(3).toLowerCase()}`;
-	return prop;
+	if (prop.startsWith("is")) return `is:${mapKeyName(prop.slice(2))}`;
+	if (prop.startsWith("has")) return `has:${mapKeyName(prop.slice(3))}`;
+	return mapKeyName(prop);
 };
 
 export type QueryParams = { [key: string]: boolean | string | number };

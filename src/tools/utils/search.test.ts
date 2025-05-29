@@ -48,7 +48,7 @@ describe("buildSearchQuery", () => {
 			state: "started",
 		};
 		const result = await buildSearchQuery(params, null);
-		expect(result).toBe("name:test state:started");
+		expect(result).toBe("title:test state:started");
 	});
 
 	test("should quote string parameters with spaces", async () => {
@@ -57,7 +57,7 @@ describe("buildSearchQuery", () => {
 			description: "some description",
 		};
 		const result = await buildSearchQuery(params, null);
-		expect(result).toBe('name:"test story" description:"some description"');
+		expect(result).toBe('title:"test story" description:"some description"');
 	});
 
 	test("should handle mixed parameter types correctly", async () => {
@@ -68,7 +68,7 @@ describe("buildSearchQuery", () => {
 			hasOwner: false,
 		};
 		const result = await buildSearchQuery(params, null);
-		expect(result).toBe("id:123 name:test is:started !has:owner");
+		expect(result).toBe("id:123 title:test is:started !has:owner");
 	});
 
 	test('should replace "me" with current user mention name for owner parameter', async () => {
