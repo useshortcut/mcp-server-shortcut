@@ -243,10 +243,15 @@ The story will be added to the default state for the workflow.
 
 		server.tool(
 			"add-relation-to-story",
-			"Add a relation to a story",
+			"Add a story relationship to a story",
 			{
 				storyPublicId: z.number().positive().describe("The public ID of the story"),
 				relatedStoryPublicId: z.number().positive().describe("The public ID of the related story"),
+				relationshipType: z
+					.enum(["relates to", "blocks", "blocked by", "duplicates", "duplicated by"])
+					.optional()
+					.default("relates to")
+					.describe("The type of relationship"),
 			},
 			async (params) => await tools.addRelationToStory(params),
 		);
@@ -573,9 +578,11 @@ ${(story.comments || [])
 	async addRelationToStory({
 		storyPublicId,
 		relatedStoryPublicId,
+		relationshipType,
 	}: {
 		storyPublicId: number;
 		relatedStoryPublicId: number;
+		relationshipType: "relates to" | "blocks" | "blocked by" | "duplicates" | "duplicated by";
 	}) {
 		if (!storyPublicId) throw new Error("Story public ID is required");
 		if (!relatedStoryPublicId) throw new Error("Related story public ID is required");
@@ -588,10 +595,23 @@ ${(story.comments || [])
 		if (!relatedStory)
 			throw new Error(`Failed to retrieve Shortcut story with public ID: ${relatedStoryPublicId}`);
 
-		await this.client.addRelationToStory(storyPublicId, relatedStoryPublicId);
+		let subjectStoryId = storyPublicId;
+		let objectStoryId = relatedStoryPublicId;
+
+		if (relationshipType === "blocked by" || relationshipType === "duplicated by") {
+			relationshipType = relationshipType === "blocked by" ? "blocks" : "duplicates";
+			subjectStoryId = relatedStoryPublicId;
+			objectStoryId = storyPublicId;
+		}
+
+		await this.client.addRelationToStory(subjectStoryId, objectStoryId, relationshipType);
 
 		return this.toResult(
-			`Added relation between stories sc-${storyPublicId} and sc-${relatedStoryPublicId}.`,
+			relationshipType === "blocks"
+				? `Marked sc-${subjectStoryId} as a blocker to sc-${objectStoryId}.`
+				: relationshipType === "duplicates"
+					? `Marked sc-${subjectStoryId} as a duplicate of sc-${objectStoryId}.`
+					: `Added a relationship between sc-${subjectStoryId} and sc-${objectStoryId}.`,
 		);
 	}
 }

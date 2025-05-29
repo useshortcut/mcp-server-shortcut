@@ -296,11 +296,15 @@ export class ShortcutClientWrapper {
 		return task;
 	}
 
-	async addRelationToStory(storyPublicId: number, linkedStoryId: number): Promise<StoryLink> {
+	async addRelationToStory(
+		storyPublicId: number,
+		linkedStoryId: number,
+		verb: "blocks" | "duplicates" | "relates to",
+	): Promise<StoryLink> {
 		const response = await this.client.createStoryLink({
 			object_id: linkedStoryId,
 			subject_id: storyPublicId,
-			verb: "relates to",
+			verb,
 		});
 		const storyLink = response?.data ?? null;
 
