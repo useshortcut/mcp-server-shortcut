@@ -945,10 +945,11 @@ describe("StoryTools", () => {
 			const result = await storyTools.addRelationToStory({
 				storyPublicId: 123,
 				relatedStoryPublicId: 456,
+				relationshipType: "relates to",
 			});
 
 			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Added relation between stories sc-123 and sc-456.");
+			expect(result.content[0].text).toBe("Added a relationship between sc-123 and sc-456.");
 			expect(addStoryRelationMock).toHaveBeenCalledTimes(1);
 			expect(addStoryRelationMock.mock.calls?.[0]?.[0]).toBe(123);
 		});
@@ -960,6 +961,7 @@ describe("StoryTools", () => {
 				storyTools.addRelationToStory({
 					storyPublicId: 123,
 					relatedStoryPublicId: 999,
+					relationshipType: "relates to",
 				}),
 			).toThrow("Failed to retrieve Shortcut story with public ID: 999");
 		});
@@ -974,8 +976,65 @@ describe("StoryTools", () => {
 				storyTools.addRelationToStory({
 					storyPublicId: 999,
 					relatedStoryPublicId: 456,
+					relationshipType: "relates to",
 				}),
 			).toThrow("Failed to retrieve Shortcut story with public ID: 999");
+		});
+
+		test("should add duplicating relationship", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.addRelationToStory({
+				storyPublicId: 123,
+				relatedStoryPublicId: 456,
+				relationshipType: "duplicates",
+			});
+
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe("Marked sc-123 as a duplicate of sc-456.");
+			expect(addStoryRelationMock).toHaveBeenCalledTimes(1);
+			expect(addStoryRelationMock.mock.calls?.[0]?.[0]).toBe(123);
+		});
+
+		test("should add duplicated by relationship", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.addRelationToStory({
+				storyPublicId: 123,
+				relatedStoryPublicId: 456,
+				relationshipType: "duplicated by",
+			});
+
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe("Marked sc-456 as a duplicate of sc-123.");
+			expect(addStoryRelationMock).toHaveBeenCalledTimes(1);
+			expect(addStoryRelationMock.mock.calls?.[0]?.[0]).toBe(456);
+		});
+
+		test("should add blocking relationship", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.addRelationToStory({
+				storyPublicId: 123,
+				relatedStoryPublicId: 456,
+				relationshipType: "blocks",
+			});
+
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe("Marked sc-123 as a blocker to sc-456.");
+			expect(addStoryRelationMock).toHaveBeenCalledTimes(1);
+			expect(addStoryRelationMock.mock.calls?.[0]?.[0]).toBe(123);
+		});
+
+		test("should add blocked by relationship", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.addRelationToStory({
+				storyPublicId: 123,
+				relatedStoryPublicId: 456,
+				relationshipType: "blocked by",
+			});
+
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe("Marked sc-456 as a blocker to sc-123.");
+			expect(addStoryRelationMock).toHaveBeenCalledTimes(1);
+			expect(addStoryRelationMock.mock.calls?.[0]?.[0]).toBe(456);
 		});
 	});
 });
