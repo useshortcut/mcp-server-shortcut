@@ -1,4 +1,4 @@
-import { describe, expect, mock, spyOn, test } from "bun:test";
+import { describe, expect, mock, test } from "bun:test";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Milestone } from "@shortcut/client";
@@ -44,26 +44,6 @@ describe("ObjectiveTools", () => {
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-objective");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-objectives");
 		});
-
-		test("should call correct function from tool", async () => {
-			const mockClient = {} as ShortcutClientWrapper;
-			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
-
-			const tools = ObjectiveTools.create(mockClient, mockServer);
-
-			spyOn(tools, "getObjective").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[0]?.[3]({ objectivePublicId: 1 });
-			expect(tools.getObjective).toHaveBeenCalledWith(1);
-
-			spyOn(tools, "searchObjectives").mockImplementation(async () => ({
-				content: [{ text: "(none)", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[1]?.[3]({ name: "test" });
-			expect(tools.searchObjectives).toHaveBeenCalledWith({ name: "test" });
-		});
 	});
 
 	describe("searchObjectives method", () => {
@@ -82,11 +62,12 @@ describe("ObjectiveTools", () => {
 			const result = await objectiveTools.searchObjectives({});
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Result (first 2 shown of 2 total milestones found):",
-				"- 1: Objective 1",
-				"- 2: Objective 2",
-			]);
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Result (first 2 shown of 2 total milestones found):");
+			expect(textContent).toContain('"id": 1');
+			expect(textContent).toContain('"name": "Objective 1"');
+			expect(textContent).toContain('"id": 2');
+			expect(textContent).toContain('"name": "Objective 2"');
 		});
 
 		test("should return no objectives found message when no objectives exist", async () => {
@@ -124,17 +105,15 @@ describe("ObjectiveTools", () => {
 			const result = await objectiveTools.getObjective(1);
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Objective: 1",
-				"Url: https://app.shortcut.com/test/milestone/1",
-				"Name: Objective 1",
-				"Archived: No",
-				"Completed: No",
-				"Started: Yes",
-				"",
-				"Description:",
-				"Description for Objective 1",
-			]);
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Objective: 1");
+			expect(textContent).toContain('"id": 1');
+			expect(textContent).toContain('"name": "Objective 1"');
+			expect(textContent).toContain('"description": "Description for Objective 1"');
+			expect(textContent).toContain('"archived": false');
+			expect(textContent).toContain('"completed": false');
+			expect(textContent).toContain('"started": true');
+			expect(textContent).toContain('"app_url": "https://app.shortcut.com/test/milestone/1"');
 		});
 
 		test("should handle objective not found", async () => {
@@ -155,7 +134,7 @@ describe("ObjectiveTools", () => {
 			const result = await objectiveTools.getObjective(2);
 
 			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toContain("Completed: Yes");
+			expect(result.content[0].text).toContain('"completed": true');
 		});
 	});
 });

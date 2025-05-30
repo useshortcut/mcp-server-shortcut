@@ -3,13 +3,6 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { MemberInfo, Story } from "@shortcut/client";
 import { z } from "zod";
 import { BaseTools } from "./base";
-import {
-	formatAsUnorderedList,
-	formatMemberList,
-	formatPullRequestList,
-	formatStoryList,
-	formatTaskList,
-} from "./utils/format";
 import { type QueryParams, buildSearchQuery } from "./utils/search";
 import { date, has, is, user } from "./utils/validation";
 
@@ -387,10 +380,10 @@ The story will be added to the default state for the workflow.
 		if (!stories) throw new Error(`Failed to search for stories matching your query: "${query}".`);
 		if (!stories.length) return this.toResult(`Result: No stories found.`);
 
-		const users = await this.client.getUserMap(stories.flatMap((story) => story.owner_ids));
-
-		return this.toResult(`Result (first ${stories.length} shown of ${total} total stories found):
-${formatStoryList(stories, users)}`);
+		return this.toResult(
+			`Result (first ${stories.length} shown of ${total} total stories found):`,
+			await this.toCorrectedEntities(stories),
+		);
 	}
 
 	async getStory(storyPublicId: number) {
@@ -399,49 +392,7 @@ ${formatStoryList(stories, users)}`);
 		if (!story)
 			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}.`);
 
-		const relatedUsers = new Set([
-			...story.owner_ids,
-			...story.comments.flatMap((c) => c.author_id),
-		]);
-		const users = await this.client.getUserMap(
-			[...relatedUsers].filter((id): id is string => !!id),
-		);
-
-		return this.toResult(`Story: sc-${storyPublicId}
-URL: ${story.app_url}
-Name: ${story.name}
-Type: ${story.story_type}
-Archived: ${story.archived ? "Yes" : "No"}
-Completed: ${story.completed ? "Yes" : "No"}
-Started: ${story.started ? "Yes" : "No"}
-Blocked: ${story.blocked ? "Yes" : "No"}
-Blocking: ${story.blocker ? "Yes" : "No"}
-Due date: ${story.deadline ? story.deadline : "(none)"}
-Team: ${story.group_id ? `${story.group_id}` : "(none)"}
-${formatMemberList(story.owner_ids, users, "Owners")}
-Epic: ${story.epic_id ? `${story.epic_id}` : "(none)"}
-Iteration: ${story.iteration_id ? `${story.iteration_id}` : "(none)"}
-
-Description:
-${story.description}
-
-${formatAsUnorderedList(story.external_links, "External Links")}
-
-${formatPullRequestList(story.branches)}
-
-${formatTaskList(story.tasks)}
-
-Comments:
-${(story.comments || [])
-	.map((comment) => {
-		const mentionName = comment.author_id
-			? users.get(comment.author_id)?.profile?.mention_name
-			: null;
-		return `- From: ${
-			mentionName ? `@${mentionName}` : `id=${comment.author_id}` || "[Unknown]"
-		} on ${comment.created_at}.\n${comment.text || ""}`;
-	})
-	.join("\n\n")}`);
+		return this.toResult(`Story: sc-${storyPublicId}`, await this.toCorrectedEntity(story));
 	}
 
 	async createStoryComment({

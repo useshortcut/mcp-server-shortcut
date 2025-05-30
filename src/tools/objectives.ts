@@ -2,7 +2,6 @@ import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { BaseTools } from "./base";
-import { formatAsUnorderedList } from "./utils/format";
 import { type QueryParams, buildSearchQuery } from "./utils/search";
 import { date, has, is, user } from "./utils/validation";
 
@@ -63,8 +62,10 @@ export class ObjectiveTools extends BaseTools {
 			throw new Error(`Failed to search for milestones matching your query: "${query}"`);
 		if (!milestones.length) return this.toResult(`Result: No milestones found.`);
 
-		return this.toResult(`Result (first ${milestones.length} shown of ${total} total milestones found):
-${formatAsUnorderedList(milestones.map((milestone) => `${milestone.id}: ${milestone.name}`))}`);
+		return this.toResult(
+			`Result (first ${milestones.length} shown of ${total} total milestones found):`,
+			await this.toCorrectedEntities(milestones),
+		);
 	}
 
 	async getObjective(objectivePublicId: number) {
@@ -73,14 +74,9 @@ ${formatAsUnorderedList(milestones.map((milestone) => `${milestone.id}: ${milest
 		if (!objective)
 			throw new Error(`Failed to retrieve Shortcut objective with public ID: ${objectivePublicId}`);
 
-		return this.toResult(`Objective: ${objectivePublicId}
-Url: ${objective.app_url}
-Name: ${objective.name}
-Archived: ${objective.archived ? "Yes" : "No"}
-Completed: ${objective.completed ? "Yes" : "No"}
-Started: ${objective.started ? "Yes" : "No"}
-
-Description:
-${objective.description}`);
+		return this.toResult(
+			`Objective: ${objectivePublicId}`,
+			await this.toCorrectedEntity(objective),
+		);
 	}
 }

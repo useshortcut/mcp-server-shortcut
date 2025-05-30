@@ -76,15 +76,13 @@ describe("WorkflowTools", () => {
 			const result = await workflowTools.getWorkflow(1);
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Id: 1",
-				"Name: Workflow 1",
-				"Description: Description for Workflow 1",
-				"States:",
-				"- id=101 name=Unstarted (default: yes, type: unstarted)",
-				"- id=102 name=Started (default: no, type: started)",
-				"- id=103 name=Done (default: no, type: done)",
-			]);
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Workflow: 1");
+			expect(textContent).toContain('"id": 1');
+			expect(textContent).toContain('"name": "Workflow 1"');
+			expect(textContent).toContain('"description": "Description for Workflow 1"');
+			expect(textContent).toContain('"default_state_id": 101');
+			expect(textContent).toContain('"states"');
 		});
 
 		test("should handle workflow not found", async () => {
@@ -108,19 +106,12 @@ describe("WorkflowTools", () => {
 			const result = await workflowTools.listWorkflows();
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Result (first 2 shown of 2 total workflows found):",
-				"",
-				"Id: 1",
-				"Name: Workflow 1",
-				"Description: Description for Workflow 1",
-				"Default State: Unstarted",
-				"",
-				"Id: 2",
-				"Name: Workflow 2",
-				"Description: Description for Workflow 2",
-				"Default State: Backlog",
-			]);
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Result (first 2 shown of 2 total workflows found):");
+			expect(textContent).toContain('"id": 1');
+			expect(textContent).toContain('"name": "Workflow 1"');
+			expect(textContent).toContain('"id": 2');
+			expect(textContent).toContain('"name": "Workflow 2"');
 		});
 	});
 
@@ -154,13 +145,9 @@ describe("WorkflowTools", () => {
 		const result = await workflowTools.listWorkflows();
 
 		expect(result.content[0].type).toBe("text");
-		expect(String(result.content[0].text).split("\n")).toMatchObject([
-			"Result (first 1 shown of 1 total workflows found):",
-			"",
-			"Id: 3",
-			"Name: Workflow 3",
-			"Description: Description for Workflow 3",
-			"Default State: [Unknown]",
-		]);
+		const textContent = String(result.content[0].text);
+		expect(textContent).toContain("Result (first 1 shown of 1 total workflows found):");
+		expect(textContent).toContain('"id": 3');
+		expect(textContent).toContain('"name": "Workflow 3"');
 	});
 });

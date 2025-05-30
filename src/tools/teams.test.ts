@@ -122,15 +122,13 @@ describe("TeamTools", () => {
 			const result = await teamTools.getTeam("team1");
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Id: team1",
-				"Name: Team 1",
-				"Mention name: team-one",
-				"Description: Description for Team 1",
-				"Members:",
-				"- id=user1 @john",
-				"- id=user2 @jane",
-			]);
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Team: team1");
+			expect(textContent).toContain('"id": "team1"');
+			expect(textContent).toContain('"name": "Team 1"');
+			expect(textContent).toContain('"mention_name": "team-one"');
+			expect(textContent).toContain('"description": "Description for Team 1"');
+			expect(textContent).toContain('"member_ids"');
 		});
 
 		test("should handle team not found", async () => {
@@ -156,13 +154,13 @@ describe("TeamTools", () => {
 			const result = await teamTools.getTeam("team1");
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Id: team1",
-				"Name: Team 1",
-				"Mention name: team-one",
-				"Description: Description for Team 1",
-				"Members: (none)",
-			]);
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Team: team1");
+			expect(textContent).toContain('"id": "team1"');
+			expect(textContent).toContain('"name": "Team 1"');
+			expect(textContent).toContain('"mention_name": "team-one"');
+			expect(textContent).toContain('"description": "Description for Team 1"');
+			expect(textContent).toContain('"member_ids": []');
 		});
 	});
 
@@ -187,24 +185,12 @@ describe("TeamTools", () => {
 			const result = await teamTools.getTeams();
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Result (first 2 shown of 2 total teams found):",
-				"",
-				"Id: team1",
-				"Name: Team 1",
-				"Description: Description for Team 1",
-				"Number of Members: 2",
-				"Workflows:",
-				"- id=1 name=Workflow 1. Default state: id=101 name=Unstarted",
-				"- id=2 name=Workflow 2. Default state: id=201 name=Backlog",
-				"",
-				"Id: team2",
-				"Name: Team 2",
-				"Description: Description for Team 2",
-				"Number of Members: 1",
-				"Workflows:",
-				"- id=1 name=Workflow 1. Default state: id=101 name=Unstarted",
-			]);
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Result (first 2 shown of 2 total teams found):");
+			expect(textContent).toContain('"id": "team1"');
+			expect(textContent).toContain('"name": "Team 1"');
+			expect(textContent).toContain('"id": "team2"');
+			expect(textContent).toContain('"name": "Team 2"');
 		});
 
 		test("should return no teams found message when no teams exist", async () => {
@@ -232,15 +218,11 @@ describe("TeamTools", () => {
 			const result = await teamTools.getTeams();
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Result (first 1 shown of 1 total teams found):",
-				"",
-				"Id: team1",
-				"Name: Team 1",
-				"Description: Description for Team 1",
-				"Number of Members: 2",
-				"Workflows: (none)",
-			]);
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Result (first 1 shown of 1 total teams found):");
+			expect(textContent).toContain('"id": "team1"');
+			expect(textContent).toContain('"name": "Team 1"');
+			expect(textContent).toContain('"workflow_ids": []');
 		});
 	});
 });

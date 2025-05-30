@@ -3,7 +3,6 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { BaseTools } from "./base";
-import { formatAsUnorderedList, formatStats } from "./utils/format";
 import { type QueryParams, buildSearchQuery } from "./utils/search";
 import { date, has, is, user } from "./utils/validation";
 
@@ -85,8 +84,10 @@ export class EpicTools extends BaseTools {
 		if (!epics) throw new Error(`Failed to search for epics matching your query: "${query}"`);
 		if (!epics.length) return this.toResult(`Result: No epics found.`);
 
-		return this.toResult(`Result (first ${epics.length} shown of ${total} total epics found):
-${formatAsUnorderedList(epics.map((epic) => `${epic.id}: ${epic.name}`))}`);
+		return this.toResult(
+			`Result (first ${epics.length} shown of ${total} total epics found):`,
+			await this.toCorrectedEntities(epics),
+		);
 	}
 
 	async getEpic(epicPublicId: number) {
@@ -94,23 +95,7 @@ ${formatAsUnorderedList(epics.map((epic) => `${epic.id}: ${epic.name}`))}`);
 
 		if (!epic) throw new Error(`Failed to retrieve Shortcut epic with public ID: ${epicPublicId}`);
 
-		const currentUser = await this.client.getCurrentUser();
-		const showPoints = !!currentUser?.workspace2?.estimate_scale?.length;
-
-		return this.toResult(`Epic: ${epicPublicId}
-URL: ${epic.app_url}
-Name: ${epic.name}
-Archived: ${epic.archived ? "Yes" : "No"}
-Completed: ${epic.completed ? "Yes" : "No"}
-Started: ${epic.started ? "Yes" : "No"}
-Due date: ${epic.deadline ? epic.deadline : "[Not set]"}
-Team: ${epic.group_id ? `${epic.group_id}` : "(none)"}
-Objective: ${epic.milestone_id ? `${epic.milestone_id}` : "(none)"}
-
-${formatStats(epic.stats, showPoints)}
-
-Description:
-${epic.description}`);
+		return this.toResult(`Epic: ${epicPublicId}`, await this.toCorrectedEntity(epic));
 	}
 
 	async createEpic({
