@@ -146,7 +146,7 @@ export class BaseTools {
 			| Milestone,
 	) {
 		if (entity.entity_type === "workflow") return this.correctWorkflow(entity as Workflow);
-		if (entity.entity_type === "team") return this.correctTeam(entity as Group);
+		if (entity.entity_type === "group") return this.correctTeam(entity as Group);
 		if (entity.entity_type === "iteration") return this.correctIteration(entity as Iteration);
 		if (entity.entity_type === "milestone") return this.correctMilestone(entity as Milestone);
 		if (entity.entity_type === "epic") return this.correctEpic(entity as Epic);
