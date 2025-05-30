@@ -1,7 +1,6 @@
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { BaseTools } from "./base";
-import { formatUsersList } from "./utils/format";
 
 export class UserTools extends BaseTools {
 	static create(client: ShortcutClientWrapper, server: McpServer) {
@@ -23,17 +22,12 @@ export class UserTools extends BaseTools {
 
 		if (!user) throw new Error("Failed to retrieve current user.");
 
-		return this.toResult(
-			`Current user:
-Id: ${user.id}
-Mention name: @${user.mention_name}
-Full name: ${user.name}`,
-		);
+		return this.toResult(`Current user:`, user);
 	}
 
 	async listMembers() {
 		const members = await this.client.listMembers();
 
-		return this.toResult(`Found ${members.length} members, ${formatUsersList(members)}`);
+		return this.toResult(`Found ${members.length} members:`, members);
 	}
 }

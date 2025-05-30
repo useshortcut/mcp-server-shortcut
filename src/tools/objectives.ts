@@ -2,7 +2,6 @@ import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { BaseTools } from "./base";
-import { formatAsUnorderedList } from "./utils/format";
 import { type QueryParams, buildSearchQuery } from "./utils/search";
 import { date, has, is, user } from "./utils/validation";
 
@@ -23,12 +22,6 @@ export class ObjectiveTools extends BaseTools {
 			"search-objectives",
 			"Find Shortcut objectives.",
 			{
-				resultType: z
-					.enum(["slim", "full"])
-					.default("slim")
-					.describe(
-						"The detail level of the result to return. Slim ignores some fulltext fields like descriptions. If those are required, use full.",
-					),
 				id: z.number().optional().describe("Find objectives matching the specified id"),
 				name: z.string().optional().describe("Find objectives matching the specified name"),
 				description: z
@@ -54,23 +47,25 @@ export class ObjectiveTools extends BaseTools {
 				updated: date,
 				completed: date,
 			},
-			async ({ resultType, ...params }) => await tools.searchObjectives(params, resultType),
+			async (params) => await tools.searchObjectives(params),
 		);
 
 		return tools;
 	}
 
-	async searchObjectives(params: QueryParams, detail: "slim" | "full") {
+	async searchObjectives(params: QueryParams) {
 		const currentUser = await this.client.getCurrentUser();
 		const query = await buildSearchQuery(params, currentUser);
-		const { milestones, total } = await this.client.searchMilestones(query, detail);
+		const { milestones, total } = await this.client.searchMilestones(query);
 
 		if (!milestones)
 			throw new Error(`Failed to search for milestones matching your query: "${query}"`);
 		if (!milestones.length) return this.toResult(`Result: No milestones found.`);
 
-		return this.toResult(`Result (first ${milestones.length} shown of ${total} total milestones found):
-${formatAsUnorderedList(milestones.map((milestone) => `${milestone.id}: ${milestone.name}`))}`);
+		return this.toResult(
+			`Result (first ${milestones.length} shown of ${total} total milestones found):`,
+			await this.toCorrectedEntities(milestones),
+		);
 	}
 
 	async getObjective(objectivePublicId: number) {
@@ -79,14 +74,9 @@ ${formatAsUnorderedList(milestones.map((milestone) => `${milestone.id}: ${milest
 		if (!objective)
 			throw new Error(`Failed to retrieve Shortcut objective with public ID: ${objectivePublicId}`);
 
-		return this.toResult(`Objective: ${objectivePublicId}
-Url: ${objective.app_url}
-Name: ${objective.name}
-Archived: ${objective.archived ? "Yes" : "No"}
-Completed: ${objective.completed ? "Yes" : "No"}
-Started: ${objective.started ? "Yes" : "No"}
-
-Description:
-${objective.description}`);
+		return this.toResult(
+			`Objective: ${objectivePublicId}`,
+			await this.toCorrectedEntity(objective),
+		);
 	}
 }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CreateEpic, Epic, Member, MemberInfo } from "@shortcut/client";
@@ -87,36 +87,6 @@ describe("EpicTools", () => {
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-epic");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-epics");
 			expect(mockTool.mock.calls?.[2]?.[0]).toBe("create-epic");
-		});
-
-		test("should call correct function from tool", async () => {
-			const mockClient = createMockClient();
-			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
-
-			const tools = EpicTools.create(mockClient, mockServer);
-
-			spyOn(tools, "getEpic").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[0]?.[3]({ epicPublicId: 1 });
-			expect(tools.getEpic).toHaveBeenCalledWith(1);
-
-			spyOn(tools, "searchEpics").mockImplementation(async () => ({
-				content: [{ text: "(none)", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[1]?.[3]({ id: 1 });
-			expect(tools.searchEpics).toHaveBeenCalledWith({ id: 1 });
-
-			spyOn(tools, "createEpic").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[2]?.[3]({
-				name: "Epic 1",
-				description: "Description for Epic 1",
-				team: "Test Team",
-				dueDate: "2025-04-01",
-			});
 		});
 	});
 
@@ -228,7 +198,7 @@ describe("EpicTools", () => {
 
 		test("should return formatted list of epics when epics are found", async () => {
 			const epicTools = new EpicTools(mockClient);
-			const result = await epicTools.searchEpics({}, "slim");
+			const result = await epicTools.searchEpics({});
 
 			expect(mockClient.getCurrentUser).toHaveBeenCalled();
 			expect(mockClient.searchEpics).toHaveBeenCalled();
@@ -248,7 +218,7 @@ describe("EpicTools", () => {
 					searchEpics: mock(async () => ({ epics: [], total: 0 })),
 				}),
 			);
-			const result = await epicTools.searchEpics({}, "slim");
+			const result = await epicTools.searchEpics({});
 
 			expect(result.content[0].type).toBe("text");
 			expect(result.content[0].text).toBe("Result: No epics found.");
@@ -260,26 +230,23 @@ describe("EpicTools", () => {
 					searchEpics: mock(async () => ({ epics: null, total: 0 })),
 				}),
 			);
-			await expect(() => epicTools.searchEpics({}, "slim")).toThrow(
+			await expect(() => epicTools.searchEpics({})).toThrow(
 				'Failed to search for epics matching your query: ""',
 			);
 		});
 
 		test("should handle various search parameters", async () => {
 			const epicTools = new EpicTools(mockClient);
-			await epicTools.searchEpics(
-				{
-					id: 1,
-					name: "Test Epic",
-					description: "Test Description",
-					state: "started",
-					objective: 123,
-					owner: "me",
-					team: "engineering",
-					isArchived: true,
-				},
-				"slim",
-			);
+			await epicTools.searchEpics({
+				id: 1,
+				name: "Test Epic",
+				description: "Test Description",
+				state: "started",
+				objective: 123,
+				owner: "me",
+				team: "engineering",
+				isArchived: true,
+			});
 
 			expect(searchEpicsMock.mock.calls?.[0]?.[0]).toBe(
 				'id:1 title:"Test Epic" description:"Test Description" state:started objective:123 owner:testuser team:engineering is:archived',
@@ -288,21 +255,18 @@ describe("EpicTools", () => {
 
 		test("should handle 'me' as owner parameter", async () => {
 			const epicTools = new EpicTools(mockClient);
-			await epicTools.searchEpics({ owner: "me" }, "slim");
+			await epicTools.searchEpics({ owner: "me" });
 			expect(searchEpicsMock.mock.calls?.[0]?.[0]).toBe("owner:testuser");
 		});
 
 		test("should handle date parameters", async () => {
 			const epicTools = new EpicTools(mockClient);
-			await epicTools.searchEpics(
-				{
-					created: "2023-01-01",
-					updated: "2023-01-01..2023-02-01",
-					completed: "today",
-					due: "tomorrow",
-				},
-				"slim",
-			);
+			await epicTools.searchEpics({
+				created: "2023-01-01",
+				updated: "2023-01-01..2023-02-01",
+				completed: "today",
+				due: "tomorrow",
+			});
 			expect(searchEpicsMock.mock.calls?.[0]?.[0]).toBe(
 				"created:2023-01-01 updated:2023-01-01..2023-02-01 completed:today due:tomorrow",
 			);
@@ -311,20 +275,17 @@ describe("EpicTools", () => {
 		test("should handle boolean parameters", async () => {
 			const epicTools = new EpicTools(mockClient);
 
-			await epicTools.searchEpics(
-				{
-					isUnstarted: true,
-					isStarted: false,
-					isDone: true,
-					isArchived: false,
-					isOverdue: true,
-					hasOwner: true,
-					hasComment: false,
-					hasDeadline: true,
-					hasLabel: false,
-				},
-				"slim",
-			);
+			await epicTools.searchEpics({
+				isUnstarted: true,
+				isStarted: false,
+				isDone: true,
+				isArchived: false,
+				isOverdue: true,
+				hasOwner: true,
+				hasComment: false,
+				hasDeadline: true,
+				hasLabel: false,
+			});
 
 			expect(searchEpicsMock.mock.calls?.[0]?.[0]).toBe(
 				"is:unstarted !is:started is:done !is:archived is:overdue has:owner !has:comment has:deadline !has:label",

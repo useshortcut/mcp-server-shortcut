@@ -3,7 +3,6 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { BaseTools } from "./base";
-import { formatAsUnorderedList, formatStats, formatStoryList } from "./utils/format";
 import { type QueryParams, buildSearchQuery } from "./utils/search";
 import { date } from "./utils/validation";
 
@@ -31,12 +30,6 @@ export class IterationTools extends BaseTools {
 			"search-iterations",
 			"Find Shortcut iterations.",
 			{
-				resultType: z
-					.enum(["slim", "full"])
-					.default("slim")
-					.describe(
-						"The detail level of the result to return. Slim ignores some fulltext fields like descriptions. If those are required, use full.",
-					),
 				id: z.number().optional().describe("Find only iterations with the specified public ID"),
 				name: z.string().optional().describe("Find only iterations matching the specified name"),
 				description: z
@@ -58,7 +51,7 @@ export class IterationTools extends BaseTools {
 				startDate: date,
 				endDate: date,
 			},
-			async ({ resultType, ...params }) => await tools.searchIterations(params, resultType),
+			async (params) => await tools.searchIterations(params),
 		);
 
 		server.tool(
@@ -85,23 +78,25 @@ export class IterationTools extends BaseTools {
 				`Failed to retrieve Shortcut stories in iteration with public ID: ${iterationPublicId}.`,
 			);
 
-		const owners = await this.client.getUserMap(stories.flatMap((story) => story.owner_ids));
-
-		return this.toResult(`Result (${stories.length} stories found):
-${formatStoryList(stories, owners)}`);
+		return this.toResult(
+			`Result (${stories.length} stories found):`,
+			this.toCorrectedEntities(stories),
+		);
 	}
 
-	async searchIterations(params: QueryParams, detail: "slim" | "full") {
+	async searchIterations(params: QueryParams) {
 		const currentUser = await this.client.getCurrentUser();
 		const query = await buildSearchQuery(params, currentUser);
-		const { iterations, total } = await this.client.searchIterations(query, detail);
+		const { iterations, total } = await this.client.searchIterations(query);
 
 		if (!iterations)
 			throw new Error(`Failed to search for iterations matching your query: "${query}".`);
 		if (!iterations.length) return this.toResult(`Result: No iterations found.`);
 
-		return this.toResult(`Result (first ${iterations.length} shown of ${total} total iterations found):
-${formatAsUnorderedList(iterations.map((iteration) => `${iteration.id}: ${iteration.name} (Start date: ${iteration.start_date}, End date: ${iteration.end_date})`))}`);
+		return this.toResult(
+			`Result (first ${iterations.length} shown of ${total} total iterations found):`,
+			await this.toCorrectedEntities(iterations),
+		);
 	}
 
 	async getIteration(iterationPublicId: number) {
@@ -112,22 +107,10 @@ ${formatAsUnorderedList(iterations.map((iteration) => `${iteration.id}: ${iterat
 				`Failed to retrieve Shortcut iteration with public ID: ${iterationPublicId}.`,
 			);
 
-		const currentUser = await this.client.getCurrentUser();
-		const showPoints = !!currentUser?.workspace2?.estimate_scale?.length;
-
-		return this.toResult(`Iteration: ${iterationPublicId}
-Url: ${iteration.app_url}
-Name: ${iteration.name}
-Start date: ${iteration.start_date}
-End date: ${iteration.end_date}
-Completed: ${iteration.status === "completed" ? "Yes" : "No"}
-Started: ${iteration.status === "started" ? "Yes" : "No"}
-Team: ${iteration.group_ids?.length ? `${iteration.group_ids.join(", ")}` : "(none)"}
-
-${formatStats(iteration.stats, showPoints)}
-
-Description:
-${iteration.description}`);
+		return this.toResult(
+			`Iteration: ${iterationPublicId}`,
+			await this.toCorrectedEntity(iteration),
+		);
 	}
 
 	async createIteration({

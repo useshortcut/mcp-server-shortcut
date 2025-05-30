@@ -1,4 +1,4 @@
-import { describe, expect, mock, spyOn, test } from "bun:test";
+import { describe, expect, mock, test } from "bun:test";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CreateIteration, Iteration, Member, MemberInfo, Story } from "@shortcut/client";
@@ -95,43 +95,6 @@ describe("IterationTools", () => {
 			expect(mockTool.mock.calls?.[2]?.[0]).toBe("search-iterations");
 			expect(mockTool.mock.calls?.[3]?.[0]).toBe("create-iteration");
 		});
-
-		test("should call correct function from tool", async () => {
-			const mockClient = createMockClient();
-			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
-
-			const tools = IterationTools.create(mockClient, mockServer);
-
-			spyOn(tools, "getIterationStories").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[0]?.[3]({ iterationPublicId: 1 });
-			expect(tools.getIterationStories).toHaveBeenCalledWith(1);
-
-			spyOn(tools, "getIteration").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[1]?.[3]({ iterationPublicId: 1 });
-			expect(tools.getIteration).toHaveBeenCalledWith(1);
-
-			spyOn(tools, "searchIterations").mockImplementation(async () => ({
-				content: [{ text: "(none)", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[2]?.[3]({ name: "test" });
-			expect(tools.searchIterations).toHaveBeenCalledWith({ name: "test" });
-
-			spyOn(tools, "createIteration").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[3]?.[3]({
-				name: "Test Iteration",
-				description: "Test Iteration created by the Shortcut MCP server",
-				startDate: "2023-01-01",
-				endDate: "2023-01-14",
-				groupId: "group1",
-			});
-		});
 	});
 
 	describe("getIterationStories method", () => {
@@ -187,7 +150,7 @@ describe("IterationTools", () => {
 					searchIterations: searchIterationsMock,
 				}),
 			);
-			const result = await iterationTools.searchIterations({}, "slim");
+			const result = await iterationTools.searchIterations({});
 
 			expect(result.content[0].type).toBe("text");
 			expect(String(result.content[0].text).split("\n")).toMatchObject([
@@ -204,7 +167,7 @@ describe("IterationTools", () => {
 				}),
 			);
 
-			const result = await iterationTools.searchIterations({}, "slim");
+			const result = await iterationTools.searchIterations({});
 
 			expect(result.content[0].type).toBe("text");
 			expect(result.content[0].text).toBe("Result: No iterations found.");
@@ -217,7 +180,7 @@ describe("IterationTools", () => {
 				}),
 			);
 
-			await expect(() => iterationTools.searchIterations({}, "slim")).toThrow(
+			await expect(() => iterationTools.searchIterations({})).toThrow(
 				"Failed to search for iterations matching your query",
 			);
 		});

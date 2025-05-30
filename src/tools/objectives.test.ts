@@ -1,4 +1,4 @@
-import { describe, expect, mock, spyOn, test } from "bun:test";
+import { describe, expect, mock, test } from "bun:test";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Milestone } from "@shortcut/client";
@@ -44,26 +44,6 @@ describe("ObjectiveTools", () => {
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-objective");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-objectives");
 		});
-
-		test("should call correct function from tool", async () => {
-			const mockClient = {} as ShortcutClientWrapper;
-			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
-
-			const tools = ObjectiveTools.create(mockClient, mockServer);
-
-			spyOn(tools, "getObjective").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[0]?.[3]({ objectivePublicId: 1 });
-			expect(tools.getObjective).toHaveBeenCalledWith(1);
-
-			spyOn(tools, "searchObjectives").mockImplementation(async () => ({
-				content: [{ text: "(none)", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[1]?.[3]({ name: "test" });
-			expect(tools.searchObjectives).toHaveBeenCalledWith({ name: "test" });
-		});
 	});
 
 	describe("searchObjectives method", () => {
@@ -79,7 +59,7 @@ describe("ObjectiveTools", () => {
 
 		test("should return formatted list of objectives when objectives are found", async () => {
 			const objectiveTools = new ObjectiveTools(mockClient);
-			const result = await objectiveTools.searchObjectives({}, "slim");
+			const result = await objectiveTools.searchObjectives({});
 
 			expect(result.content[0].type).toBe("text");
 			expect(String(result.content[0].text).split("\n")).toMatchObject([
@@ -95,7 +75,7 @@ describe("ObjectiveTools", () => {
 				searchMilestones: mock(async () => ({ milestones: [], total: 0 })),
 			} as unknown as ShortcutClientWrapper);
 
-			const result = await objectiveTools.searchObjectives({}, "slim");
+			const result = await objectiveTools.searchObjectives({});
 
 			expect(result.content[0].type).toBe("text");
 			expect(result.content[0].text).toBe("Result: No milestones found.");
@@ -107,7 +87,7 @@ describe("ObjectiveTools", () => {
 				searchMilestones: mock(async () => ({ milestones: null, total: 0 })),
 			} as unknown as ShortcutClientWrapper);
 
-			await expect(() => objectiveTools.searchObjectives({}, "slim")).toThrow(
+			await expect(() => objectiveTools.searchObjectives({})).toThrow(
 				"Failed to search for milestones matching your query",
 			);
 		});

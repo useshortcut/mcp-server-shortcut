@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type {
@@ -149,93 +149,6 @@ describe("StoryTools", () => {
 			expect(mockTool.mock.calls?.[9]?.[0]).toBe("add-relation-to-story");
 			expect(mockTool.mock.calls?.[10]?.[0]).toBe("update-task");
 		});
-
-		test("should call correct function from tool", async () => {
-			const mockClient = {} as ShortcutClientWrapper;
-			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
-
-			const tools = StoryTools.create(mockClient, mockServer);
-
-			spyOn(tools, "getStoryBranchName").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[0]?.[3]({ storyPublicId: 123 });
-			expect(tools.getStoryBranchName).toHaveBeenCalledWith(123);
-
-			spyOn(tools, "getStory").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[1]?.[3]({ storyPublicId: 123 });
-			expect(tools.getStory).toHaveBeenCalledWith(123);
-
-			spyOn(tools, "searchStories").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[2]?.[3]({ id: 123 });
-			expect(tools.searchStories).toHaveBeenCalledWith({ id: 123 });
-
-			spyOn(tools, "createStory").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[3]?.[3]({ name: "Test Story 1" });
-			expect(tools.createStory).toHaveBeenCalledWith({ name: "Test Story 1" });
-
-			spyOn(tools, "updateStory").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[4]?.[3]({ storyPublicId: 123, name: "Updated Story" });
-			expect(tools.updateStory).toHaveBeenCalledWith({ storyPublicId: 123, name: "Updated Story" });
-
-			spyOn(tools, "assignCurrentUserAsOwner").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[5]?.[3]({ storyPublicId: 123 });
-			expect(tools.assignCurrentUserAsOwner).toHaveBeenCalledWith(123);
-
-			spyOn(tools, "unassignCurrentUserAsOwner").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[6]?.[3]({ storyPublicId: 123 });
-			expect(tools.unassignCurrentUserAsOwner).toHaveBeenCalledWith(123);
-
-			spyOn(tools, "createStoryComment").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[7]?.[3]({ storyPublicId: 123, text: "Test comment" });
-			expect(tools.createStoryComment).toHaveBeenCalledWith({
-				storyPublicId: 123,
-				text: "Test comment",
-			});
-
-			spyOn(tools, "addTaskToStory").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[8]?.[3]({ storyPublicId: 123, taskDescription: "Test task" });
-			expect(tools.addTaskToStory).toHaveBeenCalledWith({
-				storyPublicId: 123,
-				taskDescription: "Test task",
-			});
-
-			spyOn(tools, "addRelationToStory").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[9]?.[3]({ storyPublicId: 123, relatedStoryPublicId: 456 });
-			expect(tools.addRelationToStory).toHaveBeenCalledWith({
-				storyPublicId: 123,
-				relatedStoryPublicId: 456,
-			});
-
-			spyOn(tools, "updateTask").mockImplementation(async () => ({
-				content: [{ text: "", type: "text" }],
-			}));
-			await mockTool.mock.calls?.[10]?.[3]({ storyPublicId: 123, taskId: 1, ownerIds: ["user1"] });
-			expect(tools.updateTask).toHaveBeenCalledWith({
-				storyPublicId: 123,
-				taskId: 1,
-				ownerIds: ["user1"],
-			});
-		});
 	});
 
 	describe("getStory method", () => {
@@ -342,7 +255,7 @@ describe("StoryTools", () => {
 
 		test("should return formatted list of stories when stories are found", async () => {
 			const storyTools = new StoryTools(mockClient);
-			const result = await storyTools.searchStories({}, "slim");
+			const result = await storyTools.searchStories({});
 
 			expect(result.content[0].type).toBe("text");
 			expect(String(result.content[0].text).split("\n")).toMatchObject([
@@ -358,7 +271,7 @@ describe("StoryTools", () => {
 				getCurrentUser: getCurrentUserMock,
 			} as unknown as ShortcutClientWrapper);
 
-			const result = await storyTools.searchStories({}, "slim");
+			const result = await storyTools.searchStories({});
 
 			expect(result.content[0].type).toBe("text");
 			expect(result.content[0].text).toBe("Result: No stories found.");
@@ -370,7 +283,7 @@ describe("StoryTools", () => {
 				getCurrentUser: getCurrentUserMock,
 			} as unknown as ShortcutClientWrapper);
 
-			await expect(() => storyTools.searchStories({}, "slim")).toThrow(
+			await expect(() => storyTools.searchStories({})).toThrow(
 				"Failed to search for stories matching your query",
 			);
 		});

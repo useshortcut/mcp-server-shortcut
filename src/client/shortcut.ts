@@ -5,6 +5,7 @@ import type {
 	CreateStoryComment,
 	CreateStoryParams,
 	Epic,
+	Group,
 	Iteration,
 	Member,
 	MemberInfo,
@@ -27,10 +28,12 @@ import { Cache } from "./cache";
 export class ShortcutClientWrapper {
 	private currentUser: MemberInfo | null = null;
 	private userCache: Cache<string, Member>;
+	private teamCache: Cache<string, Group>;
 	private workflowCache: Cache<number, Workflow>;
 
 	constructor(private client: BaseClient) {
 		this.userCache = new Cache();
+		this.teamCache = new Cache();
 		this.workflowCache = new Cache();
 	}
 
@@ -41,6 +44,17 @@ export class ShortcutClientWrapper {
 
 			if (members) {
 				this.userCache.setMany(members.map((member) => [member.id, member]));
+			}
+		}
+	}
+
+	private async loadTeams() {
+		if (this.teamCache.isStale) {
+			const response = await this.client.listGroups();
+			const groups = response?.data ?? null;
+
+			if (groups) {
+				this.teamCache.setMany(groups.map((group) => [group.id, group]));
 			}
 		}
 	}
@@ -83,7 +97,7 @@ export class ShortcutClientWrapper {
 		return new Map(
 			userIds
 				.map((id) => [id, this.userCache.get(id)])
-				.filter((user): user is [string, Member] => user[1] !== null),
+				.filter((user): user is [string, Member | null] => user[1] !== null),
 		);
 	}
 
@@ -106,7 +120,7 @@ export class ShortcutClientWrapper {
 		return new Map(
 			workflowIds
 				.map((id) => [id, this.workflowCache.get(id)])
-				.filter((workflow): workflow is [number, Workflow] => workflow[1] !== null),
+				.filter((workflow): workflow is [number, Workflow | null] => workflow[1] !== null),
 		);
 	}
 
@@ -125,9 +139,19 @@ export class ShortcutClientWrapper {
 	}
 
 	async getTeams() {
-		const response = await this.client.listGroups();
-		const groups = response?.data ?? [];
-		return groups;
+		await this.loadTeams();
+		const teams: Group[] = Array.from(this.teamCache.values());
+
+		return teams;
+	}
+
+	async getTeamMap(teamIds: string[]) {
+		await this.loadTeams();
+		return new Map(
+			teamIds
+				.map((id) => [id, this.teamCache.get(id)])
+				.filter((team): team is [string, Group | null] => team[1] !== null),
+		);
 	}
 
 	async getTeam(teamPublicId: string) {
@@ -193,8 +217,8 @@ export class ShortcutClientWrapper {
 		return milestone;
 	}
 
-	async searchStories(query: string, detail: "slim" | "full" = "slim") {
-		const response = await this.client.searchStories({ query, page_size: 25, detail });
+	async searchStories(query: string) {
+		const response = await this.client.searchStories({ query, page_size: 25, detail: "full" });
 		const stories = response?.data?.data;
 		const total = response?.data?.total;
 
@@ -203,8 +227,8 @@ export class ShortcutClientWrapper {
 		return { stories, total };
 	}
 
-	async searchIterations(query: string, detail: "slim" | "full" = "slim") {
-		const response = await this.client.searchIterations({ query, page_size: 25, detail });
+	async searchIterations(query: string) {
+		const response = await this.client.searchIterations({ query, page_size: 25, detail: "full" });
 		const iterations = response?.data?.data;
 		const total = response?.data?.total;
 
@@ -213,8 +237,8 @@ export class ShortcutClientWrapper {
 		return { iterations, total };
 	}
 
-	async searchEpics(query: string, detail: "slim" | "full" = "slim") {
-		const response = await this.client.searchEpics({ query, page_size: 25, detail });
+	async searchEpics(query: string) {
+		const response = await this.client.searchEpics({ query, page_size: 25, detail: "full" });
 		const epics = response?.data?.data;
 		const total = response?.data?.total;
 
@@ -223,8 +247,8 @@ export class ShortcutClientWrapper {
 		return { epics, total };
 	}
 
-	async searchMilestones(query: string, detail: "slim" | "full" = "slim") {
-		const response = await this.client.searchMilestones({ query, page_size: 25, detail });
+	async searchMilestones(query: string) {
+		const response = await this.client.searchMilestones({ query, page_size: 25, detail: "full" });
 		const milestones = response?.data?.data;
 		const total = response?.data?.total;
 
