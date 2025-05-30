@@ -279,7 +279,7 @@ describe("EpicTools", () => {
 			});
 
 			expect(searchEpicsMock.mock.calls?.[0]?.[0]).toBe(
-				'id:1 title:"Test Epic" description:"Test Description" state:started objective:123 owner:testuser group:engineering is:archived',
+				'id:1 title:"Test Epic" description:"Test Description" state:started objective:123 owner:testuser team:engineering is:archived',
 			);
 		});
 
