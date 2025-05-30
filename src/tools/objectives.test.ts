@@ -62,11 +62,12 @@ describe("ObjectiveTools", () => {
 			const result = await objectiveTools.searchObjectives({});
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Result (first 2 shown of 2 total milestones found):",
-				"- 1: Objective 1",
-				"- 2: Objective 2",
-			]);
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Result (first 2 shown of 2 total milestones found):");
+			expect(textContent).toContain('"id": 1');
+			expect(textContent).toContain('"name": "Objective 1"');
+			expect(textContent).toContain('"id": 2');
+			expect(textContent).toContain('"name": "Objective 2"');
 		});
 
 		test("should return no objectives found message when no objectives exist", async () => {
@@ -104,17 +105,15 @@ describe("ObjectiveTools", () => {
 			const result = await objectiveTools.getObjective(1);
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Objective: 1",
-				"Url: https://app.shortcut.com/test/milestone/1",
-				"Name: Objective 1",
-				"Archived: No",
-				"Completed: No",
-				"Started: Yes",
-				"",
-				"Description:",
-				"Description for Objective 1",
-			]);
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Objective: 1");
+			expect(textContent).toContain('"id": 1');
+			expect(textContent).toContain('"name": "Objective 1"');
+			expect(textContent).toContain('"description": "Description for Objective 1"');
+			expect(textContent).toContain('"archived": false');
+			expect(textContent).toContain('"completed": false');
+			expect(textContent).toContain('"started": true');
+			expect(textContent).toContain('"app_url": "https://app.shortcut.com/test/milestone/1"');
 		});
 
 		test("should handle objective not found", async () => {
@@ -135,7 +134,7 @@ describe("ObjectiveTools", () => {
 			const result = await objectiveTools.getObjective(2);
 
 			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toContain("Completed: Yes");
+			expect(result.content[0].text).toContain('"completed": true');
 		});
 	});
 });

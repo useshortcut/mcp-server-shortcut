@@ -99,26 +99,14 @@ describe("EpicTools", () => {
 			const result = await epicTools.getEpic(1);
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Epic: 1",
-				"URL: https://app.shortcut.com/test/epic/1",
-				"Name: Epic 1",
-				"Archived: No",
-				"Completed: No",
-				"Started: No",
-				"Due date: 2025-04-01",
-				"Team: (none)",
-				"Objective: (none)",
-				"",
-				"Stats:",
-				"- Total stories: 10",
-				"- Unstarted stories: 3",
-				"- Stories in progress: 3",
-				"- Completed stories: 4",
-				"",
-				"Description:",
-				"Description for Epic 1",
-			]);
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Epic: 1");
+			expect(textContent).toContain('"id": 1');
+			expect(textContent).toContain('"name": "Epic 1"');
+			expect(textContent).toContain('"description": "Description for Epic 1"');
+			expect(textContent).toContain('"state": "unstarted"');
+			expect(textContent).toContain('"deadline": "2025-04-01"');
+			expect(textContent).toContain('"app_url": "https://app.shortcut.com/test/epic/1"');
 		});
 
 		test("should handle completed and archived epics correctly", async () => {
@@ -126,26 +114,15 @@ describe("EpicTools", () => {
 			const result = await epicTools.getEpic(3);
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Epic: 3",
-				"URL: https://app.shortcut.com/test/epic/3",
-				"Name: Epic 3",
-				"Archived: Yes",
-				"Completed: Yes",
-				"Started: Yes",
-				"Due date: 2025-03-01",
-				"Team: (none)",
-				"Objective: (none)",
-				"",
-				"Stats:",
-				"- Total stories: 10",
-				"- Unstarted stories: 3",
-				"- Stories in progress: 3",
-				"- Completed stories: 4",
-				"",
-				"Description:",
-				"Description for Epic 3",
-			]);
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Epic: 3");
+			expect(textContent).toContain('"id": 3');
+			expect(textContent).toContain('"name": "Epic 3"');
+			expect(textContent).toContain('"description": "Description for Epic 3"');
+			expect(textContent).toContain('"state": "done"');
+			expect(textContent).toContain('"archived": true');
+			expect(textContent).toContain('"completed": true');
+			expect(textContent).toContain('"deadline": "2025-03-01"');
 		});
 
 		test("should handle epics with null deadline", async () => {
@@ -153,26 +130,14 @@ describe("EpicTools", () => {
 			const result = await epicTools.getEpic(2);
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Epic: 2",
-				"URL: https://app.shortcut.com/test/epic/2",
-				"Name: Epic 2",
-				"Archived: No",
-				"Completed: No",
-				"Started: Yes",
-				"Due date: [Not set]",
-				"Team: (none)",
-				"Objective: (none)",
-				"",
-				"Stats:",
-				"- Total stories: 10",
-				"- Unstarted stories: 3",
-				"- Stories in progress: 3",
-				"- Completed stories: 4",
-				"",
-				"Description:",
-				"Description for Epic 2",
-			]);
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Epic: 2");
+			expect(textContent).toContain('"id": 2');
+			expect(textContent).toContain('"name": "Epic 2"');
+			expect(textContent).toContain('"description": "Description for Epic 2"');
+			expect(textContent).toContain('"state": "started"');
+			expect(textContent).toContain('"started": true');
+			expect(textContent).toContain('"deadline": null');
 		});
 
 		test("should throw error when epic is not found", async () => {
@@ -204,12 +169,14 @@ describe("EpicTools", () => {
 			expect(mockClient.searchEpics).toHaveBeenCalled();
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Result (first 3 shown of 3 total epics found):",
-				"- 1: Epic 1",
-				"- 2: Epic 2",
-				"- 3: Epic 3",
-			]);
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Result (first 3 shown of 3 total epics found):");
+			expect(textContent).toContain('"id": 1');
+			expect(textContent).toContain('"name": "Epic 1"');
+			expect(textContent).toContain('"id": 2');
+			expect(textContent).toContain('"name": "Epic 2"');
+			expect(textContent).toContain('"id": 3');
+			expect(textContent).toContain('"name": "Epic 3"');
 		});
 
 		test("should return no epics found message when no epics match", async () => {

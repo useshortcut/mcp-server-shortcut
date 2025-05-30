@@ -47,12 +47,12 @@ export class BaseTools {
 
 		const correctedEntity = {
 			...withoutIds,
-			members: member_ids
-				.map((id) => this.correctMember(users.get(id)))
-				.filter((user) => user !== null),
-			workflows: workflow_ids
-				.map((id) => this.correctWorkflow(workflows.get(id)))
-				.filter((workflow) => workflow !== null),
+			members: await Promise.all(
+				member_ids.map((id) => this.correctMember(users.get(id))).filter(Boolean),
+			),
+			workflows: await Promise.all(
+				workflow_ids.map((id) => this.correctWorkflow(workflows.get(id))).filter(Boolean),
+			),
 		};
 
 		return correctedEntity;
@@ -62,15 +62,13 @@ export class BaseTools {
 		if (!entity) return null;
 		const { group_ids, ...withoutGroupIds } = entity;
 
-		const teams = await this.client.getTeamMap(
-			group_ids?.filter((id): id is string => id !== null),
-		);
+		const teams = await this.client.getTeamMap(group_ids?.filter(Boolean));
 
 		const correctedEntity = {
 			...withoutGroupIds,
-			teams:
-				group_ids?.map((id) => this.correctTeam(teams.get(id)))?.filter((team) => team !== null) ??
-				[],
+			teams: await Promise.all(
+				group_ids?.map((id) => this.correctTeam(teams.get(id)))?.filter(Boolean) ?? [],
+			),
 		};
 
 		return correctedEntity;
@@ -91,15 +89,15 @@ export class BaseTools {
 		const correctedEntity = {
 			...withoutIds,
 			owners:
-				owner_ids
-					?.map((id) => this.correctMember(users.get(id)))
-					?.filter((user) => user !== null) ?? [],
-			requested_by: requested_by_id ? this.correctMember(users.get(requested_by_id)) : null,
+				(await Promise.all(owner_ids?.map((id) => this.correctMember(users.get(id))))).filter(
+					Boolean,
+				) ?? [],
+			requested_by: requested_by_id ? await this.correctMember(users.get(requested_by_id)) : null,
 			followers:
-				follower_ids
-					?.map((id) => this.correctMember(users.get(id)))
-					?.filter((user) => user !== null) ?? [],
-			team: group_id ? this.correctTeam(teams.get(group_id)) : null,
+				(await Promise.all(follower_ids?.map((id) => this.correctMember(users.get(id))))).filter(
+					Boolean,
+				) ?? [],
+			team: group_id ? await this.correctTeam(teams.get(group_id)) : null,
 		};
 
 		return correctedEntity;
@@ -118,16 +116,16 @@ export class BaseTools {
 		const correctedEntity = {
 			...withoutIds,
 			owners:
-				owner_ids
-					?.map((id) => this.correctMember(users.get(id)))
-					?.filter((user) => user !== null) ?? [],
-			requested_by: requested_by_id ? this.correctMember(users.get(requested_by_id)) : null,
+				(await Promise.all(owner_ids?.map((id) => this.correctMember(users.get(id)))))?.filter(
+					Boolean,
+				) ?? [],
+			requested_by: requested_by_id ? await this.correctMember(users.get(requested_by_id)) : null,
 			followers:
-				follower_ids
-					?.map((id) => this.correctMember(users.get(id)))
-					?.filter((user) => user !== null) ?? [],
-			team: group_id ? this.correctTeam(teams.get(group_id)) : null,
-			workflow: workflow_id ? this.correctWorkflow(workflows.get(workflow_id)) : null,
+				(await Promise.all(follower_ids?.map((id) => this.correctMember(users.get(id)))))?.filter(
+					Boolean,
+				) ?? [],
+			team: group_id ? await this.correctTeam(teams.get(group_id)) : null,
+			workflow: workflow_id ? await this.correctWorkflow(workflows.get(workflow_id)) : null,
 		};
 
 		return correctedEntity;

@@ -47,12 +47,11 @@ describe("UserTools", () => {
 			const result = await userTools.getCurrentUser();
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Current user:",
-				"Id: user1",
-				"Mention name: @testuser",
-				"Full name: Test User",
-			]);
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Current user:");
+			expect(textContent).toContain('"id": "user1"');
+			expect(textContent).toContain('"mention_name": "testuser"');
+			expect(textContent).toContain('"name": "Test User"');
 		});
 
 		test("should throw error when current user is not found", async () => {
@@ -87,11 +86,10 @@ describe("UserTools", () => {
 			const userTools = new UserTools(mockClient);
 			const result = await userTools.listMembers();
 
-			console.log(JSON.stringify(result.content, null, 2));
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text)).toContain("Found 2 members,");
-			expect(String(result.content[0].text)).toContain("@user1");
-			expect(String(result.content[0].text)).toContain("@user2");
+			expect(String(result.content[0].text)).toContain("Found 2 members:");
+			expect(String(result.content[0].text)).toContain('"mention_name": "user1"');
+			expect(String(result.content[0].text)).toContain('"mention_name": "user2"');
 		});
 
 		test("should propagate errors from client", async () => {

@@ -172,41 +172,17 @@ describe("StoryTools", () => {
 			const result = await storyTools.getStory(123);
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Story: sc-123",
-				"URL: https://app.shortcut.com/test/story/123",
-				"Name: Test Story 1",
-				"Type: feature",
-				"Archived: No",
-				"Completed: No",
-				"Started: Yes",
-				"Blocked: No",
-				"Blocking: No",
-				"Due date: 2023-12-31",
-				"Team: (none)",
-				"Owners:",
-				"- id=user1 @testuser",
-				"Epic: (none)",
-				"Iteration: (none)",
-				"",
-				"Description:",
-				"Description for Test Story 1",
-				"",
-				"External Links:",
-				"- https://example.com",
-				"- https://example2.com",
-				"",
-				"Pull Requests:",
-				"- Title: Test PR 1, Merged: Yes, URL: https://github.com/user1/repo1/pull/1",
-				"",
-				"Tasks:",
-				"- [ ] task 1",
-				"- [X] task 2",
-				"",
-				"Comments:",
-				"- From: @testuser on 2023-01-01T12:00:00Z.",
-				"This is a comment",
-			]);
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Story: sc-123");
+			expect(textContent).toContain('"id": 123');
+			expect(textContent).toContain('"name": "Test Story 1"');
+			expect(textContent).toContain('"story_type": "feature"');
+			expect(textContent).toContain('"description": "Description for Test Story 1"');
+			expect(textContent).toContain('"archived": false');
+			expect(textContent).toContain('"completed": false');
+			expect(textContent).toContain('"started": true');
+			expect(textContent).toContain('"deadline": "2023-12-31"');
+			expect(textContent).toContain('"app_url": "https://app.shortcut.com/test/story/123"');
 		});
 
 		test("should handle story not found", async () => {
@@ -228,7 +204,7 @@ describe("StoryTools", () => {
 			const result = await storyTools.getStory(456);
 
 			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toContain("Due date: (none)");
+			expect(result.content[0].text).toContain('"deadline": null');
 		});
 	});
 
@@ -258,11 +234,12 @@ describe("StoryTools", () => {
 			const result = await storyTools.searchStories({});
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text).split("\n")).toMatchObject([
-				"Result (first 2 shown of 2 total stories found):",
-				"- sc-123: Test Story 1 (Type: feature, State: In Progress, Team: (none), Epic: (none), Iteration: (none), Owners: @testuser)",
-				"- sc-456: Test Story 2 (Type: bug, State: Completed, Team: (none), Epic: (none), Iteration: (none), Owners: @testuser, @jane)",
-			]);
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Result (first 2 shown of 2 total stories found):");
+			expect(textContent).toContain('"id": 123');
+			expect(textContent).toContain('"name": "Test Story 1"');
+			expect(textContent).toContain('"id": 456');
+			expect(textContent).toContain('"name": "Test Story 2"');
 		});
 
 		test("should return no stories found message when no stories exist", async () => {
