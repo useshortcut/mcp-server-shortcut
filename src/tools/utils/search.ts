@@ -1,6 +1,6 @@
 import type { MemberInfo } from "@shortcut/client";
 
-const keyRenames = { team: "group", name: "title" } as const;
+const keyRenames = { name: "title" } as const;
 
 const mapKeyName = (key: string) => {
 	const lowercaseKey = key.toLowerCase();
