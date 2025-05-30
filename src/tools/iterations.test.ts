@@ -187,7 +187,7 @@ describe("IterationTools", () => {
 					searchIterations: searchIterationsMock,
 				}),
 			);
-			const result = await iterationTools.searchIterations({});
+			const result = await iterationTools.searchIterations({}, "slim");
 
 			expect(result.content[0].type).toBe("text");
 			expect(String(result.content[0].text).split("\n")).toMatchObject([
@@ -204,7 +204,7 @@ describe("IterationTools", () => {
 				}),
 			);
 
-			const result = await iterationTools.searchIterations({});
+			const result = await iterationTools.searchIterations({}, "slim");
 
 			expect(result.content[0].type).toBe("text");
 			expect(result.content[0].text).toBe("Result: No iterations found.");
@@ -217,7 +217,7 @@ describe("IterationTools", () => {
 				}),
 			);
 
-			await expect(() => iterationTools.searchIterations({})).toThrow(
+			await expect(() => iterationTools.searchIterations({}, "slim")).toThrow(
 				"Failed to search for iterations matching your query",
 			);
 		});

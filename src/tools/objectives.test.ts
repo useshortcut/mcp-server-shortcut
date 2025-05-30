@@ -79,7 +79,7 @@ describe("ObjectiveTools", () => {
 
 		test("should return formatted list of objectives when objectives are found", async () => {
 			const objectiveTools = new ObjectiveTools(mockClient);
-			const result = await objectiveTools.searchObjectives({});
+			const result = await objectiveTools.searchObjectives({}, "slim");
 
 			expect(result.content[0].type).toBe("text");
 			expect(String(result.content[0].text).split("\n")).toMatchObject([
@@ -95,7 +95,7 @@ describe("ObjectiveTools", () => {
 				searchMilestones: mock(async () => ({ milestones: [], total: 0 })),
 			} as unknown as ShortcutClientWrapper);
 
-			const result = await objectiveTools.searchObjectives({});
+			const result = await objectiveTools.searchObjectives({}, "slim");
 
 			expect(result.content[0].type).toBe("text");
 			expect(result.content[0].text).toBe("Result: No milestones found.");
@@ -107,7 +107,7 @@ describe("ObjectiveTools", () => {
 				searchMilestones: mock(async () => ({ milestones: null, total: 0 })),
 			} as unknown as ShortcutClientWrapper);
 
-			await expect(() => objectiveTools.searchObjectives({})).toThrow(
+			await expect(() => objectiveTools.searchObjectives({}, "slim")).toThrow(
 				"Failed to search for milestones matching your query",
 			);
 		});

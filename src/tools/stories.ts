@@ -39,6 +39,12 @@ export class StoryTools extends BaseTools {
 			"search-stories",
 			"Find Shortcut stories.",
 			{
+				resultType: z
+					.enum(["slim", "full"])
+					.default("slim")
+					.describe(
+						"The detail level of the result to return. Slim ignores some fulltext fields like descriptions and comments. If those are required, use full.",
+					),
 				id: z.number().optional().describe("Find only stories with the specified public ID"),
 				name: z.string().optional().describe("Find only stories matching the specified name"),
 				description: z
@@ -116,7 +122,7 @@ export class StoryTools extends BaseTools {
 				completed: date,
 				due: date,
 			},
-			async (params) => await tools.searchStories(params),
+			async ({ resultType, ...params }) => await tools.searchStories(params, resultType),
 		);
 
 		server.tool(
@@ -379,10 +385,10 @@ The story will be added to the default state for the workflow.
 		return this.toResult(`Created story: ${story.id}`);
 	}
 
-	async searchStories(params: QueryParams) {
+	async searchStories(params: QueryParams, detail: "slim" | "full") {
 		const currentUser = await this.client.getCurrentUser();
 		const query = await buildSearchQuery(params, currentUser);
-		const { stories, total } = await this.client.searchStories(query);
+		const { stories, total } = await this.client.searchStories(query, detail);
 
 		if (!stories) throw new Error(`Failed to search for stories matching your query: "${query}".`);
 		if (!stories.length) return this.toResult(`Result: No stories found.`);

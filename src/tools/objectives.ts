@@ -23,6 +23,12 @@ export class ObjectiveTools extends BaseTools {
 			"search-objectives",
 			"Find Shortcut objectives.",
 			{
+				resultType: z
+					.enum(["slim", "full"])
+					.default("slim")
+					.describe(
+						"The detail level of the result to return. Slim ignores some fulltext fields like descriptions. If those are required, use full.",
+					),
 				id: z.number().optional().describe("Find objectives matching the specified id"),
 				name: z.string().optional().describe("Find objectives matching the specified name"),
 				description: z
@@ -48,16 +54,16 @@ export class ObjectiveTools extends BaseTools {
 				updated: date,
 				completed: date,
 			},
-			async (params) => await tools.searchObjectives(params),
+			async ({ resultType, ...params }) => await tools.searchObjectives(params, resultType),
 		);
 
 		return tools;
 	}
 
-	async searchObjectives(params: QueryParams) {
+	async searchObjectives(params: QueryParams, detail: "slim" | "full") {
 		const currentUser = await this.client.getCurrentUser();
 		const query = await buildSearchQuery(params, currentUser);
-		const { milestones, total } = await this.client.searchMilestones(query);
+		const { milestones, total } = await this.client.searchMilestones(query, detail);
 
 		if (!milestones)
 			throw new Error(`Failed to search for milestones matching your query: "${query}"`);

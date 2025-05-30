@@ -31,6 +31,12 @@ export class IterationTools extends BaseTools {
 			"search-iterations",
 			"Find Shortcut iterations.",
 			{
+				resultType: z
+					.enum(["slim", "full"])
+					.default("slim")
+					.describe(
+						"The detail level of the result to return. Slim ignores some fulltext fields like descriptions. If those are required, use full.",
+					),
 				id: z.number().optional().describe("Find only iterations with the specified public ID"),
 				name: z.string().optional().describe("Find only iterations matching the specified name"),
 				description: z
@@ -52,7 +58,7 @@ export class IterationTools extends BaseTools {
 				startDate: date,
 				endDate: date,
 			},
-			async (params) => await tools.searchIterations(params),
+			async ({ resultType, ...params }) => await tools.searchIterations(params, resultType),
 		);
 
 		server.tool(
@@ -85,10 +91,10 @@ export class IterationTools extends BaseTools {
 ${formatStoryList(stories, owners)}`);
 	}
 
-	async searchIterations(params: QueryParams) {
+	async searchIterations(params: QueryParams, detail: "slim" | "full") {
 		const currentUser = await this.client.getCurrentUser();
 		const query = await buildSearchQuery(params, currentUser);
-		const { iterations, total } = await this.client.searchIterations(query);
+		const { iterations, total } = await this.client.searchIterations(query, detail);
 
 		if (!iterations)
 			throw new Error(`Failed to search for iterations matching your query: "${query}".`);

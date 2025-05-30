@@ -193,8 +193,8 @@ export class ShortcutClientWrapper {
 		return milestone;
 	}
 
-	async searchStories(query: string) {
-		const response = await this.client.searchStories({ query, page_size: 25, detail: "slim" });
+	async searchStories(query: string, detail: "slim" | "full" = "slim") {
+		const response = await this.client.searchStories({ query, page_size: 25, detail });
 		const stories = response?.data?.data;
 		const total = response?.data?.total;
 
@@ -203,8 +203,8 @@ export class ShortcutClientWrapper {
 		return { stories, total };
 	}
 
-	async searchIterations(query: string) {
-		const response = await this.client.searchIterations({ query, page_size: 25, detail: "slim" });
+	async searchIterations(query: string, detail: "slim" | "full" = "slim") {
+		const response = await this.client.searchIterations({ query, page_size: 25, detail });
 		const iterations = response?.data?.data;
 		const total = response?.data?.total;
 
@@ -213,8 +213,8 @@ export class ShortcutClientWrapper {
 		return { iterations, total };
 	}
 
-	async searchEpics(query: string) {
-		const response = await this.client.searchEpics({ query, page_size: 25, detail: "slim" });
+	async searchEpics(query: string, detail: "slim" | "full" = "slim") {
+		const response = await this.client.searchEpics({ query, page_size: 25, detail });
 		const epics = response?.data?.data;
 		const total = response?.data?.total;
 
@@ -223,8 +223,8 @@ export class ShortcutClientWrapper {
 		return { epics, total };
 	}
 
-	async searchMilestones(query: string) {
-		const response = await this.client.searchMilestones({ query, page_size: 25, detail: "slim" });
+	async searchMilestones(query: string, detail: "slim" | "full" = "slim") {
+		const response = await this.client.searchMilestones({ query, page_size: 25, detail });
 		const milestones = response?.data?.data;
 		const total = response?.data?.total;
 

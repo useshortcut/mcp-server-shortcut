@@ -22,6 +22,12 @@ export class EpicTools extends BaseTools {
 			"search-epics",
 			"Find Shortcut epics.",
 			{
+				resultType: z
+					.enum(["slim", "full"])
+					.default("slim")
+					.describe(
+						"The detail level of the result to return. Slim ignores some fulltext fields like descriptions and comments. If those are required, use full.",
+					),
 				id: z.number().optional().describe("Find only epics with the specified public ID"),
 				name: z.string().optional().describe("Find only epics matching the specified name"),
 				description: z
@@ -59,7 +65,7 @@ export class EpicTools extends BaseTools {
 				completed: date,
 				due: date,
 			},
-			async (params) => await tools.searchEpics(params),
+			async ({ resultType, ...params }) => await tools.searchEpics(params, resultType),
 		);
 
 		server.tool(
@@ -77,10 +83,10 @@ export class EpicTools extends BaseTools {
 		return tools;
 	}
 
-	async searchEpics(params: QueryParams) {
+	async searchEpics(params: QueryParams, detail: "slim" | "full") {
 		const currentUser = await this.client.getCurrentUser();
 		const query = await buildSearchQuery(params, currentUser);
-		const { epics, total } = await this.client.searchEpics(query);
+		const { epics, total } = await this.client.searchEpics(query, detail);
 
 		if (!epics) throw new Error(`Failed to search for epics matching your query: "${query}"`);
 		if (!epics.length) return this.toResult(`Result: No epics found.`);

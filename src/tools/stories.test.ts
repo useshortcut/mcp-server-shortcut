@@ -342,7 +342,7 @@ describe("StoryTools", () => {
 
 		test("should return formatted list of stories when stories are found", async () => {
 			const storyTools = new StoryTools(mockClient);
-			const result = await storyTools.searchStories({});
+			const result = await storyTools.searchStories({}, "slim");
 
 			expect(result.content[0].type).toBe("text");
 			expect(String(result.content[0].text).split("\n")).toMatchObject([
@@ -358,7 +358,7 @@ describe("StoryTools", () => {
 				getCurrentUser: getCurrentUserMock,
 			} as unknown as ShortcutClientWrapper);
 
-			const result = await storyTools.searchStories({});
+			const result = await storyTools.searchStories({}, "slim");
 
 			expect(result.content[0].type).toBe("text");
 			expect(result.content[0].text).toBe("Result: No stories found.");
@@ -370,7 +370,7 @@ describe("StoryTools", () => {
 				getCurrentUser: getCurrentUserMock,
 			} as unknown as ShortcutClientWrapper);
 
-			await expect(() => storyTools.searchStories({})).toThrow(
+			await expect(() => storyTools.searchStories({}, "slim")).toThrow(
 				"Failed to search for stories matching your query",
 			);
 		});
