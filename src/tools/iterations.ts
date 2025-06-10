@@ -13,8 +13,18 @@ export class IterationTools extends BaseTools {
 		server.tool(
 			"get-iteration-stories",
 			"Get stories in a specific iteration by iteration public ID",
-			{ iterationPublicId: z.number().positive().describe("The public ID of the iteration") },
-			async ({ iterationPublicId }) => await tools.getIterationStories(iterationPublicId),
+			{
+				iterationPublicId: z.number().positive().describe("The public ID of the iteration"),
+				includeStoryDescriptions: z
+					.boolean()
+					.optional()
+					.default(false)
+					.describe(
+						"Indicate whether story descriptions should be included. Including descriptions may take longer and will increase the size of the response.",
+					),
+			},
+			async ({ iterationPublicId, includeStoryDescriptions }) =>
+				await tools.getIterationStories(iterationPublicId, includeStoryDescriptions),
 		);
 
 		server.tool(
@@ -70,8 +80,11 @@ export class IterationTools extends BaseTools {
 		return tools;
 	}
 
-	async getIterationStories(iterationPublicId: number) {
-		const { stories } = await this.client.listIterationStories(iterationPublicId);
+	async getIterationStories(iterationPublicId: number, includeDescription: boolean) {
+		const { stories } = await this.client.listIterationStories(
+			iterationPublicId,
+			includeDescription,
+		);
 
 		if (!stories)
 			throw new Error(

@@ -115,7 +115,7 @@ describe("IterationTools", () => {
 
 		test("should return formatted list of stories in an iteration", async () => {
 			const iterationTools = new IterationTools(mockClient);
-			const result = await iterationTools.getIterationStories(1);
+			const result = await iterationTools.getIterationStories(1, false);
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);
@@ -132,7 +132,7 @@ describe("IterationTools", () => {
 				}),
 			);
 
-			await expect(() => iterationTools.getIterationStories(1)).toThrow(
+			await expect(() => iterationTools.getIterationStories(1, false)).toThrow(
 				"Failed to retrieve Shortcut stories in iteration with public ID: 1.",
 			);
 		});
