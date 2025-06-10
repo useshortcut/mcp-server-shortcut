@@ -259,7 +259,7 @@ export class ShortcutClientWrapper {
 
 	async listIterationStories(iterationPublicId: number) {
 		const response = await this.client.listIterationStories(iterationPublicId, {
-			includes_description: false,
+			includes_description: true,
 		});
 		const stories = response?.data;
 

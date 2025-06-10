@@ -80,7 +80,7 @@ export class IterationTools extends BaseTools {
 
 		return this.toResult(
 			`Result (${stories.length} stories found):`,
-			this.toCorrectedEntities(stories),
+			await this.toCorrectedEntities(stories),
 		);
 	}
 

@@ -121,7 +121,8 @@ describe("IterationTools", () => {
 			const textContent = String(result.content[0].text);
 			expect(textContent).toContain("Result (2 stories found):");
 			// Since search details might not be enabled, just check basic content
-			expect(textContent).toContain("stories");
+			expect(textContent).toContain('"name": "Test Story 1"');
+			expect(textContent).toContain('"name": "Test Story 2"');
 		});
 
 		test("should throw error when stories are not found", async () => {
