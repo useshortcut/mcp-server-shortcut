@@ -257,9 +257,9 @@ export class ShortcutClientWrapper {
 		return { milestones, total };
 	}
 
-	async listIterationStories(iterationPublicId: number) {
+	async listIterationStories(iterationPublicId: number, includeDescription = false) {
 		const response = await this.client.listIterationStories(iterationPublicId, {
-			includes_description: true,
+			includes_description: includeDescription,
 		});
 		const stories = response?.data;
 
