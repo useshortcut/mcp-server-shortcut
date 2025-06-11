@@ -9,6 +9,7 @@ import type {
 	Iteration,
 	Member,
 	MemberInfo,
+	Story,
 	StoryComment,
 	StoryLink,
 	Task,
@@ -394,9 +395,7 @@ export class ShortcutClientWrapper {
 	}
 
 	async getStoriesByExternalLink(externalLink: string) {
-		const response = await this.client.get(`/api/v3/external-link/stories`, {
-			params: { external_link: externalLink },
-		});
+		const response = await this.client.getExternalLinkStories({ external_link: externalLink });
 		const stories = response?.data;
 
 		if (!stories) return { stories: null, total: null };
