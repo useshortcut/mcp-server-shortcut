@@ -77,6 +77,24 @@ export class IterationTools extends BaseTools {
 			async (params) => await tools.createIteration(params),
 		);
 
+		server.tool(
+			"get-active-iterations",
+			"Get the active Shortcut iterations for the current user based on their team memberships",
+			{
+				teamId: z.string().optional().describe("The ID of a team to filter iterations by"),
+			},
+			async ({ teamId }) => await tools.getActiveIterations(teamId),
+		);
+
+		server.tool(
+			"get-upcoming-iterations",
+			"Get the upcoming Shortcut iterations for the current user based on their team memberships",
+			{
+				teamId: z.string().optional().describe("The ID of a team to filter iterations by"),
+			},
+			async ({ teamId }) => await tools.getUpcomingIterations(teamId),
+		);
+
 		return tools;
 	}
 
@@ -150,5 +168,76 @@ export class IterationTools extends BaseTools {
 		if (!iteration) throw new Error(`Failed to create the iteration.`);
 
 		return this.toResult(`Iteration created with ID: ${iteration.id}.`);
+	}
+
+	async getActiveIterations(teamId?: string) {
+		if (teamId) {
+			const team = await this.client.getTeam(teamId);
+			if (!team) throw new Error(`No team found matching id: "${teamId}"`);
+
+			const result = await this.client.getActiveIteration([teamId]);
+			const iteration = result.get(teamId);
+			if (!iteration) return this.toResult(`Result: No active iterations found for team.`);
+			return this.toResult(
+				"The active iteration for the team is:",
+				await this.toCorrectedEntity(iteration),
+			);
+		}
+
+		const currentUser = await this.client.getCurrentUser();
+		if (!currentUser) throw new Error("Failed to retrieve current user.");
+
+		const teams = await this.client.getTeams();
+		const teamIds = teams
+			.filter((team) => team.member_ids.includes(currentUser.id))
+			.map((team) => team.id);
+
+		if (!teamIds.length) throw new Error("Current user does not belong to any teams.");
+
+		const resultsByTeam = await this.client.getActiveIteration(teamIds);
+
+		const allActiveIterations = [...resultsByTeam.values()];
+
+		if (!allActiveIterations.length)
+			return this.toResult("Result: No active iterations found for any of your teams.");
+		return this.toResult(
+			`You have ${allActiveIterations.length} active iterations for your teams:`,
+			await this.toCorrectedEntities(allActiveIterations),
+		);
+	}
+
+	async getUpcomingIterations(teamId?: string) {
+		if (teamId) {
+			const team = await this.client.getTeam(teamId);
+			if (!team) throw new Error(`No team found matching id: "${teamId}"`);
+
+			const result = await this.client.getUpcomingIteration([teamId]);
+			const iteration = result.get(teamId);
+			if (!iteration) return this.toResult(`Result: No upcoming iterations found for team.`);
+			return this.toResult(
+				"The next upcoming iteration for the team is:",
+				await this.toCorrectedEntity(iteration),
+			);
+		}
+
+		const currentUser = await this.client.getCurrentUser();
+		if (!currentUser) throw new Error("Failed to retrieve current user.");
+
+		const teams = await this.client.getTeams();
+		const teamIds = teams
+			.filter((team) => team.member_ids.includes(currentUser.id))
+			.map((team) => team.id);
+
+		if (!teamIds.length) throw new Error("Current user does not belong to any teams.");
+
+		const resultsByTeam = await this.client.getUpcomingIteration(teamIds);
+		const allUpcomingIterations = [...resultsByTeam.values()];
+
+		if (!allUpcomingIterations.length)
+			return this.toResult("Result: No upcoming iterations found for any of your teams.");
+		return this.toResult(
+			"The upcoming iterations for all your teams are:",
+			await this.toCorrectedEntities(allUpcomingIterations),
+		);
 	}
 }
