@@ -327,7 +327,7 @@ describe("IterationTools", () => {
 			const iterationTools = new IterationTools(
 				createMockClient({
 					getTeam: mock(async (id: string) => mockTeams.find((team) => team.id === id)),
-					getActiveIteration: mock(async () => new Map([["team1", activeIteration]])),
+					getActiveIteration: mock(async () => new Map([["team1", [activeIteration]]])),
 				}),
 			);
 
@@ -436,7 +436,7 @@ describe("IterationTools", () => {
 			const iterationTools = new IterationTools(
 				createMockClient({
 					getTeam: mock(async (id: string) => mockTeams.find((team) => team.id === id)),
-					getUpcomingIteration: mock(async () => new Map([["team1", upcomingIteration]])),
+					getUpcomingIteration: mock(async () => new Map([["team1", [upcomingIteration]]])),
 				}),
 			);
 
