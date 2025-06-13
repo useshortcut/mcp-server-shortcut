@@ -9,6 +9,7 @@ import type {
 	Iteration,
 	Member,
 	MemberInfo,
+	Story,
 	StoryComment,
 	StoryLink,
 	Task,
@@ -368,5 +369,41 @@ export class ShortcutClientWrapper {
 		if (!task) throw new Error(`Failed to update the task: ${response.status}`);
 
 		return task;
+	}
+
+	async addExternalLinkToStory(storyPublicId: number, externalLink: string): Promise<Story> {
+		const story = await this.getStory(storyPublicId);
+		if (!story) throw new Error(`Story ${storyPublicId} not found`);
+
+		const currentLinks = story.external_links || [];
+		if (currentLinks.includes(externalLink)) {
+			return story;
+		}
+
+		const updatedLinks = [...currentLinks, externalLink];
+		return await this.updateStory(storyPublicId, { external_links: updatedLinks });
+	}
+
+	async removeExternalLinkFromStory(storyPublicId: number, externalLink: string): Promise<Story> {
+		const story = await this.getStory(storyPublicId);
+		if (!story) throw new Error(`Story ${storyPublicId} not found`);
+
+		const currentLinks = story.external_links || [];
+		const updatedLinks = currentLinks.filter((link) => link !== externalLink);
+
+		return await this.updateStory(storyPublicId, { external_links: updatedLinks });
+	}
+
+	async getStoriesByExternalLink(externalLink: string) {
+		const response = await this.client.getExternalLinkStories({ external_link: externalLink });
+		const stories = response?.data;
+
+		if (!stories) return { stories: null, total: null };
+
+		return { stories, total: stories.length };
+	}
+
+	async setStoryExternalLinks(storyPublicId: number, externalLinks: string[]): Promise<Story> {
+		return await this.updateStory(storyPublicId, { external_links: externalLinks });
 	}
 }

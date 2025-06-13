@@ -136,7 +136,7 @@ describe("StoryTools", () => {
 
 			StoryTools.create(mockClient, mockServer);
 
-			expect(mockTool).toHaveBeenCalledTimes(11);
+			expect(mockTool).toHaveBeenCalledTimes(15);
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-story-branch-name");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-story");
 			expect(mockTool.mock.calls?.[2]?.[0]).toBe("search-stories");
@@ -925,6 +925,112 @@ describe("StoryTools", () => {
 			expect(result.content[0].text).toBe("Marked sc-456 as a blocker to sc-123.");
 			expect(addStoryRelationMock).toHaveBeenCalledTimes(1);
 			expect(addStoryRelationMock.mock.calls?.[0]?.[0]).toBe(456);
+		});
+	});
+
+	describe("addExternalLinkToStory method", () => {
+		const addExternalLinkToStoryMock = mock(async () => ({
+			...mockStories[0],
+			external_links: ["https://example.com", "https://newlink.com"],
+		}));
+
+		const mockClient = {
+			addExternalLinkToStory: addExternalLinkToStoryMock,
+		} as unknown as ShortcutClientWrapper;
+
+		beforeEach(() => {
+			addExternalLinkToStoryMock.mockClear();
+		});
+
+		test("should add external link to story", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.addExternalLinkToStory(123, "https://newlink.com");
+
+			expect(addExternalLinkToStoryMock).toHaveBeenCalledWith(123, "https://newlink.com");
+			expect(result.content[0].text).toContain("Added external link to story sc-123");
+		});
+	});
+
+	describe("removeExternalLinkFromStory method", () => {
+		const removeExternalLinkFromStoryMock = mock(async () => ({
+			...mockStories[0],
+			external_links: ["https://example.com"],
+		}));
+
+		const mockClient = {
+			removeExternalLinkFromStory: removeExternalLinkFromStoryMock,
+		} as unknown as ShortcutClientWrapper;
+
+		beforeEach(() => {
+			removeExternalLinkFromStoryMock.mockClear();
+		});
+
+		test("should remove external link from story", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.removeExternalLinkFromStory(123, "https://example2.com");
+
+			expect(removeExternalLinkFromStoryMock).toHaveBeenCalledWith(123, "https://example2.com");
+			expect(result.content[0].text).toContain("Removed external link from story sc-123");
+		});
+	});
+
+	describe("getStoriesByExternalLink method", () => {
+		const getStoriesByExternalLinkMock = mock(async () => ({
+			stories: [mockStories[0]],
+			total: 1,
+		}));
+
+		const mockClient = {
+			getStoriesByExternalLink: getStoriesByExternalLinkMock,
+		} as unknown as ShortcutClientWrapper;
+
+		beforeEach(() => {
+			getStoriesByExternalLinkMock.mockClear();
+		});
+
+		test("should find stories by external link", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.getStoriesByExternalLink("https://example.com");
+
+			expect(getStoriesByExternalLinkMock).toHaveBeenCalledWith("https://example.com");
+			expect(result.content[0].text).toContain("Found 1 stories with external link");
+		});
+	});
+
+	describe("setStoryExternalLinks method", () => {
+		const setStoryExternalLinksMock = mock(async () => ({
+			...mockStories[0],
+			external_links: ["https://link1.com", "https://link2.com"],
+		}));
+
+		const mockClient = {
+			setStoryExternalLinks: setStoryExternalLinksMock,
+		} as unknown as ShortcutClientWrapper;
+
+		beforeEach(() => {
+			setStoryExternalLinksMock.mockClear();
+		});
+
+		test("should set story external links", async () => {
+			const newLinks = ["https://link1.com", "https://link2.com"];
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.setStoryExternalLinks(123, newLinks);
+
+			expect(setStoryExternalLinksMock).toHaveBeenCalledWith(123, newLinks);
+			expect(result.content[0].text).toContain("Set 2 external links on story sc-123");
+		});
+
+		test("should remove all external links when empty array provided", async () => {
+			const mockUpdatedStory = { ...mockStories[0], external_links: [] };
+
+			const mockClientForEmpty = {
+				setStoryExternalLinks: mock(async () => mockUpdatedStory),
+			} as unknown as ShortcutClientWrapper;
+
+			const storyTools = new StoryTools(mockClientForEmpty);
+			const result = await storyTools.setStoryExternalLinks(123, []);
+
+			expect(result.content[0].text).toContain("Removed all external links from story sc-123");
 		});
 	});
 });
