@@ -27,26 +27,36 @@ export class BaseTools {
 			id,
 			disabled,
 			role,
-			profile: { name, email_address, mention_name },
+			profile: { is_owner, name, email_address, mention_name },
 		} = entity;
-		return { id, name, email_address, mention_name, role, disabled };
+		return { id, name, email_address, mention_name, role, disabled, is_owner };
 	}
 
 	private async correctWorkflow(entity: Workflow | null | undefined) {
 		if (!entity) return null;
-		const { team_id, ...withoutTeam } = entity;
-		return { ...withoutTeam };
+		const { id, name, states, description, default_state_id } = entity;
+		return {
+			id,
+			name,
+			description,
+			default_state_id,
+			states: states.map(({ id, name, description, verb }) => ({ id, name, description, verb })),
+		};
 	}
 
 	private async correctTeam(entity: Group | null | undefined) {
 		if (!entity) return null;
-		const { member_ids, workflow_ids, ...withoutIds } = entity;
+		const { member_ids, workflow_ids, app_url, description, archived, name, id } = entity;
 
 		const users = await this.client.getUserMap(member_ids);
 		const workflows = await this.client.getWorkflowMap(workflow_ids);
 
 		const correctedEntity = {
-			...withoutIds,
+			id,
+			name,
+			app_url,
+			description,
+			archived,
 			members: await Promise.all(
 				member_ids.map((id) => this.correctMember(users.get(id))).filter(Boolean),
 			),
@@ -60,12 +70,31 @@ export class BaseTools {
 
 	private async correctIteration(entity: Iteration | null | undefined) {
 		if (!entity) return null;
-		const { group_ids, ...withoutGroupIds } = entity;
+		const {
+			group_ids,
+			app_url,
+			description,
+			labels,
+			name,
+			end_date,
+			start_date,
+			status,
+			id,
+			stats,
+		} = entity;
 
 		const teams = await this.client.getTeamMap(group_ids?.filter(Boolean));
 
 		const correctedEntity = {
-			...withoutGroupIds,
+			id,
+			name,
+			app_url,
+			description,
+			labels,
+			end_date,
+			start_date,
+			status,
+			stats,
 			teams: await Promise.all(
 				group_ids?.map((id) => this.correctTeam(teams.get(id)))?.filter(Boolean) ?? [],
 			),
@@ -75,7 +104,8 @@ export class BaseTools {
 	}
 
 	private async correctMilestone(entity: Milestone) {
-		return entity;
+		const { app_url, description, archived, started, name, completed, state, id, stats } = entity;
+		return { app_url, description, archived, started, name, completed, state, id, stats };
 	}
 
 	private async correctEpic(entity: Epic) {

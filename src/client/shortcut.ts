@@ -376,7 +376,7 @@ export class ShortcutClientWrapper {
 		if (!story) throw new Error(`Story ${storyPublicId} not found`);
 
 		const currentLinks = story.external_links || [];
-		if (currentLinks.includes(externalLink)) {
+		if (currentLinks.some((link) => link.toLowerCase() === externalLink.toLowerCase())) {
 			return story;
 		}
 
@@ -389,13 +389,17 @@ export class ShortcutClientWrapper {
 		if (!story) throw new Error(`Story ${storyPublicId} not found`);
 
 		const currentLinks = story.external_links || [];
-		const updatedLinks = currentLinks.filter((link) => link !== externalLink);
+		const updatedLinks = currentLinks.filter(
+			(link) => link.toLowerCase() !== externalLink.toLowerCase(),
+		);
 
 		return await this.updateStory(storyPublicId, { external_links: updatedLinks });
 	}
 
 	async getStoriesByExternalLink(externalLink: string) {
-		const response = await this.client.getExternalLinkStories({ external_link: externalLink });
+		const response = await this.client.getExternalLinkStories({
+			external_link: externalLink.toLowerCase(),
+		});
 		const stories = response?.data;
 
 		if (!stories) return { stories: null, total: null };
