@@ -89,11 +89,13 @@ describe("IterationTools", () => {
 
 			IterationTools.create(mockClient, mockServer);
 
-			expect(mockTool).toHaveBeenCalledTimes(4);
+			expect(mockTool).toHaveBeenCalledTimes(6);
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-iteration-stories");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-iteration");
 			expect(mockTool.mock.calls?.[2]?.[0]).toBe("search-iterations");
 			expect(mockTool.mock.calls?.[3]?.[0]).toBe("create-iteration");
+			expect(mockTool.mock.calls?.[4]?.[0]).toBe("get-active-iterations");
+			expect(mockTool.mock.calls?.[5]?.[0]).toBe("get-upcoming-iterations");
 		});
 	});
 
