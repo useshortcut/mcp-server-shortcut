@@ -61,6 +61,8 @@ type SimplifiedIteration = {
 	app_url: string;
 	team_ids: string[];
 	status: string;
+	start_date: string;
+	end_date: string;
 };
 type SimplifiedStory = {
 	id: number;
@@ -196,8 +198,8 @@ export class BaseTools {
 
 	private getSimplifiedIteration(entity: Iteration | null | undefined): SimplifiedIteration | null {
 		if (!entity) return null;
-		const { id, name, app_url, group_ids, status } = entity;
-		return { id, name, app_url, team_ids: group_ids, status };
+		const { id, name, app_url, group_ids, status, start_date, end_date } = entity;
+		return { id, name, app_url, team_ids: group_ids, status, start_date, end_date };
 	}
 
 	private async getRelatedEntitiesForTeam(entity: Group | null | undefined): Promise<{
