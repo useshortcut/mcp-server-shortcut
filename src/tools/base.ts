@@ -195,7 +195,7 @@ export class BaseTools {
 					.entries()
 					.map(([id, team]) => [id, this.getSimplifiedTeam(team)])
 					.filter(([_, team]) => !!team),
-			) as Record<string, Group>,
+			) as Record<string, SimplifiedTeam>,
 			users,
 			workflows,
 		};
@@ -211,7 +211,7 @@ export class BaseTools {
 		const { group_id, owner_ids, milestone_id, requested_by_id, follower_ids } = entity;
 
 		const usersForEpicMap = await this.client.getUserMap([
-			...new Set([...owner_ids, requested_by_id, ...follower_ids]),
+			...new Set([...(owner_ids || []), requested_by_id, ...(follower_ids || [])].filter(Boolean)),
 		]);
 		const usersForEpic = Object.fromEntries(
 			usersForEpicMap
@@ -253,7 +253,7 @@ export class BaseTools {
 		} = entity;
 
 		const fullUsersForStory = await this.client.getUserMap([
-			...new Set([...owner_ids, requested_by_id, ...follower_ids]),
+			...new Set([...(owner_ids || []), requested_by_id, ...(follower_ids || [])].filter(Boolean)),
 		]);
 		const usersForStory = Object.fromEntries(
 			fullUsersForStory
