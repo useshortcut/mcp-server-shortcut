@@ -244,8 +244,7 @@ export class BaseTools {
 
 		return {
 			teams: Object.fromEntries(
-				teams
-					.entries()
+				[...teams.entries()]
 					.map(([id, team]) => [id, this.getSimplifiedTeam(team)])
 					.filter(([_, team]) => !!team),
 			) as Record<string, SimplifiedTeam>,
@@ -267,8 +266,7 @@ export class BaseTools {
 			...new Set([...(owner_ids || []), requested_by_id, ...(follower_ids || [])].filter(Boolean)),
 		]);
 		const usersForEpic = Object.fromEntries(
-			usersForEpicMap
-				.entries()
+			[...usersForEpicMap.entries()]
 				.filter(([_, user]) => !!user)
 				.map(([id, user]) => [id, this.getSimplifiedMember(user)]),
 		) as Record<string, SimplifiedMember>;
@@ -309,8 +307,7 @@ export class BaseTools {
 			...new Set([...(owner_ids || []), requested_by_id, ...(follower_ids || [])].filter(Boolean)),
 		]);
 		const usersForStory = Object.fromEntries(
-			fullUsersForStory
-				.entries()
+			[...fullUsersForStory.entries()]
 				.filter(([_, user]) => !!user)
 				.map(([id, user]) => [id, this.getSimplifiedMember(user)]),
 		) as Record<string, SimplifiedMember>;
