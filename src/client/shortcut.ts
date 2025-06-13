@@ -243,7 +243,7 @@ export class ShortcutClientWrapper {
 		const response = await this.client.listIterations();
 		const iterations = response?.data;
 
-		if (!iterations) return new Map<string, IterationSlim>();
+		if (!iterations) return new Map<string, IterationSlim[]>();
 
 		const [today] = new Date().toISOString().split("T");
 		const activeIterationByTeam = iterations.reduce((acc, iteration) => {
@@ -253,17 +253,18 @@ export class ShortcutClientWrapper {
 			if (!startDate || !endDate) return acc;
 			if (startDate > today || endDate < today) return acc;
 
+			if (!iteration.group_ids?.length) iteration.group_ids = ["none"];
+
 			for (const groupId of iteration.group_ids) {
-				if (!teamIds.includes(groupId)) continue;
-				const prevIteration = acc.get(groupId);
-				if (prevIteration) {
-					const [prevIterationEndDate] = new Date(prevIteration.end_date).toISOString().split("T");
-					if (endDate < prevIterationEndDate) acc.set(groupId, iteration);
-				} else acc.set(groupId, iteration);
+				if (groupId !== "none" && !teamIds.includes(groupId)) continue;
+				const prevIterations = acc.get(groupId);
+				if (prevIterations) {
+					acc.set(groupId, prevIterations.concat([iteration]));
+				} else acc.set(groupId, [iteration]);
 			}
 
 			return acc;
-		}, new Map<string, IterationSlim>());
+		}, new Map<string, IterationSlim[]>());
 
 		return activeIterationByTeam;
 	}
@@ -272,7 +273,7 @@ export class ShortcutClientWrapper {
 		const response = await this.client.listIterations();
 		const iterations = response?.data;
 
-		if (!iterations) return new Map<string, IterationSlim>();
+		if (!iterations) return new Map<string, IterationSlim[]>();
 
 		const [today] = new Date().toISOString().split("T");
 		const upcomingIterationByTeam = iterations.reduce((acc, iteration) => {
@@ -282,17 +283,18 @@ export class ShortcutClientWrapper {
 			if (!startDate || !endDate) return acc;
 			if (startDate < today) return acc;
 
+			if (!iteration.group_ids?.length) iteration.group_ids = ["none"];
+
 			for (const groupId of iteration.group_ids) {
-				if (!teamIds.includes(groupId)) continue;
-				const prevIteration = acc.get(groupId);
-				if (prevIteration) {
-					const [prevIterationEndDate] = new Date(prevIteration.end_date).toISOString().split("T");
-					if (endDate < prevIterationEndDate) acc.set(groupId, iteration);
-				} else acc.set(groupId, iteration);
+				if (groupId !== "none" && !teamIds.includes(groupId)) continue;
+				const prevIterations = acc.get(groupId);
+				if (prevIterations) {
+					acc.set(groupId, prevIterations.concat([iteration]));
+				} else acc.set(groupId, [iteration]);
 			}
 
 			return acc;
-		}, new Map<string, IterationSlim>());
+		}, new Map<string, IterationSlim[]>());
 
 		return upcomingIterationByTeam;
 	}

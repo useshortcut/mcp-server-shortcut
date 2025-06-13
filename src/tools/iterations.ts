@@ -176,11 +176,16 @@ export class IterationTools extends BaseTools {
 			if (!team) throw new Error(`No team found matching id: "${teamId}"`);
 
 			const result = await this.client.getActiveIteration([teamId]);
-			const iteration = result.get(teamId);
-			if (!iteration) return this.toResult(`Result: No active iterations found for team.`);
+			const iterations = result.get(teamId);
+			if (!iterations?.length) return this.toResult(`Result: No active iterations found for team.`);
+			if (iterations.length === 1)
+				return this.toResult(
+					"The active iteration for the team is:",
+					await this.entityWithRelatedEntities(iterations[0], "iteration"),
+				);
 			return this.toResult(
-				"The active iteration for the team is:",
-				await this.entityWithRelatedEntities(iteration, "iteration"),
+				"The active iterations for the team are:",
+				await this.entitiesWithRelatedEntities(iterations, "iterations"),
 			);
 		}
 
@@ -196,7 +201,7 @@ export class IterationTools extends BaseTools {
 
 		const resultsByTeam = await this.client.getActiveIteration(teamIds);
 
-		const allActiveIterations = [...resultsByTeam.values()];
+		const allActiveIterations = [...resultsByTeam.values()].flat();
 
 		if (!allActiveIterations.length)
 			return this.toResult("Result: No active iterations found for any of your teams.");
@@ -212,11 +217,17 @@ export class IterationTools extends BaseTools {
 			if (!team) throw new Error(`No team found matching id: "${teamId}"`);
 
 			const result = await this.client.getUpcomingIteration([teamId]);
-			const iteration = result.get(teamId);
-			if (!iteration) return this.toResult(`Result: No upcoming iterations found for team.`);
+			const iterations = result.get(teamId);
+			if (!iterations?.length)
+				return this.toResult(`Result: No upcoming iterations found for team.`);
+			if (iterations.length === 1)
+				return this.toResult(
+					"The next upcoming iteration for the team is:",
+					await this.entityWithRelatedEntities(iterations[0], "iteration"),
+				);
 			return this.toResult(
-				"The next upcoming iteration for the team is:",
-				await this.entityWithRelatedEntities(iteration, "iteration"),
+				"The next upcoming iterations for the team are:",
+				await this.entitiesWithRelatedEntities(iterations, "iterations"),
 			);
 		}
 
@@ -231,7 +242,7 @@ export class IterationTools extends BaseTools {
 		if (!teamIds.length) throw new Error("Current user does not belong to any teams.");
 
 		const resultsByTeam = await this.client.getUpcomingIteration(teamIds);
-		const allUpcomingIterations = [...resultsByTeam.values()];
+		const allUpcomingIterations = [...resultsByTeam.values()].flat();
 
 		if (!allUpcomingIterations.length)
 			return this.toResult("Result: No upcoming iterations found for any of your teams.");
