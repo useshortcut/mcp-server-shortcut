@@ -86,7 +86,7 @@ export class EpicTools extends BaseTools {
 
 		return this.toResult(
 			`Result (first ${epics.length} shown of ${total} total epics found):`,
-			await this.toCorrectedEntities(epics),
+			await this.entitiesWithRelatedEntities(epics, "epics"),
 		);
 	}
 
@@ -95,7 +95,10 @@ export class EpicTools extends BaseTools {
 
 		if (!epic) throw new Error(`Failed to retrieve Shortcut epic with public ID: ${epicPublicId}`);
 
-		return this.toResult(`Epic: ${epicPublicId}`, await this.toCorrectedEntity(epic));
+		return this.toResult(
+			`Epic: ${epicPublicId}`,
+			await this.entityWithRelatedEntities(epic, "epic"),
+		);
 	}
 
 	async createEpic({

@@ -7,6 +7,7 @@ import type {
 	Epic,
 	Group,
 	Iteration,
+	IterationSlim,
 	Member,
 	MemberInfo,
 	Story,
@@ -238,6 +239,64 @@ export class ShortcutClientWrapper {
 		return { iterations, total };
 	}
 
+	async getActiveIteration(teamIds: string[]) {
+		const response = await this.client.listIterations();
+		const iterations = response?.data;
+
+		if (!iterations) return new Map<string, IterationSlim>();
+
+		const [today] = new Date().toISOString().split("T");
+		const activeIterationByTeam = iterations.reduce((acc, iteration) => {
+			if (iteration.status !== "started") return acc;
+			const [startDate] = new Date(iteration.start_date).toISOString().split("T");
+			const [endDate] = new Date(iteration.end_date).toISOString().split("T");
+			if (!startDate || !endDate) return acc;
+			if (startDate > today || endDate < today) return acc;
+
+			for (const groupId of iteration.group_ids) {
+				if (!teamIds.includes(groupId)) continue;
+				const prevIteration = acc.get(groupId);
+				if (prevIteration) {
+					const [prevIterationEndDate] = new Date(prevIteration.end_date).toISOString().split("T");
+					if (endDate < prevIterationEndDate) acc.set(groupId, iteration);
+				} else acc.set(groupId, iteration);
+			}
+
+			return acc;
+		}, new Map<string, IterationSlim>());
+
+		return activeIterationByTeam;
+	}
+
+	async getUpcomingIteration(teamIds: string[]) {
+		const response = await this.client.listIterations();
+		const iterations = response?.data;
+
+		if (!iterations) return new Map<string, IterationSlim>();
+
+		const [today] = new Date().toISOString().split("T");
+		const upcomingIterationByTeam = iterations.reduce((acc, iteration) => {
+			if (iteration.status !== "unstarted") return acc;
+			const [startDate] = new Date(iteration.start_date).toISOString().split("T");
+			const [endDate] = new Date(iteration.end_date).toISOString().split("T");
+			if (!startDate || !endDate) return acc;
+			if (startDate < today) return acc;
+
+			for (const groupId of iteration.group_ids) {
+				if (!teamIds.includes(groupId)) continue;
+				const prevIteration = acc.get(groupId);
+				if (prevIteration) {
+					const [prevIterationEndDate] = new Date(prevIteration.end_date).toISOString().split("T");
+					if (endDate < prevIterationEndDate) acc.set(groupId, iteration);
+				} else acc.set(groupId, iteration);
+			}
+
+			return acc;
+		}, new Map<string, IterationSlim>());
+
+		return upcomingIterationByTeam;
+	}
+
 	async searchEpics(query: string) {
 		const response = await this.client.searchEpics({ query, page_size: 25, detail: "full" });
 		const epics = response?.data?.data;
@@ -376,7 +435,7 @@ export class ShortcutClientWrapper {
 		if (!story) throw new Error(`Story ${storyPublicId} not found`);
 
 		const currentLinks = story.external_links || [];
-		if (currentLinks.includes(externalLink)) {
+		if (currentLinks.some((link) => link.toLowerCase() === externalLink.toLowerCase())) {
 			return story;
 		}
 
@@ -389,13 +448,17 @@ export class ShortcutClientWrapper {
 		if (!story) throw new Error(`Story ${storyPublicId} not found`);
 
 		const currentLinks = story.external_links || [];
-		const updatedLinks = currentLinks.filter((link) => link !== externalLink);
+		const updatedLinks = currentLinks.filter(
+			(link) => link.toLowerCase() !== externalLink.toLowerCase(),
+		);
 
 		return await this.updateStory(storyPublicId, { external_links: updatedLinks });
 	}
 
 	async getStoriesByExternalLink(externalLink: string) {
-		const response = await this.client.getExternalLinkStories({ external_link: externalLink });
+		const response = await this.client.getExternalLinkStories({
+			external_link: externalLink.toLowerCase(),
+		});
 		const stories = response?.data;
 
 		if (!stories) return { stories: null, total: null };

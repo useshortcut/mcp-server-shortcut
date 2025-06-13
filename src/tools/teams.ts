@@ -24,7 +24,7 @@ export class TeamTools extends BaseTools {
 
 		if (!team) return this.toResult(`Team with public ID: ${teamPublicId} not found.`);
 
-		return this.toResult(`Team: ${team.id}`, await this.toCorrectedEntity(team));
+		return this.toResult(`Team: ${team.id}`, await this.entityWithRelatedEntities(team, "team"));
 	}
 
 	async getTeams() {
@@ -34,7 +34,7 @@ export class TeamTools extends BaseTools {
 
 		return this.toResult(
 			`Result (first ${teams.length} shown of ${teams.length} total teams found):`,
-			await this.toCorrectedEntities(teams),
+			await this.entitiesWithRelatedEntities(teams, "teams"),
 		);
 	}
 }
