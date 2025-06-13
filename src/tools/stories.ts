@@ -426,7 +426,7 @@ The story will be added to the default state for the workflow.
 
 		return this.toResult(
 			`Result (first ${stories.length} shown of ${total} total stories found):`,
-			await this.toCorrectedEntities(stories),
+			await this.entitiesWithRelatedEntities(stories, "stories"),
 		);
 	}
 
@@ -436,7 +436,10 @@ The story will be added to the default state for the workflow.
 		if (!story)
 			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}.`);
 
-		return this.toResult(`Story: sc-${storyPublicId}`, await this.toCorrectedEntity(story));
+		return this.toResult(
+			`Story: sc-${storyPublicId}`,
+			await this.entityWithRelatedEntities(story, "story"),
+		);
 	}
 
 	async createStoryComment({
@@ -643,7 +646,7 @@ The story will be added to the default state for the workflow.
 
 		return this.toResult(
 			`Found ${total} stories with external link: ${externalLink}`,
-			await this.toCorrectedEntities(stories),
+			await this.entitiesWithRelatedEntities(stories, "stories"),
 		);
 	}
 

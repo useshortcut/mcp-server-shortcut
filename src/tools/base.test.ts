@@ -6,7 +6,7 @@ import { BaseTools } from "./base";
 describe("BaseTools", () => {
 	class TestTools extends BaseTools {
 		publicToCorrectedEntity(entity: unknown) {
-			return this.toCorrectedEntity(entity as Story);
+			return this.entityWithRelatedEntities(entity as Story);
 		}
 
 		publicToResult(str: string) {

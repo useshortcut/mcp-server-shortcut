@@ -111,7 +111,7 @@ export class IterationTools extends BaseTools {
 
 		return this.toResult(
 			`Result (${stories.length} stories found):`,
-			await this.toCorrectedEntities(stories),
+			await this.entitiesWithRelatedEntities(stories, "stories"),
 		);
 	}
 
@@ -126,7 +126,7 @@ export class IterationTools extends BaseTools {
 
 		return this.toResult(
 			`Result (first ${iterations.length} shown of ${total} total iterations found):`,
-			await this.toCorrectedEntities(iterations),
+			await this.entitiesWithRelatedEntities(iterations, "iterations"),
 		);
 	}
 
@@ -140,7 +140,7 @@ export class IterationTools extends BaseTools {
 
 		return this.toResult(
 			`Iteration: ${iterationPublicId}`,
-			await this.toCorrectedEntity(iteration),
+			await this.entityWithRelatedEntities(iteration, "iteration"),
 		);
 	}
 
@@ -180,7 +180,7 @@ export class IterationTools extends BaseTools {
 			if (!iteration) return this.toResult(`Result: No active iterations found for team.`);
 			return this.toResult(
 				"The active iteration for the team is:",
-				await this.toCorrectedEntity(iteration),
+				await this.entityWithRelatedEntities(iteration, "iteration"),
 			);
 		}
 
@@ -202,7 +202,7 @@ export class IterationTools extends BaseTools {
 			return this.toResult("Result: No active iterations found for any of your teams.");
 		return this.toResult(
 			`You have ${allActiveIterations.length} active iterations for your teams:`,
-			await this.toCorrectedEntities(allActiveIterations),
+			await this.entitiesWithRelatedEntities(allActiveIterations, "iterations"),
 		);
 	}
 
@@ -216,7 +216,7 @@ export class IterationTools extends BaseTools {
 			if (!iteration) return this.toResult(`Result: No upcoming iterations found for team.`);
 			return this.toResult(
 				"The next upcoming iteration for the team is:",
-				await this.toCorrectedEntity(iteration),
+				await this.entityWithRelatedEntities(iteration, "iteration"),
 			);
 		}
 
@@ -237,7 +237,7 @@ export class IterationTools extends BaseTools {
 			return this.toResult("Result: No upcoming iterations found for any of your teams.");
 		return this.toResult(
 			"The upcoming iterations for all your teams are:",
-			await this.toCorrectedEntities(allUpcomingIterations),
+			await this.entitiesWithRelatedEntities(allUpcomingIterations, "iterations"),
 		);
 	}
 }
