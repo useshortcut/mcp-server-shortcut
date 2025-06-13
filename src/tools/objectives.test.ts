@@ -13,6 +13,7 @@ describe("ObjectiveTools", () => {
 
 	const mockMilestones: Milestone[] = [
 		{
+			entity_type: "milestone",
 			id: 1,
 			name: "Objective 1",
 			description: "Description for Objective 1",
@@ -20,8 +21,11 @@ describe("ObjectiveTools", () => {
 			archived: false,
 			completed: false,
 			started: true,
-		} as Milestone,
+			state: "started",
+			categories: [],
+		} as unknown as Milestone,
 		{
+			entity_type: "milestone",
 			id: 2,
 			name: "Objective 2",
 			description: "Description for Objective 2",
@@ -29,12 +33,14 @@ describe("ObjectiveTools", () => {
 			archived: false,
 			completed: true,
 			started: true,
-		} as Milestone,
+			state: "completed",
+			categories: [],
+		} as unknown as Milestone,
 	];
 
 	describe("create method", () => {
 		test("should register the correct tools with the server", () => {
-			const mockClient = {} as ShortcutClientWrapper;
+			const mockClient = {} as unknown as ShortcutClientWrapper;
 			const mockTool = mock();
 			const mockServer = { tool: mockTool } as unknown as McpServer;
 
@@ -55,6 +61,12 @@ describe("ObjectiveTools", () => {
 		const mockClient = {
 			searchMilestones: searchMilestonesMock,
 			getCurrentUser: getCurrentUserMock,
+			getUserMap: mock(async () => new Map()),
+			getWorkflowMap: mock(async () => new Map()),
+			getTeamMap: mock(async () => new Map()),
+			getMilestone: mock(async () => null),
+			getIteration: mock(async () => null),
+			getEpic: mock(async () => null),
 		} as unknown as ShortcutClientWrapper;
 
 		test("should return formatted list of objectives when objectives are found", async () => {
@@ -85,7 +97,7 @@ describe("ObjectiveTools", () => {
 		test("should throw error when objectives search fails", async () => {
 			const objectiveTools = new ObjectiveTools({
 				...mockClient,
-				searchMilestones: mock(async () => ({ milestones: null, total: 0 })),
+				searchMilestones: mock(async () => ({ milestones: null, total: null })),
 			} as unknown as ShortcutClientWrapper);
 
 			await expect(() => objectiveTools.searchObjectives({})).toThrow(
@@ -98,7 +110,14 @@ describe("ObjectiveTools", () => {
 		const getMilestoneMock = mock(async (id: number) =>
 			mockMilestones.find((milestone) => milestone.id === id),
 		);
-		const mockClient = { getMilestone: getMilestoneMock } as unknown as ShortcutClientWrapper;
+		const mockClient = {
+			getMilestone: getMilestoneMock,
+			getUserMap: mock(async () => new Map()),
+			getWorkflowMap: mock(async () => new Map()),
+			getTeamMap: mock(async () => new Map()),
+			getIteration: mock(async () => null),
+			getEpic: mock(async () => null),
+		} as unknown as ShortcutClientWrapper;
 
 		test("should return formatted objective details when objective is found", async () => {
 			const objectiveTools = new ObjectiveTools(mockClient);
@@ -119,6 +138,11 @@ describe("ObjectiveTools", () => {
 		test("should handle objective not found", async () => {
 			const objectiveTools = new ObjectiveTools({
 				getMilestone: mock(async () => null),
+				getUserMap: mock(async () => new Map()),
+				getWorkflowMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
+				getIteration: mock(async () => null),
+				getEpic: mock(async () => null),
 			} as unknown as ShortcutClientWrapper);
 
 			await expect(() => objectiveTools.getObjective(999)).toThrow(
@@ -129,6 +153,11 @@ describe("ObjectiveTools", () => {
 		test("should handle completed objective", async () => {
 			const objectiveTools = new ObjectiveTools({
 				getMilestone: mock(async () => mockMilestones[1]),
+				getUserMap: mock(async () => new Map()),
+				getWorkflowMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
+				getIteration: mock(async () => null),
+				getEpic: mock(async () => null),
 			} as unknown as ShortcutClientWrapper);
 
 			const result = await objectiveTools.getObjective(2);

@@ -24,26 +24,47 @@ describe("IterationTools", () => {
 				mention_name: "jane",
 				name: "Jane Smith",
 			},
-		} as Member,
+		} as unknown as Member,
 	];
 
 	const mockStories: Story[] = [
 		{
+			entity_type: "story",
 			id: 123,
 			name: "Test Story 1",
 			story_type: "feature",
 			owner_ids: ["user1"],
-		} as Story,
+			group_id: null,
+			epic_id: null,
+			iteration_id: null,
+			workflow_id: null,
+			workflow_state_id: 1,
+			requested_by_id: null,
+			follower_ids: [],
+			app_url: "https://app.shortcut.com/test/story/123",
+			archived: false,
+		} as unknown as Story,
 		{
+			entity_type: "story",
 			id: 456,
 			name: "Test Story 2",
 			story_type: "bug",
 			owner_ids: ["user1", "user2"],
-		} as Story,
+			group_id: null,
+			epic_id: null,
+			iteration_id: null,
+			workflow_id: null,
+			workflow_state_id: 1,
+			requested_by_id: null,
+			follower_ids: [],
+			app_url: "https://app.shortcut.com/test/story/456",
+			archived: false,
+		} as unknown as Story,
 	];
 
 	const mockIterations: Iteration[] = [
 		{
+			entity_type: "iteration",
 			id: 1,
 			name: "Iteration 1",
 			description: "Description for Iteration 1",
@@ -51,14 +72,17 @@ describe("IterationTools", () => {
 			end_date: "2023-01-14",
 			status: "started",
 			app_url: "https://app.shortcut.com/test/iteration/1",
+			group_ids: [],
+			follower_ids: [],
 			stats: {
 				num_stories_backlog: 1,
 				num_stories_unstarted: 2,
 				num_stories_started: 3,
 				num_stories_done: 4,
 			},
-		} as Iteration,
+		} as unknown as Iteration,
 		{
+			entity_type: "iteration",
 			id: 2,
 			name: "Iteration 2",
 			description: "Description for Iteration 2",
@@ -66,13 +90,15 @@ describe("IterationTools", () => {
 			end_date: "2023-01-28",
 			status: "unstarted",
 			app_url: "https://app.shortcut.com/test/iteration/2",
+			group_ids: [],
+			follower_ids: [],
 			stats: {
 				num_stories_backlog: 1,
 				num_stories_unstarted: 2,
 				num_stories_started: 3,
 				num_stories_done: 4,
 			},
-		} as Iteration,
+		} as unknown as Iteration,
 	];
 
 	const mockTeams = [
@@ -97,6 +123,12 @@ describe("IterationTools", () => {
 	const createMockClient = (methods?: object) =>
 		({
 			getCurrentUser: mock(async () => mockCurrentUser),
+			getUserMap: mock(async () => new Map()),
+			getWorkflowMap: mock(async () => new Map()),
+			getTeamMap: mock(async () => new Map()),
+			getMilestone: mock(async () => null),
+			getIteration: mock(async () => null),
+			getEpic: mock(async () => null),
 			...methods,
 		}) as unknown as ShortcutClientWrapper;
 
