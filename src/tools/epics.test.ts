@@ -7,6 +7,7 @@ import { EpicTools } from "./epics";
 describe("EpicTools", () => {
 	const mockEpics: Epic[] = [
 		{
+			entity_type: "epic",
 			id: 1,
 			name: "Epic 1",
 			description: "Description for Epic 1",
@@ -16,14 +17,20 @@ describe("EpicTools", () => {
 			archived: false,
 			deadline: "2025-04-01",
 			app_url: "https://app.shortcut.com/test/epic/1",
+			group_id: null,
+			milestone_id: null,
+			owner_ids: [],
+			follower_ids: [],
+			requested_by_id: null,
 			stats: {
 				num_stories_backlog: 1,
 				num_stories_unstarted: 2,
 				num_stories_started: 3,
 				num_stories_done: 4,
 			},
-		} as Epic,
+		} as unknown as Epic,
 		{
+			entity_type: "epic",
 			id: 2,
 			name: "Epic 2",
 			description: "Description for Epic 2",
@@ -33,14 +40,20 @@ describe("EpicTools", () => {
 			archived: false,
 			deadline: null,
 			app_url: "https://app.shortcut.com/test/epic/2",
+			group_id: null,
+			milestone_id: null,
+			owner_ids: [],
+			follower_ids: [],
+			requested_by_id: null,
 			stats: {
 				num_stories_backlog: 1,
 				num_stories_unstarted: 2,
 				num_stories_started: 3,
 				num_stories_done: 4,
 			},
-		} as Epic,
+		} as unknown as Epic,
 		{
+			entity_type: "epic",
 			id: 3,
 			name: "Epic 3",
 			description: "Description for Epic 3",
@@ -50,13 +63,18 @@ describe("EpicTools", () => {
 			archived: true,
 			deadline: "2025-03-01",
 			app_url: "https://app.shortcut.com/test/epic/3",
+			group_id: null,
+			milestone_id: null,
+			owner_ids: [],
+			follower_ids: [],
+			requested_by_id: null,
 			stats: {
 				num_stories_backlog: 1,
 				num_stories_unstarted: 2,
 				num_stories_started: 3,
 				num_stories_done: 4,
 			},
-		} as Epic,
+		} as unknown as Epic,
 	];
 
 	const mockCurrentUser = {
@@ -71,6 +89,10 @@ describe("EpicTools", () => {
 	const createMockClient = (methods?: object) =>
 		({
 			getCurrentUser: mock(async () => mockCurrentUser),
+			getUserMap: mock(async () => new Map()),
+			getWorkflowMap: mock(async () => new Map()),
+			getTeamMap: mock(async () => new Map()),
+			getMilestone: mock(async () => null),
 			...methods,
 		}) as unknown as ShortcutClientWrapper;
 

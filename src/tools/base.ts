@@ -25,7 +25,11 @@ type SimplifiedMember = {
 	disabled: boolean;
 	is_owner: boolean;
 };
-type SimplifiedWorkflow = { id: number; name: string; states: { id: number; name: string }[] };
+type SimplifiedWorkflow = {
+	id: number;
+	name: string;
+	states: { id: number; name: string; type: string }[];
+};
 type SimplifiedTeam = {
 	id: string;
 	name: string;
@@ -57,6 +61,19 @@ type SimplifiedIteration = {
 	app_url: string;
 	team_ids: string[];
 	status: string;
+};
+type SimplifiedStory = {
+	id: number;
+	name: string;
+	app_url: string;
+	archived: boolean;
+	team_id: string | null;
+	epic_id: number | null;
+	iteration_id: number | null;
+	workflow_id: number | null;
+	workflow_state_id: number;
+	owner_ids: string[];
+	requested_by_id: string | null;
 };
 
 /**
@@ -111,10 +128,44 @@ export class BaseTools {
 		return { id, name, email_address, mention_name, role, disabled, is_owner };
 	}
 
+	private getSimplifiedStory(entity: Story | null | undefined): SimplifiedStory | null {
+		if (!entity) return null;
+		const {
+			id,
+			name,
+			app_url,
+			archived,
+			group_id,
+			epic_id,
+			iteration_id,
+			workflow_id,
+			workflow_state_id,
+			owner_ids,
+			requested_by_id,
+		} = entity;
+		return {
+			id,
+			name,
+			app_url,
+			archived,
+			team_id: group_id || null,
+			epic_id: epic_id || null,
+			iteration_id: iteration_id || null,
+			workflow_id,
+			workflow_state_id,
+			owner_ids,
+			requested_by_id,
+		};
+	}
+
 	private getSimplifiedWorkflow(entity: Workflow | null | undefined): SimplifiedWorkflow | null {
 		if (!entity) return null;
 		const { id, name, states } = entity;
-		return { id, name, states: states.map((state) => ({ id: state.id, name: state.name })) };
+		return {
+			id,
+			name,
+			states: states.map((state) => ({ id: state.id, name: state.name, type: state.type })),
+		};
 	}
 
 	private getSimplifiedTeam(entity: Group | null | undefined): SimplifiedTeam | null {
@@ -338,6 +389,30 @@ export class BaseTools {
 		return {};
 	}
 
+	private getSimplifiedEntity(
+		entity:
+			| Story
+			| StorySearchResult
+			| StorySlim
+			| Epic
+			| EpicSearchResult
+			| Iteration
+			| IterationSlim
+			| Group
+			| Workflow
+			| MilestoneSearchResult
+			| Milestone,
+	) {
+		if (entity.entity_type === "group") return this.getSimplifiedTeam(entity as Group);
+		if (entity.entity_type === "iteration") return this.getSimplifiedIteration(entity as Iteration);
+		if (entity.entity_type === "epic") return this.getSimplifiedEpic(entity as Epic);
+		if (entity.entity_type === "story") return this.getSimplifiedStory(entity as Story);
+		if (entity.entity_type === "milestone") return this.getSimplifiedObjective(entity as Milestone);
+		if (entity.entity_type === "workflow") return this.getSimplifiedWorkflow(entity as Workflow);
+
+		return entity;
+	}
+
 	protected async entityWithRelatedEntities(
 		entity:
 			| Story
@@ -380,9 +455,7 @@ export class BaseTools {
 			entities.map((entity) => this.getRelatedEntities(entity)),
 		);
 		return {
-			[entityType]: entities.map((entity) =>
-				this.renameEntityProps(entity as unknown as Record<string, unknown>),
-			),
+			[entityType]: entities.map((entity) => this.getSimplifiedEntity(entity)),
 			relatedEntities: this.mergeRelatedEntities(relatedEntities),
 		};
 	}

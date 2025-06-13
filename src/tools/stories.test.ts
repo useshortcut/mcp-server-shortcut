@@ -42,6 +42,7 @@ describe("StoryTools", () => {
 
 	const mockStories: Story[] = [
 		{
+			entity_type: "story",
 			id: 123,
 			name: "Test Story 1",
 			story_type: "feature",
@@ -94,6 +95,7 @@ describe("StoryTools", () => {
 			] satisfies Partial<Task>[],
 		} as unknown as Story,
 		{
+			entity_type: "story",
 			id: 456,
 			name: "Test Story 2",
 			branches: [],
@@ -128,9 +130,20 @@ describe("StoryTools", () => {
 		workflow_ids: [1],
 	};
 
+	const createMockClient = (methods?: object) =>
+		({
+			getUserMap: mock(async () => new Map()),
+			getWorkflowMap: mock(async () => new Map()),
+			getTeamMap: mock(async () => new Map()),
+			getMilestone: mock(async () => null),
+			getIteration: mock(async () => null),
+			getEpic: mock(async () => null),
+			...methods,
+		}) as unknown as ShortcutClientWrapper;
+
 	describe("create method", () => {
 		test("should register the correct tools with the server", () => {
-			const mockClient = {} as ShortcutClientWrapper;
+			const mockClient = createMockClient();
 			const mockTool = mock();
 			const mockServer = { tool: mockTool } as unknown as McpServer;
 
@@ -165,6 +178,11 @@ describe("StoryTools", () => {
 		const mockClient = {
 			getStory: getStoryMock,
 			getUserMap: getUserMapMock,
+			getWorkflowMap: mock(async () => new Map()),
+			getTeamMap: mock(async () => new Map()),
+			getMilestone: mock(async () => null),
+			getIteration: mock(async () => null),
+			getEpic: mock(async () => null),
 		} as unknown as ShortcutClientWrapper;
 
 		test("should return formatted story details when story is found", async () => {
@@ -188,6 +206,12 @@ describe("StoryTools", () => {
 		test("should handle story not found", async () => {
 			const storyTools = new StoryTools({
 				getStory: mock(async () => null),
+				getUserMap: mock(async () => new Map()),
+				getWorkflowMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
+				getMilestone: mock(async () => null),
+				getIteration: mock(async () => null),
+				getEpic: mock(async () => null),
 			} as unknown as ShortcutClientWrapper);
 
 			await expect(() => storyTools.getStory(999)).toThrow(
@@ -199,6 +223,11 @@ describe("StoryTools", () => {
 			const storyTools = new StoryTools({
 				getStory: mock(async () => mockStories[1]),
 				getUserMap: getUserMapMock,
+				getWorkflowMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
+				getMilestone: mock(async () => null),
+				getIteration: mock(async () => null),
+				getEpic: mock(async () => null),
 			} as unknown as ShortcutClientWrapper);
 
 			const result = await storyTools.getStory(456);
@@ -227,6 +256,11 @@ describe("StoryTools", () => {
 			searchStories: searchStoriesMock,
 			getCurrentUser: getCurrentUserMock,
 			getUserMap: getUserMapMock,
+			getWorkflowMap: mock(async () => new Map()),
+			getTeamMap: mock(async () => new Map()),
+			getMilestone: mock(async () => null),
+			getIteration: mock(async () => null),
+			getEpic: mock(async () => null),
 		} as unknown as ShortcutClientWrapper;
 
 		test("should return formatted list of stories when stories are found", async () => {
@@ -246,6 +280,12 @@ describe("StoryTools", () => {
 			const storyTools = new StoryTools({
 				searchStories: mock(async () => ({ stories: [], total: 0 })),
 				getCurrentUser: getCurrentUserMock,
+				getUserMap: mock(async () => new Map()),
+				getWorkflowMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
+				getMilestone: mock(async () => null),
+				getIteration: mock(async () => null),
+				getEpic: mock(async () => null),
 			} as unknown as ShortcutClientWrapper);
 
 			const result = await storyTools.searchStories({});
@@ -258,6 +298,12 @@ describe("StoryTools", () => {
 			const storyTools = new StoryTools({
 				searchStories: mock(async () => ({ stories: null, total: 0 })),
 				getCurrentUser: getCurrentUserMock,
+				getUserMap: mock(async () => new Map()),
+				getWorkflowMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
+				getMilestone: mock(async () => null),
+				getIteration: mock(async () => null),
+				getEpic: mock(async () => null),
 			} as unknown as ShortcutClientWrapper);
 
 			await expect(() => storyTools.searchStories({})).toThrow(
@@ -271,11 +317,11 @@ describe("StoryTools", () => {
 		const getTeamMock = mock(async () => mockTeam);
 		const getWorkflowMock = mock(async () => mockWorkflow);
 
-		const mockClient = {
+		const mockClient = createMockClient({
 			createStory: createStoryMock,
 			getTeam: getTeamMock,
 			getWorkflow: getWorkflowMock,
-		} as unknown as ShortcutClientWrapper;
+		});
 
 		beforeEach(() => {
 			createStoryMock.mockClear();
@@ -334,10 +380,12 @@ describe("StoryTools", () => {
 		});
 
 		test("should throw error when workflow is not found", async () => {
-			const storyTools = new StoryTools({
-				...mockClient,
-				getWorkflow: mock(async () => null),
-			} as unknown as ShortcutClientWrapper);
+			const storyTools = new StoryTools(
+				createMockClient({
+					...mockClient,
+					getWorkflow: mock(async () => null),
+				}),
+			);
 
 			await expect(() =>
 				storyTools.createStory({
@@ -356,10 +404,10 @@ describe("StoryTools", () => {
 			app_url: "https://app.shortcut.com/test/story/123",
 		}));
 
-		const mockClient = {
+		const mockClient = createMockClient({
 			getStory: getStoryMock,
 			updateStory: updateStoryMock,
-		} as unknown as ShortcutClientWrapper;
+		});
 
 		beforeEach(() => {
 			updateStoryMock.mockClear();
@@ -418,10 +466,12 @@ describe("StoryTools", () => {
 		});
 
 		test("should throw error when story is not found", async () => {
-			const storyTools = new StoryTools({
-				...mockClient,
-				getStory: mock(async () => null),
-			} as unknown as ShortcutClientWrapper);
+			const storyTools = new StoryTools(
+				createMockClient({
+					...mockClient,
+					getStory: mock(async () => null),
+				}),
+			);
 
 			await expect(() =>
 				storyTools.updateStory({
@@ -980,9 +1030,9 @@ describe("StoryTools", () => {
 			total: 1,
 		}));
 
-		const mockClient = {
+		const mockClient = createMockClient({
 			getStoriesByExternalLink: getStoriesByExternalLinkMock,
-		} as unknown as ShortcutClientWrapper;
+		});
 
 		beforeEach(() => {
 			getStoriesByExternalLinkMock.mockClear();
