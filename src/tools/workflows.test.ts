@@ -7,6 +7,7 @@ import { WorkflowTools } from "./workflows";
 describe("WorkflowTools", () => {
 	const mockWorkflows: Workflow[] = [
 		{
+			entity_type: "workflow",
 			id: 1,
 			name: "Workflow 1",
 			description: "Description for Workflow 1",
@@ -18,6 +19,7 @@ describe("WorkflowTools", () => {
 			],
 		} as Workflow,
 		{
+			entity_type: "workflow",
 			id: 2,
 			name: "Workflow 2",
 			description: "Description for Workflow 2",

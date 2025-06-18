@@ -265,6 +265,50 @@ The story will be added to the default state for the workflow.
 			async (params) => await tools.updateTask(params),
 		);
 
+		server.tool(
+			"add-external-link-to-story",
+			"Add an external link to a Shortcut story",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+				externalLink: z.string().url().max(2048).describe("The external link URL to add"),
+			},
+			async ({ storyPublicId, externalLink }) =>
+				await tools.addExternalLinkToStory(storyPublicId, externalLink),
+		);
+
+		server.tool(
+			"remove-external-link-from-story",
+			"Remove an external link from a Shortcut story",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+				externalLink: z.string().url().max(2048).describe("The external link URL to remove"),
+			},
+			async ({ storyPublicId, externalLink }) =>
+				await tools.removeExternalLinkFromStory(storyPublicId, externalLink),
+		);
+
+		server.tool(
+			"get-stories-by-external-link",
+			"Find all stories that contain a specific external link",
+			{
+				externalLink: z.string().url().max(2048).describe("The external link URL to search for"),
+			},
+			async ({ externalLink }) => await tools.getStoriesByExternalLink(externalLink),
+		);
+
+		server.tool(
+			"set-story-external-links",
+			"Replace all external links on a story with a new set of links",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+				externalLinks: z
+					.array(z.string().url().max(2048))
+					.describe("Array of external link URLs to set (replaces all existing links)"),
+			},
+			async ({ storyPublicId, externalLinks }) =>
+				await tools.setStoryExternalLinks(storyPublicId, externalLinks),
+		);
+
 		return tools;
 	}
 
@@ -382,7 +426,7 @@ The story will be added to the default state for the workflow.
 
 		return this.toResult(
 			`Result (first ${stories.length} shown of ${total} total stories found):`,
-			await this.toCorrectedEntities(stories),
+			await this.entitiesWithRelatedEntities(stories, "stories"),
 		);
 	}
 
@@ -392,7 +436,10 @@ The story will be added to the default state for the workflow.
 		if (!story)
 			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}.`);
 
-		return this.toResult(`Story: sc-${storyPublicId}`, await this.toCorrectedEntity(story));
+		return this.toResult(
+			`Story: sc-${storyPublicId}`,
+			await this.entityWithRelatedEntities(story, "story"),
+		);
 	}
 
 	async createStoryComment({
@@ -564,5 +611,57 @@ The story will be added to the default state for the workflow.
 					? `Marked sc-${subjectStoryId} as a duplicate of sc-${objectStoryId}.`
 					: `Added a relationship between sc-${subjectStoryId} and sc-${objectStoryId}.`,
 		);
+	}
+
+	async addExternalLinkToStory(storyPublicId: number, externalLink: string) {
+		if (!storyPublicId) throw new Error("Story public ID is required");
+		if (!externalLink) throw new Error("External link is required");
+
+		const updatedStory = await this.client.addExternalLinkToStory(storyPublicId, externalLink);
+
+		return this.toResult(
+			`Added external link to story sc-${storyPublicId}. Story URL: ${updatedStory.app_url}`,
+		);
+	}
+
+	async removeExternalLinkFromStory(storyPublicId: number, externalLink: string) {
+		if (!storyPublicId) throw new Error("Story public ID is required");
+		if (!externalLink) throw new Error("External link is required");
+
+		const updatedStory = await this.client.removeExternalLinkFromStory(storyPublicId, externalLink);
+
+		return this.toResult(
+			`Removed external link from story sc-${storyPublicId}. Story URL: ${updatedStory.app_url}`,
+		);
+	}
+
+	async getStoriesByExternalLink(externalLink: string) {
+		if (!externalLink) throw new Error("External link is required");
+
+		const { stories, total } = await this.client.getStoriesByExternalLink(externalLink);
+
+		if (!stories || !stories.length) {
+			return this.toResult(`No stories found with external link: ${externalLink}`);
+		}
+
+		return this.toResult(
+			`Found ${total} stories with external link: ${externalLink}`,
+			await this.entitiesWithRelatedEntities(stories, "stories"),
+		);
+	}
+
+	async setStoryExternalLinks(storyPublicId: number, externalLinks: string[]) {
+		if (!storyPublicId) throw new Error("Story public ID is required");
+		if (!Array.isArray(externalLinks)) throw new Error("External links must be an array");
+
+		const updatedStory = await this.client.setStoryExternalLinks(storyPublicId, externalLinks);
+
+		const linkCount = externalLinks.length;
+		const message =
+			linkCount === 0
+				? `Removed all external links from story sc-${storyPublicId}`
+				: `Set ${linkCount} external link${linkCount === 1 ? "" : "s"} on story sc-${storyPublicId}`;
+
+		return this.toResult(`${message}. Story URL: ${updatedStory.app_url}`);
 	}
 }
