@@ -9,6 +9,7 @@ import type {
 	Iteration,
 	Member,
 	MemberInfo,
+	Project,
 	StoryComment,
 	StoryLink,
 	Task,
@@ -30,11 +31,13 @@ export class ShortcutClientWrapper {
 	private userCache: Cache<string, Member>;
 	private teamCache: Cache<string, Group>;
 	private workflowCache: Cache<number, Workflow>;
+	private projectCache: Cache<number, Project>;
 
 	constructor(private client: BaseClient) {
 		this.userCache = new Cache();
 		this.teamCache = new Cache();
 		this.workflowCache = new Cache();
+		this.projectCache = new Cache();
 	}
 
 	private async loadMembers() {
@@ -66,6 +69,17 @@ export class ShortcutClientWrapper {
 
 			if (workflows) {
 				this.workflowCache.setMany(workflows.map((workflow) => [workflow.id, workflow]));
+			}
+		}
+	}
+
+	private async loadProjects() {
+		if (this.projectCache.isStale) {
+			const response = await this.client.listProjects({});
+			const projects = response?.data ?? null;
+
+			if (projects) {
+				this.projectCache.setMany(projects.map((project) => [project.id, project]));
 			}
 		}
 	}
@@ -368,5 +382,30 @@ export class ShortcutClientWrapper {
 		if (!task) throw new Error(`Failed to update the task: ${response.status}`);
 
 		return task;
+	}
+
+	async listProjects() {
+		await this.loadProjects();
+		const projects: Project[] = Array.from(this.projectCache.values());
+
+		return projects;
+	}
+
+	async getProject(projectId: number) {
+		const response = await this.client.getProject(projectId);
+		const project = response?.data ?? null;
+
+		if (!project) return null;
+
+		return project;
+	}
+
+	async getProjectMap(projectIds: number[]) {
+		await this.loadProjects();
+		return new Map(
+			projectIds
+				.map((id) => [id, this.projectCache.get(id)])
+				.filter((project): project is [number, Project | null] => project[1] !== null),
+		);
 	}
 }
