@@ -7,6 +7,7 @@ import { name, version } from "../package.json";
 import { EpicTools } from "./tools/epics";
 import { IterationTools } from "./tools/iterations";
 import { ObjectiveTools } from "./tools/objectives";
+import { ProjectTools } from "./tools/projects";
 import { StoryTools } from "./tools/stories";
 import { TeamTools } from "./tools/teams";
 import { UserTools } from "./tools/user";
@@ -33,6 +34,7 @@ StoryTools.create(client, server);
 IterationTools.create(client, server);
 EpicTools.create(client, server);
 ObjectiveTools.create(client, server);
+ProjectTools.create(client, server);
 TeamTools.create(client, server);
 WorkflowTools.create(client, server);
 

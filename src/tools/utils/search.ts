@@ -1,4 +1,5 @@
 import type { MemberInfo } from "@shortcut/client";
+import type { ShortcutClientWrapper } from "@/client/shortcut";
 
 const keyRenames = { name: "title" } as const;
 
@@ -16,8 +17,30 @@ const getKey = (prop: string) => {
 
 export type QueryParams = { [key: string]: boolean | string | number };
 
-export const buildSearchQuery = async (params: QueryParams, currentUser: MemberInfo | null) => {
-	const query = Object.entries(params)
+export const buildSearchQuery = async (
+	params: QueryParams,
+	currentUser: MemberInfo | null,
+	client?: ShortcutClientWrapper,
+) => {
+	const resolvedParams = { ...params };
+
+	// Resolve project name to project ID if needed
+	if (resolvedParams.project && typeof resolvedParams.project === "string" && client) {
+		try {
+			const projects = await client.listProjects();
+			const project = projects.find(p => 
+				p.name.toLowerCase() === resolvedParams.project.toString().toLowerCase()
+			);
+			if (project) {
+				resolvedParams.project = project.id;
+			}
+		} catch (error) {
+			// If project resolution fails, keep the original value
+			console.warn(`Failed to resolve project name "${resolvedParams.project}":`, error);
+		}
+	}
+
+	const query = Object.entries(resolvedParams)
 		.map(([key, value]) => {
 			const q = getKey(key);
 			if (key === "owner" || key === "requester") {

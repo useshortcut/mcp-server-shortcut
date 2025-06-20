@@ -50,7 +50,7 @@ export class StoryTools extends BaseTools {
 				branch: z.string().optional().describe("Find only stories matching the specified branch"),
 				commit: z.string().optional().describe("Find only stories matching the specified commit"),
 				pr: z.number().optional().describe("Find only stories matching the specified pull request"),
-				project: z.number().optional().describe("Find only stories matching the specified project"),
+				project: z.union([z.number(), z.string()]).optional().describe("Find only stories matching the specified project ID or project name"),
 				epic: z.number().optional().describe("Find only stories matching the specified epic"),
 				objective: z
 					.number()
@@ -418,7 +418,7 @@ The story will be added to the default state for the workflow.
 
 	async searchStories(params: QueryParams) {
 		const currentUser = await this.client.getCurrentUser();
-		const query = await buildSearchQuery(params, currentUser);
+		const query = await buildSearchQuery(params, currentUser, this.client);
 		const { stories, total } = await this.client.searchStories(query);
 
 		if (!stories) throw new Error(`Failed to search for stories matching your query: "${query}".`);
