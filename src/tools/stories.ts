@@ -129,6 +129,10 @@ The story will be added to the default state for the workflow.
 					.describe("The type of the story"),
 				owner: z.string().optional().describe("The user id of the owner of the story"),
 				epic: z.number().optional().describe("The epic id of the epic the story belongs to"),
+				iteration: z
+					.number()
+					.optional()
+					.describe("The iteration id of the iteration the story belongs to"),
 				team: z
 					.string()
 					.optional()
@@ -140,13 +144,14 @@ The story will be added to the default state for the workflow.
 					.optional()
 					.describe("The workflow ID to add the story to. Required unless a team is specified."),
 			},
-			async ({ name, description, type, owner, epic, team, workflow }) =>
+			async ({ name, description, type, owner, epic, iteration, team, workflow }) =>
 				await tools.createStory({
 					name,
 					description,
 					type,
 					owner,
 					epic,
+					iteration,
 					team,
 					workflow,
 				}),
@@ -170,6 +175,11 @@ The story will be added to the default state for the workflow.
 					.nullable()
 					.optional()
 					.describe("The point estimate of the story, or null to unset"),
+				iteration: z
+					.number()
+					.nullable()
+					.optional()
+					.describe("The iteration id of the iteration the story belongs to, or null to unset"),
 				owner_ids: z
 					.array(z.string())
 					.optional()
@@ -380,6 +390,7 @@ The story will be added to the default state for the workflow.
 		type,
 		owner,
 		epic,
+		iteration,
 		team,
 		workflow,
 	}: {
@@ -388,6 +399,7 @@ The story will be added to the default state for the workflow.
 		type: "feature" | "bug" | "chore";
 		owner?: string;
 		epic?: number;
+		iteration?: number;
 		team?: string;
 		workflow?: number;
 	}) {
@@ -409,6 +421,7 @@ The story will be added to the default state for the workflow.
 			story_type: type,
 			owner_ids: owner ? [owner] : [],
 			epic_id: epic,
+			iteration_id: iteration,
 			group_id: team,
 			workflow_state_id: fullWorkflow.default_state_id,
 		});
@@ -467,6 +480,7 @@ The story will be added to the default state for the workflow.
 		type?: "feature" | "bug" | "chore";
 		epic?: number | null;
 		estimate?: number | null;
+		iteration?: number | null;
 		owner_ids?: string[];
 		workflow_state_id?: number;
 		labels?: Array<{
@@ -490,6 +504,7 @@ The story will be added to the default state for the workflow.
 		if (updates.type !== undefined) updateParams.story_type = updates.type;
 		if (updates.epic !== undefined) updateParams.epic_id = updates.epic;
 		if (updates.estimate !== undefined) updateParams.estimate = updates.estimate;
+		if (updates.iteration !== undefined) updateParams.iteration_id = updates.iteration;
 		if (updates.owner_ids !== undefined) updateParams.owner_ids = updates.owner_ids;
 		if (updates.workflow_state_id !== undefined)
 			updateParams.workflow_state_id = updates.workflow_state_id;
