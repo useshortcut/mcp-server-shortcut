@@ -42,6 +42,7 @@ describe("StoryTools", () => {
 
 	const mockStories: Story[] = [
 		{
+			entity_type: "story",
 			id: 123,
 			name: "Test Story 1",
 			story_type: "feature",
@@ -94,6 +95,7 @@ describe("StoryTools", () => {
 			] satisfies Partial<Task>[],
 		} as unknown as Story,
 		{
+			entity_type: "story",
 			id: 456,
 			name: "Test Story 2",
 			branches: [],
@@ -128,15 +130,26 @@ describe("StoryTools", () => {
 		workflow_ids: [1],
 	};
 
+	const createMockClient = (methods?: object) =>
+		({
+			getUserMap: mock(async () => new Map()),
+			getWorkflowMap: mock(async () => new Map()),
+			getTeamMap: mock(async () => new Map()),
+			getMilestone: mock(async () => null),
+			getIteration: mock(async () => null),
+			getEpic: mock(async () => null),
+			...methods,
+		}) as unknown as ShortcutClientWrapper;
+
 	describe("create method", () => {
 		test("should register the correct tools with the server", () => {
-			const mockClient = {} as ShortcutClientWrapper;
+			const mockClient = createMockClient();
 			const mockTool = mock();
 			const mockServer = { tool: mockTool } as unknown as McpServer;
 
 			StoryTools.create(mockClient, mockServer);
 
-			expect(mockTool).toHaveBeenCalledTimes(11);
+			expect(mockTool).toHaveBeenCalledTimes(15);
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-story-branch-name");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-story");
 			expect(mockTool.mock.calls?.[2]?.[0]).toBe("search-stories");
@@ -165,6 +178,11 @@ describe("StoryTools", () => {
 		const mockClient = {
 			getStory: getStoryMock,
 			getUserMap: getUserMapMock,
+			getWorkflowMap: mock(async () => new Map()),
+			getTeamMap: mock(async () => new Map()),
+			getMilestone: mock(async () => null),
+			getIteration: mock(async () => null),
+			getEpic: mock(async () => null),
 		} as unknown as ShortcutClientWrapper;
 
 		test("should return formatted story details when story is found", async () => {
@@ -188,6 +206,12 @@ describe("StoryTools", () => {
 		test("should handle story not found", async () => {
 			const storyTools = new StoryTools({
 				getStory: mock(async () => null),
+				getUserMap: mock(async () => new Map()),
+				getWorkflowMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
+				getMilestone: mock(async () => null),
+				getIteration: mock(async () => null),
+				getEpic: mock(async () => null),
 			} as unknown as ShortcutClientWrapper);
 
 			await expect(() => storyTools.getStory(999)).toThrow(
@@ -199,6 +223,11 @@ describe("StoryTools", () => {
 			const storyTools = new StoryTools({
 				getStory: mock(async () => mockStories[1]),
 				getUserMap: getUserMapMock,
+				getWorkflowMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
+				getMilestone: mock(async () => null),
+				getIteration: mock(async () => null),
+				getEpic: mock(async () => null),
 			} as unknown as ShortcutClientWrapper);
 
 			const result = await storyTools.getStory(456);
@@ -227,6 +256,11 @@ describe("StoryTools", () => {
 			searchStories: searchStoriesMock,
 			getCurrentUser: getCurrentUserMock,
 			getUserMap: getUserMapMock,
+			getWorkflowMap: mock(async () => new Map()),
+			getTeamMap: mock(async () => new Map()),
+			getMilestone: mock(async () => null),
+			getIteration: mock(async () => null),
+			getEpic: mock(async () => null),
 		} as unknown as ShortcutClientWrapper;
 
 		test("should return formatted list of stories when stories are found", async () => {
@@ -246,6 +280,12 @@ describe("StoryTools", () => {
 			const storyTools = new StoryTools({
 				searchStories: mock(async () => ({ stories: [], total: 0 })),
 				getCurrentUser: getCurrentUserMock,
+				getUserMap: mock(async () => new Map()),
+				getWorkflowMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
+				getMilestone: mock(async () => null),
+				getIteration: mock(async () => null),
+				getEpic: mock(async () => null),
 			} as unknown as ShortcutClientWrapper);
 
 			const result = await storyTools.searchStories({});
@@ -258,6 +298,12 @@ describe("StoryTools", () => {
 			const storyTools = new StoryTools({
 				searchStories: mock(async () => ({ stories: null, total: 0 })),
 				getCurrentUser: getCurrentUserMock,
+				getUserMap: mock(async () => new Map()),
+				getWorkflowMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
+				getMilestone: mock(async () => null),
+				getIteration: mock(async () => null),
+				getEpic: mock(async () => null),
 			} as unknown as ShortcutClientWrapper);
 
 			await expect(() => storyTools.searchStories({})).toThrow(
@@ -271,11 +317,11 @@ describe("StoryTools", () => {
 		const getTeamMock = mock(async () => mockTeam);
 		const getWorkflowMock = mock(async () => mockWorkflow);
 
-		const mockClient = {
+		const mockClient = createMockClient({
 			createStory: createStoryMock,
 			getTeam: getTeamMock,
 			getWorkflow: getWorkflowMock,
-		} as unknown as ShortcutClientWrapper;
+		});
 
 		beforeEach(() => {
 			createStoryMock.mockClear();
@@ -334,10 +380,12 @@ describe("StoryTools", () => {
 		});
 
 		test("should throw error when workflow is not found", async () => {
-			const storyTools = new StoryTools({
-				...mockClient,
-				getWorkflow: mock(async () => null),
-			} as unknown as ShortcutClientWrapper);
+			const storyTools = new StoryTools(
+				createMockClient({
+					...mockClient,
+					getWorkflow: mock(async () => null),
+				}),
+			);
 
 			await expect(() =>
 				storyTools.createStory({
@@ -356,10 +404,10 @@ describe("StoryTools", () => {
 			app_url: "https://app.shortcut.com/test/story/123",
 		}));
 
-		const mockClient = {
+		const mockClient = createMockClient({
 			getStory: getStoryMock,
 			updateStory: updateStoryMock,
-		} as unknown as ShortcutClientWrapper;
+		});
 
 		beforeEach(() => {
 			updateStoryMock.mockClear();
@@ -418,10 +466,12 @@ describe("StoryTools", () => {
 		});
 
 		test("should throw error when story is not found", async () => {
-			const storyTools = new StoryTools({
-				...mockClient,
-				getStory: mock(async () => null),
-			} as unknown as ShortcutClientWrapper);
+			const storyTools = new StoryTools(
+				createMockClient({
+					...mockClient,
+					getStory: mock(async () => null),
+				}),
+			);
 
 			await expect(() =>
 				storyTools.updateStory({
@@ -925,6 +975,112 @@ describe("StoryTools", () => {
 			expect(result.content[0].text).toBe("Marked sc-456 as a blocker to sc-123.");
 			expect(addStoryRelationMock).toHaveBeenCalledTimes(1);
 			expect(addStoryRelationMock.mock.calls?.[0]?.[0]).toBe(456);
+		});
+	});
+
+	describe("addExternalLinkToStory method", () => {
+		const addExternalLinkToStoryMock = mock(async () => ({
+			...mockStories[0],
+			external_links: ["https://example.com", "https://newlink.com"],
+		}));
+
+		const mockClient = {
+			addExternalLinkToStory: addExternalLinkToStoryMock,
+		} as unknown as ShortcutClientWrapper;
+
+		beforeEach(() => {
+			addExternalLinkToStoryMock.mockClear();
+		});
+
+		test("should add external link to story", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.addExternalLinkToStory(123, "https://newlink.com");
+
+			expect(addExternalLinkToStoryMock).toHaveBeenCalledWith(123, "https://newlink.com");
+			expect(result.content[0].text).toContain("Added external link to story sc-123");
+		});
+	});
+
+	describe("removeExternalLinkFromStory method", () => {
+		const removeExternalLinkFromStoryMock = mock(async () => ({
+			...mockStories[0],
+			external_links: ["https://example.com"],
+		}));
+
+		const mockClient = {
+			removeExternalLinkFromStory: removeExternalLinkFromStoryMock,
+		} as unknown as ShortcutClientWrapper;
+
+		beforeEach(() => {
+			removeExternalLinkFromStoryMock.mockClear();
+		});
+
+		test("should remove external link from story", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.removeExternalLinkFromStory(123, "https://example2.com");
+
+			expect(removeExternalLinkFromStoryMock).toHaveBeenCalledWith(123, "https://example2.com");
+			expect(result.content[0].text).toContain("Removed external link from story sc-123");
+		});
+	});
+
+	describe("getStoriesByExternalLink method", () => {
+		const getStoriesByExternalLinkMock = mock(async () => ({
+			stories: [mockStories[0]],
+			total: 1,
+		}));
+
+		const mockClient = createMockClient({
+			getStoriesByExternalLink: getStoriesByExternalLinkMock,
+		});
+
+		beforeEach(() => {
+			getStoriesByExternalLinkMock.mockClear();
+		});
+
+		test("should find stories by external link", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.getStoriesByExternalLink("https://example.com");
+
+			expect(getStoriesByExternalLinkMock).toHaveBeenCalledWith("https://example.com");
+			expect(result.content[0].text).toContain("Found 1 stories with external link");
+		});
+	});
+
+	describe("setStoryExternalLinks method", () => {
+		const setStoryExternalLinksMock = mock(async () => ({
+			...mockStories[0],
+			external_links: ["https://link1.com", "https://link2.com"],
+		}));
+
+		const mockClient = {
+			setStoryExternalLinks: setStoryExternalLinksMock,
+		} as unknown as ShortcutClientWrapper;
+
+		beforeEach(() => {
+			setStoryExternalLinksMock.mockClear();
+		});
+
+		test("should set story external links", async () => {
+			const newLinks = ["https://link1.com", "https://link2.com"];
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.setStoryExternalLinks(123, newLinks);
+
+			expect(setStoryExternalLinksMock).toHaveBeenCalledWith(123, newLinks);
+			expect(result.content[0].text).toContain("Set 2 external links on story sc-123");
+		});
+
+		test("should remove all external links when empty array provided", async () => {
+			const mockUpdatedStory = { ...mockStories[0], external_links: [] };
+
+			const mockClientForEmpty = {
+				setStoryExternalLinks: mock(async () => mockUpdatedStory),
+			} as unknown as ShortcutClientWrapper;
+
+			const storyTools = new StoryTools(mockClientForEmpty);
+			const result = await storyTools.setStoryExternalLinks(123, []);
+
+			expect(result.content[0].text).toContain("Removed all external links from story sc-123");
 		});
 	});
 });

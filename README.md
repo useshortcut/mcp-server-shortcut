@@ -29,6 +29,8 @@ See the [official Windsurf docs](https://codeium.com/docs/windsurf/mcp) for more
 
 ### Cursor
 
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=shortcut&config=eyJjb21tYW5kIjoibnB4IC15IEBzaG9ydGN1dC9tY3BAbGF0ZXN0IiwiZW52Ijp7IlNIT1JUQ1VUX0FQSV9UT0tFTiI6IjxZT1VSX1NIT1JUQ1VUX0FQSV9UT0tFTj4ifX0%3D)
+
 See the [official Cursor docs](https://docs.cursor.com/context/model-context-protocol) for more information.
 
 1. Open (or create) the `mcp.json` file (it should be in `~/.cursor/mcp.json` or `<project-root>/.cursor/mcp.json`, but see Cursor docs for more details).

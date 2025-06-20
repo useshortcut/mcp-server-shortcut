@@ -24,26 +24,47 @@ describe("IterationTools", () => {
 				mention_name: "jane",
 				name: "Jane Smith",
 			},
-		} as Member,
+		} as unknown as Member,
 	];
 
 	const mockStories: Story[] = [
 		{
+			entity_type: "story",
 			id: 123,
 			name: "Test Story 1",
 			story_type: "feature",
 			owner_ids: ["user1"],
-		} as Story,
+			group_id: null,
+			epic_id: null,
+			iteration_id: null,
+			workflow_id: null,
+			workflow_state_id: 1,
+			requested_by_id: null,
+			follower_ids: [],
+			app_url: "https://app.shortcut.com/test/story/123",
+			archived: false,
+		} as unknown as Story,
 		{
+			entity_type: "story",
 			id: 456,
 			name: "Test Story 2",
 			story_type: "bug",
 			owner_ids: ["user1", "user2"],
-		} as Story,
+			group_id: null,
+			epic_id: null,
+			iteration_id: null,
+			workflow_id: null,
+			workflow_state_id: 1,
+			requested_by_id: null,
+			follower_ids: [],
+			app_url: "https://app.shortcut.com/test/story/456",
+			archived: false,
+		} as unknown as Story,
 	];
 
 	const mockIterations: Iteration[] = [
 		{
+			entity_type: "iteration",
 			id: 1,
 			name: "Iteration 1",
 			description: "Description for Iteration 1",
@@ -51,14 +72,17 @@ describe("IterationTools", () => {
 			end_date: "2023-01-14",
 			status: "started",
 			app_url: "https://app.shortcut.com/test/iteration/1",
+			group_ids: [],
+			follower_ids: [],
 			stats: {
 				num_stories_backlog: 1,
 				num_stories_unstarted: 2,
 				num_stories_started: 3,
 				num_stories_done: 4,
 			},
-		} as Iteration,
+		} as unknown as Iteration,
 		{
+			entity_type: "iteration",
 			id: 2,
 			name: "Iteration 2",
 			description: "Description for Iteration 2",
@@ -66,18 +90,45 @@ describe("IterationTools", () => {
 			end_date: "2023-01-28",
 			status: "unstarted",
 			app_url: "https://app.shortcut.com/test/iteration/2",
+			group_ids: [],
+			follower_ids: [],
 			stats: {
 				num_stories_backlog: 1,
 				num_stories_unstarted: 2,
 				num_stories_started: 3,
 				num_stories_done: 4,
 			},
-		} as Iteration,
+		} as unknown as Iteration,
+	];
+
+	const mockTeams = [
+		{
+			id: "team1",
+			name: "Team 1",
+			mention_name: "@team1",
+			member_ids: ["user1"],
+			workflow_ids: [1],
+			archived: false,
+		},
+		{
+			id: "team2",
+			name: "Team 2",
+			mention_name: "@team2",
+			member_ids: ["user2"],
+			workflow_ids: [2],
+			archived: false,
+		},
 	];
 
 	const createMockClient = (methods?: object) =>
 		({
 			getCurrentUser: mock(async () => mockCurrentUser),
+			getUserMap: mock(async () => new Map()),
+			getWorkflowMap: mock(async () => new Map()),
+			getTeamMap: mock(async () => new Map()),
+			getMilestone: mock(async () => null),
+			getIteration: mock(async () => null),
+			getEpic: mock(async () => null),
 			...methods,
 		}) as unknown as ShortcutClientWrapper;
 
@@ -89,11 +140,13 @@ describe("IterationTools", () => {
 
 			IterationTools.create(mockClient, mockServer);
 
-			expect(mockTool).toHaveBeenCalledTimes(4);
+			expect(mockTool).toHaveBeenCalledTimes(6);
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-iteration-stories");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-iteration");
 			expect(mockTool.mock.calls?.[2]?.[0]).toBe("search-iterations");
 			expect(mockTool.mock.calls?.[3]?.[0]).toBe("create-iteration");
+			expect(mockTool.mock.calls?.[4]?.[0]).toBe("get-active-iterations");
+			expect(mockTool.mock.calls?.[5]?.[0]).toBe("get-upcoming-iterations");
 		});
 	});
 
@@ -115,13 +168,14 @@ describe("IterationTools", () => {
 
 		test("should return formatted list of stories in an iteration", async () => {
 			const iterationTools = new IterationTools(mockClient);
-			const result = await iterationTools.getIterationStories(1);
+			const result = await iterationTools.getIterationStories(1, false);
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);
 			expect(textContent).toContain("Result (2 stories found):");
 			// Since search details might not be enabled, just check basic content
-			expect(textContent).toContain("stories");
+			expect(textContent).toContain('"name": "Test Story 1"');
+			expect(textContent).toContain('"name": "Test Story 2"');
 		});
 
 		test("should throw error when stories are not found", async () => {
@@ -131,7 +185,7 @@ describe("IterationTools", () => {
 				}),
 			);
 
-			await expect(() => iterationTools.getIterationStories(1)).toThrow(
+			await expect(() => iterationTools.getIterationStories(1, false)).toThrow(
 				"Failed to retrieve Shortcut stories in iteration with public ID: 1.",
 			);
 		});
@@ -264,6 +318,188 @@ describe("IterationTools", () => {
 			});
 
 			expect(result.content[0].text).toBe("Iteration created with ID: 1.");
+		});
+	});
+
+	describe("getActiveIterations method", () => {
+		test("should return active iteration for specific team", async () => {
+			const activeIteration = mockIterations[0];
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getTeam: mock(async (id: string) => mockTeams.find((team) => team.id === id)),
+					getActiveIteration: mock(async () => new Map([["team1", [activeIteration]]])),
+				}),
+			);
+
+			const result = await iterationTools.getActiveIterations("team1");
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("The active iteration for the team is:");
+			expect(textContent).toContain('"name": "Iteration 1"');
+		});
+
+		test("should return no active iterations message when no active iteration for team", async () => {
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getTeam: mock(async (id: string) => mockTeams.find((team) => team.id === id)),
+					getActiveIteration: mock(async () => new Map()),
+				}),
+			);
+
+			const result = await iterationTools.getActiveIterations("team1");
+
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe("Result: No active iterations found for team.");
+		});
+
+		test("should throw error when team not found", async () => {
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getTeam: mock(async () => null),
+				}),
+			);
+
+			await expect(() => iterationTools.getActiveIterations("nonexistent")).toThrow(
+				'No team found matching id: "nonexistent"',
+			);
+		});
+
+		test("should return active iterations for current user's teams", async () => {
+			const activeIterations = [mockIterations[0], mockIterations[1]];
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getTeams: mock(async () => mockTeams),
+					getActiveIteration: mock(
+						async () =>
+							new Map([
+								["team1", activeIterations[0]],
+								["team2", activeIterations[1]],
+							]),
+					),
+				}),
+			);
+
+			const result = await iterationTools.getActiveIterations();
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("You have 2 active iterations for your teams:");
+			expect(textContent).toContain('"name": "Iteration 1"');
+			expect(textContent).toContain('"name": "Iteration 2"');
+		});
+
+		test("should return no active iterations message when user has no active iterations", async () => {
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getTeams: mock(async () => mockTeams),
+					getActiveIteration: mock(async () => new Map()),
+				}),
+			);
+
+			const result = await iterationTools.getActiveIterations();
+
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe(
+				"Result: No active iterations found for any of your teams.",
+			);
+		});
+
+		test("should throw error when current user not found", async () => {
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getCurrentUser: mock(async () => null),
+				}),
+			);
+
+			await expect(() => iterationTools.getActiveIterations()).toThrow(
+				"Failed to retrieve current user.",
+			);
+		});
+
+		test("should throw error when user belongs to no teams", async () => {
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getTeams: mock(async () => []),
+				}),
+			);
+
+			await expect(() => iterationTools.getActiveIterations()).toThrow(
+				"Current user does not belong to any teams.",
+			);
+		});
+	});
+
+	describe("getUpcomingIterations method", () => {
+		test("should return upcoming iteration for specific team", async () => {
+			const upcomingIteration = mockIterations[1];
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getTeam: mock(async (id: string) => mockTeams.find((team) => team.id === id)),
+					getUpcomingIteration: mock(async () => new Map([["team1", [upcomingIteration]]])),
+				}),
+			);
+
+			const result = await iterationTools.getUpcomingIterations("team1");
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("The next upcoming iteration for the team is:");
+			expect(textContent).toContain('"name": "Iteration 2"');
+		});
+
+		test("should return no upcoming iterations message when no upcoming iteration for team", async () => {
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getTeam: mock(async (id: string) => mockTeams.find((team) => team.id === id)),
+					getUpcomingIteration: mock(async () => new Map()),
+				}),
+			);
+
+			const result = await iterationTools.getUpcomingIterations("team1");
+
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe("Result: No upcoming iterations found for team.");
+		});
+
+		test("should return upcoming iterations for current user's teams", async () => {
+			const upcomingIterations = [mockIterations[0], mockIterations[1]];
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getTeams: mock(async () => mockTeams),
+					getUpcomingIteration: mock(
+						async () =>
+							new Map([
+								["team1", upcomingIterations[0]],
+								["team2", upcomingIterations[1]],
+							]),
+					),
+				}),
+			);
+
+			const result = await iterationTools.getUpcomingIterations();
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("The upcoming iterations for all your teams are:");
+			expect(textContent).toContain('"name": "Iteration 1"');
+			expect(textContent).toContain('"name": "Iteration 2"');
+		});
+
+		test("should return no upcoming iterations message when user has no upcoming iterations", async () => {
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getTeams: mock(async () => mockTeams),
+					getUpcomingIteration: mock(async () => new Map()),
+				}),
+			);
+
+			const result = await iterationTools.getUpcomingIterations();
+
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe(
+				"Result: No upcoming iterations found for any of your teams.",
+			);
 		});
 	});
 });
