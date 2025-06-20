@@ -26,18 +26,26 @@ describe("TeamTools", () => {
 
 	const mockTeams: Group[] = [
 		{
+			entity_type: "group",
 			id: "team1",
 			name: "Team 1",
 			mention_name: "team-one",
 			description: "Description for Team 1",
+			archived: false,
+			app_url: "https://app.shortcut.com/test/team/team1",
+			global_id: "team1",
 			member_ids: ["user1", "user2"],
 			workflow_ids: [1, 2],
 		} as Group,
 		{
+			entity_type: "group",
 			id: "team2",
 			name: "Team 2",
 			mention_name: "team-two",
 			description: "Description for Team 2",
+			archived: false,
+			app_url: "https://app.shortcut.com/test/team/team2",
+			global_id: "team2",
 			member_ids: ["user1"],
 			workflow_ids: [1],
 		} as Group,
@@ -115,6 +123,7 @@ describe("TeamTools", () => {
 		const mockClient = {
 			getTeam: getTeamMock,
 			getUserMap: getUserMapMock,
+			getWorkflowMap: mock(async () => new Map()),
 		} as unknown as ShortcutClientWrapper;
 
 		test("should return formatted team details when team is found", async () => {
@@ -149,6 +158,11 @@ describe("TeamTools", () => {
 					member_ids: [],
 				})),
 				getUserMap: getUserMapMock,
+				getWorkflowMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
+				getIteration: mock(async () => null),
+				getEpic: mock(async () => null),
+				getMilestone: mock(async () => null),
 			} as unknown as ShortcutClientWrapper);
 
 			const result = await teamTools.getTeam("team1");
@@ -178,6 +192,8 @@ describe("TeamTools", () => {
 		const mockClient = {
 			getTeams: getTeamsMock,
 			getWorkflowMap: getWorkflowMapMock,
+			getUserMap: mock(async () => new Map()),
+			getTeamMap: mock(async () => new Map()),
 		} as unknown as ShortcutClientWrapper;
 
 		test("should return formatted list of teams when teams are found", async () => {
@@ -213,6 +229,8 @@ describe("TeamTools", () => {
 					},
 				]),
 				getWorkflowMap: getWorkflowMapMock,
+				getUserMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
 			} as unknown as ShortcutClientWrapper);
 
 			const result = await teamTools.getTeams();

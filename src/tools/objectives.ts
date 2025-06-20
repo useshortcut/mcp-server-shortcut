@@ -64,7 +64,7 @@ export class ObjectiveTools extends BaseTools {
 
 		return this.toResult(
 			`Result (first ${milestones.length} shown of ${total} total milestones found):`,
-			await this.toCorrectedEntities(milestones),
+			await this.entitiesWithRelatedEntities(milestones, "objectives"),
 		);
 	}
 
@@ -76,7 +76,7 @@ export class ObjectiveTools extends BaseTools {
 
 		return this.toResult(
 			`Objective: ${objectivePublicId}`,
-			await this.toCorrectedEntity(objective),
+			await this.entityWithRelatedEntities(objective, "objective"),
 		);
 	}
 }

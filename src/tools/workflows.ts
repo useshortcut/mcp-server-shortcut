@@ -28,7 +28,10 @@ export class WorkflowTools extends BaseTools {
 
 		if (!workflow) return this.toResult(`Workflow with public ID: ${workflowPublicId} not found.`);
 
-		return this.toResult(`Workflow: ${workflow.id}`, await this.toCorrectedEntity(workflow));
+		return this.toResult(
+			`Workflow: ${workflow.id}`,
+			await this.entityWithRelatedEntities(workflow, "workflow"),
+		);
 	}
 
 	async listWorkflows() {
@@ -38,7 +41,7 @@ export class WorkflowTools extends BaseTools {
 
 		return this.toResult(
 			`Result (first ${workflows.length} shown of ${workflows.length} total workflows found):`,
-			await this.toCorrectedEntities(workflows),
+			await this.entitiesWithRelatedEntities(workflows, "workflows"),
 		);
 	}
 }
