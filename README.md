@@ -81,6 +81,29 @@ _You can add a new MCP server from the Claude Code CLI. But modifying the json f
 }
 ```
 
+### Zed
+[Zed MCP Documentation](https://zed.dev/docs/ai/mcp)
+1. Open your `settings.json` file. Instructions [here](https://zed.dev/docs/configuring-zed#settings-files)
+2. Add the following details and save the file:
+
+```json
+  "context_servers": {
+    "shortcut": {
+      "settings":{},
+      "command": {
+        "path": "<PATH/TO/NPX>",
+        "args": [
+          "-y",
+          "@shortcut/mcp@latest"
+        ],
+        "env": {
+          "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
+        }
+      }
+    }
+  }
+```
+
 ## Issues and Troubleshooting
 
 Before doing anything else, please make sure you are running the latest version!
