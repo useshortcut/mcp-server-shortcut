@@ -1,6 +1,6 @@
 import { describe, expect, mock, spyOn, test } from "bun:test";
-import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { ShortcutClientWrapper } from "@/client/shortcut";
 import { UserTools } from "./user";
 
 describe("UserTools", () => {

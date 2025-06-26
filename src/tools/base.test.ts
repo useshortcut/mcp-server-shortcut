@@ -1,6 +1,6 @@
 import { describe, expect, mock, test } from "bun:test";
-import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { Epic, Group, Iteration, Member, Milestone, Story, Workflow } from "@shortcut/client";
+import type { ShortcutClientWrapper } from "@/client/shortcut";
 import { BaseTools } from "./base";
 
 describe("BaseTools", () => {
