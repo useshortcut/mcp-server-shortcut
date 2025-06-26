@@ -1,9 +1,9 @@
-import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { MemberInfo, Story } from "@shortcut/client";
 import { z } from "zod";
+import type { ShortcutClientWrapper } from "@/client/shortcut";
 import { BaseTools } from "./base";
-import { type QueryParams, buildSearchQuery } from "./utils/search";
+import { buildSearchQuery, type QueryParams } from "./utils/search";
 import { date, has, is, user } from "./utils/validation";
 
 export class StoryTools extends BaseTools {
@@ -356,7 +356,7 @@ The story will be added to the default state for the workflow.
 		return `${currentUser.mention_name}/sc-${story.id}/${story.name
 			.toLowerCase()
 			.replace(/\s+/g, "-")
-			.replace(/[^\w\-]/g, "")}`.substring(0, 50);
+			.replace(/[^\w-]/g, "")}`.substring(0, 50);
 	}
 
 	async getStoryBranchName(storyPublicId: number) {
@@ -442,13 +442,7 @@ The story will be added to the default state for the workflow.
 		);
 	}
 
-	async createStoryComment({
-		storyPublicId,
-		text,
-	}: {
-		storyPublicId: number;
-		text: string;
-	}) {
+	async createStoryComment({ storyPublicId, text }: { storyPublicId: number; text: string }) {
 		if (!storyPublicId) throw new Error("Story public ID is required");
 		if (!text) throw new Error("Story comment text is required");
 

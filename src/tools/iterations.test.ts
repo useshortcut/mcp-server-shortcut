@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
-import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CreateIteration, Iteration, Member, MemberInfo, Story } from "@shortcut/client";
+import type { ShortcutClientWrapper } from "@/client/shortcut";
 import { IterationTools } from "./iterations";
 
 describe("IterationTools", () => {
