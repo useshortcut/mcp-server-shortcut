@@ -178,7 +178,7 @@ export class ShortcutClientWrapper {
 		do {
 			// Fix for @shortcut/client bug: searchStories sends params as body instead of query
 			// We need to manually call the request method with correct parameters
-			const response = await (this.client as any).request({
+			const response: any = await (this.client as any).request({
 				path: `/api/v3/search/stories`,
 				method: "GET",
 				query: {
@@ -210,7 +210,7 @@ export class ShortcutClientWrapper {
 		do {
 			// Fix for @shortcut/client bug: searchIterations sends params as body instead of query
 			// We need to manually call the request method with correct parameters
-			const response = await (this.client as any).request({
+			const response: any = await (this.client as any).request({
 				path: `/api/v3/search/iterations`,
 				method: "GET",
 				query: {
@@ -242,7 +242,7 @@ export class ShortcutClientWrapper {
 		do {
 			// Fix for @shortcut/client bug: searchEpics sends params as body instead of query
 			// We need to manually call the request method with correct parameters
-			const response = await (this.client as any).request({
+			const response: any = await (this.client as any).request({
 				path: `/api/v3/search/epics`,
 				method: "GET",
 				query: {
@@ -274,7 +274,7 @@ export class ShortcutClientWrapper {
 		do {
 			// Fix for @shortcut/client bug: searchMilestones sends params as body instead of query
 			// We need to manually call the request method with correct parameters
-			const response = await (this.client as any).request({
+			const response: any = await (this.client as any).request({
 				path: `/api/v3/search/milestones`,
 				method: "GET",
 				query: {

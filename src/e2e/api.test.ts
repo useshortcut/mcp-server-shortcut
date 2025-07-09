@@ -66,7 +66,7 @@ describe("E2E API Tests", () => {
 					console.log(`  Sample epic: ${result.epics[0].id} - ${result.epics[0].name}`);
 				}
 			} catch (error) {
-				console.error("Basic epic search failed:", error.message);
+				console.error("Basic epic search failed:", (error as Error).message);
 				throw error;
 			}
 		}, 15000);
@@ -90,7 +90,7 @@ describe("E2E API Tests", () => {
 					console.log("  No epics found for Artemis team");
 				}
 			} catch (error) {
-				console.error("Artemis team search failed:", error.message);
+				console.error("Artemis team search failed:", (error as Error).message);
 
 				// Try alternative search methods
 				console.log("Trying alternative search methods...");
@@ -100,7 +100,7 @@ describe("E2E API Tests", () => {
 					const groupResult = await client.searchEpics("group:Artemis");
 					console.log(`Alternative group:Artemis search: found ${groupResult.total} epics`);
 				} catch (groupError) {
-					console.log("group:Artemis search also failed:", groupError.message);
+					console.log("group:Artemis search also failed:", (groupError as Error).message);
 				}
 
 				// Don't throw the error here to continue with other tests
@@ -115,11 +115,11 @@ describe("E2E API Tests", () => {
 				expect(result).toBeTruthy();
 				expect(result.total).toBe(0);
 				expect(Array.isArray(result.epics)).toBe(true);
-				expect(result.epics.length).toBe(0);
+				expect(result.epics?.length).toBe(0);
 
 				console.log("✓ Empty search results handled correctly");
 			} catch (error) {
-				console.error("Empty search test failed:", error.message);
+				console.error("Empty search test failed:", (error as Error).message);
 				throw error;
 			}
 		}, 10000);
@@ -138,11 +138,11 @@ describe("E2E API Tests", () => {
 				expect(result.content.length).toBeGreaterThan(0);
 				expect(result.content[0].type).toBe("text");
 
-				const resultText = result.content[0].text;
+				const resultText = result.content[0].text as string;
 				console.log("✓ EpicTools search result:");
 				console.log(`  ${resultText.substring(0, 100)}...`);
 			} catch (error) {
-				console.error("EpicTools team search failed:", error.message);
+				console.error("EpicTools team search failed:", (error as Error).message);
 				// Don't throw to continue with other tests
 			}
 		}, 15000);
@@ -157,11 +157,11 @@ describe("E2E API Tests", () => {
 				expect(result.content).toBeDefined();
 				expect(Array.isArray(result.content)).toBe(true);
 
-				const resultText = result.content[0].text;
+				const resultText = result.content[0].text as string;
 				console.log("✓ EpicTools state search result:");
 				console.log(`  ${resultText.substring(0, 100)}...`);
 			} catch (error) {
-				console.error("EpicTools state search failed:", error.message);
+				console.error("EpicTools state search failed:", (error as Error).message);
 				throw error;
 			}
 		}, 15000);
@@ -179,11 +179,11 @@ describe("E2E API Tests", () => {
 				expect(result).toBeTruthy();
 				expect(result.content).toBeDefined();
 
-				const resultText = result.content[0].text;
+				const resultText = result.content[0].text as string;
 				console.log("✓ EpicTools flexible search result:");
 				console.log(`  ${resultText.substring(0, 100)}...`);
 			} catch (error) {
-				console.error("EpicTools flexible search failed:", error.message);
+				console.error("EpicTools flexible search failed:", (error as Error).message);
 				throw error;
 			}
 		}, 15000);
@@ -200,7 +200,7 @@ describe("E2E API Tests", () => {
 				expect(result.content).toBeDefined();
 				expect(Array.isArray(result.content)).toBe(true);
 
-				const resultText = result.content[0].text;
+				const resultText = result.content[0].text as string;
 				console.log("✓ TeamTools result:");
 				console.log(`  ${resultText.substring(0, 200)}...`);
 
@@ -208,7 +208,7 @@ describe("E2E API Tests", () => {
 				const hasArtemis = resultText.includes("Artemis");
 				console.log(`  Artemis team listed: ${hasArtemis ? "Yes" : "No"}`);
 			} catch (error) {
-				console.error("TeamTools failed:", error.message);
+				console.error("TeamTools failed:", (error as Error).message);
 				throw error;
 			}
 		}, 10000);
@@ -228,14 +228,14 @@ describe("E2E API Tests", () => {
 				console.log(`  Returned ${result.epics?.length || 0} epics in result`);
 
 				// If there are more than 25 epics, pagination should have fetched all
-				if (result.total > 25) {
+				if (result.total && result.total > 25) {
 					expect(result.epics?.length).toBe(result.total);
 					console.log("✓ Pagination working correctly - all epics fetched");
 				} else {
 					console.log("✓ Small result set - pagination not needed");
 				}
 			} catch (error) {
-				console.error("Pagination test failed:", error.message);
+				console.error("Pagination test failed:", (error as Error).message);
 				throw error;
 			}
 		}, 30000); // Longer timeout for pagination

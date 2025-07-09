@@ -318,7 +318,7 @@ describe("EpicTools", () => {
 
 		// TDD Red Phase: Test for Artemis team search
 		test("should search epics by team name 'Artemis'", async () => {
-			const artemisSearchMock = mock(async (query: string) => ({
+			const artemisSearchMock = mock(async (_query: string) => ({
 				epics: [
 					{ id: 1, name: "Epic 1 for Artemis team" },
 					{ id: 2, name: "Epic 2 for Artemis team" },
@@ -346,7 +346,7 @@ describe("EpicTools", () => {
 		});
 
 		test("should handle team name case insensitively", async () => {
-			const caseInsensitiveMock = mock(async (query: string) => ({
+			const caseInsensitiveMock = mock(async (_query: string) => ({
 				epics: [{ id: 1, name: "Epic for artemis" }],
 				total: 1,
 			}));
@@ -363,7 +363,7 @@ describe("EpicTools", () => {
 		});
 
 		test("should fallback to original team value if team not found", async () => {
-			const fallbackMock = mock(async (query: string) => ({
+			const fallbackMock = mock(async (_query: string) => ({
 				epics: [],
 				total: 0,
 			}));
