@@ -71,6 +71,11 @@ describe("EpicTools", () => {
 	const createMockClient = (methods?: object) =>
 		({
 			getCurrentUser: mock(async () => mockCurrentUser),
+			getTeams: mock(async () => [
+				{ id: "team1", name: "Artemis" },
+				{ id: "team2", name: "Apollo" },
+				{ id: "team3", name: "engineering" },
+			]),
 			...methods,
 		}) as unknown as ShortcutClientWrapper;
 
@@ -268,7 +273,7 @@ describe("EpicTools", () => {
 			});
 
 			expect(searchEpicsMock.mock.calls?.[0]?.[0]).toBe(
-				'id:1 name:"Test Epic" description:"Test Description" state:started objective:123 owner:testuser team:engineering is:archived',
+				'id:1 name:"Test Epic" description:"Test Description" state:started objective:123 owner:testuser group:team3 is:archived',
 			);
 		});
 
@@ -309,6 +314,69 @@ describe("EpicTools", () => {
 			expect(searchEpicsMock.mock.calls?.[0]?.[0]).toBe(
 				"is:unstarted !is:started is:done !is:archived is:overdue has:owner !has:comment has:deadline !has:label",
 			);
+		});
+
+		// TDD Red Phase: Test for Artemis team search
+		test("should search epics by team name 'Artemis'", async () => {
+			const artemisSearchMock = mock(async (query: string) => ({
+				epics: [
+					{ id: 1, name: "Epic 1 for Artemis team" },
+					{ id: 2, name: "Epic 2 for Artemis team" },
+				],
+				total: 2,
+			}));
+
+			const artemisClient = createMockClient({
+				searchEpics: artemisSearchMock,
+			});
+
+			const epicTools = new EpicTools(artemisClient);
+			const result = await epicTools.searchEpics({ team: "Artemis" });
+
+			// チーム名「Artemis」がチームID「team1」に変換されて検索される
+			expect(artemisSearchMock).toHaveBeenCalledWith("group:team1");
+
+			// 結果が正しく返される
+			expect(result.content[0].type).toBe("text");
+			expect(String(result.content[0].text)).toContain(
+				"Result (first 2 shown of 2 total epics found)",
+			);
+			expect(String(result.content[0].text)).toContain("1: Epic 1 for Artemis team");
+			expect(String(result.content[0].text)).toContain("2: Epic 2 for Artemis team");
+		});
+
+		test("should handle team name case insensitively", async () => {
+			const caseInsensitiveMock = mock(async (query: string) => ({
+				epics: [{ id: 1, name: "Epic for artemis" }],
+				total: 1,
+			}));
+
+			const caseInsensitiveClient = createMockClient({
+				searchEpics: caseInsensitiveMock,
+			});
+
+			const epicTools = new EpicTools(caseInsensitiveClient);
+			await epicTools.searchEpics({ team: "artemis" });
+
+			// 大文字小文字を区別せずにチーム名が解決される
+			expect(caseInsensitiveMock).toHaveBeenCalledWith("group:team1");
+		});
+
+		test("should fallback to original team value if team not found", async () => {
+			const fallbackMock = mock(async (query: string) => ({
+				epics: [],
+				total: 0,
+			}));
+
+			const fallbackClient = createMockClient({
+				searchEpics: fallbackMock,
+			});
+
+			const epicTools = new EpicTools(fallbackClient);
+			await epicTools.searchEpics({ team: "NonExistentTeam" });
+
+			// 存在しないチーム名の場合、元の値がそのまま使われる
+			expect(fallbackMock).toHaveBeenCalledWith("team:NonExistentTeam");
 		});
 	});
 });
