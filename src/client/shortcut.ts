@@ -171,43 +171,131 @@ export class ShortcutClientWrapper {
 	}
 
 	async searchStories(query: string) {
-		const response = await this.client.searchStories({ query, page_size: 25, detail: "slim" });
-		const stories = response?.data?.data;
-		const total = response?.data?.total;
+		const allStories = [];
+		let next: string | undefined = undefined;
+		const pageSize = 25;
 
-		if (!stories) return { stories: null, total: null };
+		do {
+			// Fix for @shortcut/client bug: searchStories sends params as body instead of query
+			// We need to manually call the request method with correct parameters
+			const response = await (this.client as any).request({
+				path: `/api/v3/search/stories`,
+				method: "GET",
+				query: {
+					query,
+					page_size: pageSize,
+					detail: "slim",
+					...(next && { next }),
+				},
+				secure: true,
+				format: "json",
+			});
 
-		return { stories, total };
+			const stories = response?.data?.data;
+			next = response?.data?.next || undefined;
+
+			if (!stories) return { stories: null, total: null };
+
+			allStories.push(...stories);
+		} while (next);
+
+		return { stories: allStories, total: allStories.length };
 	}
 
 	async searchIterations(query: string) {
-		const response = await this.client.searchIterations({ query, page_size: 25, detail: "slim" });
-		const iterations = response?.data?.data;
-		const total = response?.data?.total;
+		const allIterations = [];
+		let next: string | undefined = undefined;
+		const pageSize = 25;
 
-		if (!iterations) return { iterations: null, total: null };
+		do {
+			// Fix for @shortcut/client bug: searchIterations sends params as body instead of query
+			// We need to manually call the request method with correct parameters
+			const response = await (this.client as any).request({
+				path: `/api/v3/search/iterations`,
+				method: "GET",
+				query: {
+					query,
+					page_size: pageSize,
+					detail: "slim",
+					...(next && { next }),
+				},
+				secure: true,
+				format: "json",
+			});
 
-		return { iterations, total };
+			const iterations = response?.data?.data;
+			next = response?.data?.next || undefined;
+
+			if (!iterations) return { iterations: null, total: null };
+
+			allIterations.push(...iterations);
+		} while (next);
+
+		return { iterations: allIterations, total: allIterations.length };
 	}
 
 	async searchEpics(query: string) {
-		const response = await this.client.searchEpics({ query, page_size: 25, detail: "slim" });
-		const epics = response?.data?.data;
-		const total = response?.data?.total;
+		const allEpics = [];
+		let next: string | undefined = undefined;
+		const pageSize = 25;
 
-		if (!epics) return { epics: null, total: null };
+		do {
+			// Fix for @shortcut/client bug: searchEpics sends params as body instead of query
+			// We need to manually call the request method with correct parameters
+			const response = await (this.client as any).request({
+				path: `/api/v3/search/epics`,
+				method: "GET",
+				query: {
+					query,
+					page_size: pageSize,
+					detail: "slim",
+					...(next && { next }),
+				},
+				secure: true,
+				format: "json",
+			});
 
-		return { epics, total };
+			const epics = response?.data?.data;
+			next = response?.data?.next || undefined;
+
+			if (!epics) return { epics: null, total: null };
+
+			allEpics.push(...epics);
+		} while (next);
+
+		return { epics: allEpics, total: allEpics.length };
 	}
 
 	async searchMilestones(query: string) {
-		const response = await this.client.searchMilestones({ query, page_size: 25, detail: "slim" });
-		const milestones = response?.data?.data;
-		const total = response?.data?.total;
+		const allMilestones = [];
+		let next: string | undefined = undefined;
+		const pageSize = 25;
 
-		if (!milestones) return { milestones: null, total: null };
+		do {
+			// Fix for @shortcut/client bug: searchMilestones sends params as body instead of query
+			// We need to manually call the request method with correct parameters
+			const response = await (this.client as any).request({
+				path: `/api/v3/search/milestones`,
+				method: "GET",
+				query: {
+					query,
+					page_size: pageSize,
+					detail: "slim",
+					...(next && { next }),
+				},
+				secure: true,
+				format: "json",
+			});
 
-		return { milestones, total };
+			const milestones = response?.data?.data;
+			next = response?.data?.next || undefined;
+
+			if (!milestones) return { milestones: null, total: null };
+
+			allMilestones.push(...milestones);
+		} while (next);
+
+		return { milestones: allMilestones, total: allMilestones.length };
 	}
 
 	async listIterationStories(iterationPublicId: number) {

@@ -32,6 +32,8 @@
 	},
 	"scripts": {
 		"test": "bun test",
+		"test:unit": "bun test --ignore=\"**/e2e/**\"",
+		"test:e2e": "bun test src/e2e/",
 		"format": "biome check --write ./",
 		"lint": "biome check ./",
 		"ts": "tsc -b",

@@ -20,7 +20,7 @@ if (process.argv.length > 2) {
 }
 
 if (!apiToken) {
-	console.error("SHORTCUT_API_TOKEN is required");
+	process.stderr.write("SHORTCUT_API_TOKEN is required\n");
 	process.exit(1);
 }
 
@@ -40,7 +40,7 @@ async function startServer() {
 		const transport = new StdioServerTransport();
 		await server.connect(transport);
 	} catch (error) {
-		console.error("Fatal:", error);
+		process.stderr.write(`Fatal: ${error}\n`);
 		process.exit(1);
 	}
 }
