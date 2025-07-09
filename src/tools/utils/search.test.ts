@@ -102,4 +102,78 @@ describe("buildSearchQuery", () => {
 		const result = await buildSearchQuery(params, mockCurrentUser);
 		expect(result).toBe("owner:janedoe");
 	});
+
+	test("should resolve team name to team ID", async () => {
+		const mockClient = {
+			getTeams: async () => [
+				{ id: "team1", name: "Engineering" },
+				{ id: "team2", name: "Product Team" },
+			],
+		};
+		const params: QueryParams = {
+			team: "Engineering",
+		};
+		const result = await buildSearchQuery(params, mockCurrentUser, mockClient as any);
+		expect(result).toBe("group:team1");
+	});
+
+	test("should resolve team name case insensitively", async () => {
+		const mockClient = {
+			getTeams: async () => [
+				{ id: "team1", name: "Engineering" },
+				{ id: "team2", name: "Product Team" },
+			],
+		};
+		const params: QueryParams = {
+			team: "engineering",
+		};
+		const result = await buildSearchQuery(params, mockCurrentUser, mockClient as any);
+		expect(result).toBe("group:team1");
+	});
+
+	test("should handle team name with spaces", async () => {
+		const mockClient = {
+			getTeams: async () => [
+				{ id: "team1", name: "Engineering" },
+				{ id: "team2", name: "Product Team" },
+			],
+		};
+		const params: QueryParams = {
+			team: "Product Team",
+		};
+		const result = await buildSearchQuery(params, mockCurrentUser, mockClient as any);
+		expect(result).toBe("group:team2");
+	});
+
+	test("should fallback to original team value if team not found", async () => {
+		const mockClient = {
+			getTeams: async () => [{ id: "team1", name: "Engineering" }],
+		};
+		const params: QueryParams = {
+			team: "NonExistentTeam",
+		};
+		const result = await buildSearchQuery(params, mockCurrentUser, mockClient as any);
+		expect(result).toBe("team:NonExistentTeam");
+	});
+
+	test("should handle API error gracefully when fetching teams", async () => {
+		const mockClient = {
+			getTeams: async () => {
+				throw new Error("API Error");
+			},
+		};
+		const params: QueryParams = {
+			team: "Engineering",
+		};
+		const result = await buildSearchQuery(params, mockCurrentUser, mockClient as any);
+		expect(result).toBe("team:Engineering");
+	});
+
+	test("should handle team parameter without client", async () => {
+		const params: QueryParams = {
+			team: "Engineering",
+		};
+		const result = await buildSearchQuery(params, mockCurrentUser);
+		expect(result).toBe("team:Engineering");
+	});
 });
