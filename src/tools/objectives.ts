@@ -56,7 +56,7 @@ export class ObjectiveTools extends BaseTools {
 
 	async searchObjectives(params: QueryParams) {
 		const currentUser = await this.client.getCurrentUser();
-		const query = await buildSearchQuery(params, currentUser);
+		const query = await buildSearchQuery(params, currentUser, this.client);
 		const { milestones, total } = await this.client.searchMilestones(query);
 
 		if (!milestones)

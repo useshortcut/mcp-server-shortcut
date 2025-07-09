@@ -41,9 +41,11 @@ export class EpicTools extends BaseTools {
 					.string()
 					.optional()
 					.describe(
-						"Find only epics matching the specified team. Should be a team's mention name.",
+						"Find only epics matching the specified team. Should be a team name (use quotes for names with spaces).",
 					),
 				comment: z.string().optional().describe("Find only epics matching the specified comment"),
+				label: z.string().optional().describe("Find only epics with the specified label"),
+				text: z.string().optional().describe("Search text in epic name, description, or comments"),
 				isUnstarted: is("unstarted"),
 				isStarted: is("started"),
 				isDone: is("completed"),
@@ -53,6 +55,7 @@ export class EpicTools extends BaseTools {
 				hasComment: has("a comment"),
 				hasDeadline: has("a deadline"),
 				hasLabel: has("a label"),
+				hasStories: has("stories"),
 				created: date,
 				updated: date,
 				completed: date,
@@ -66,7 +69,7 @@ export class EpicTools extends BaseTools {
 
 	async searchEpics(params: QueryParams) {
 		const currentUser = await this.client.getCurrentUser();
-		const query = await buildSearchQuery(params, currentUser);
+		const query = await buildSearchQuery(params, currentUser, this.client);
 		const { epics, total } = await this.client.searchEpics(query);
 
 		if (!epics) throw new Error(`Failed to search for epics matching your query: "${query}"`);

@@ -71,7 +71,7 @@ export class StoryTools extends BaseTools {
 					.string()
 					.optional()
 					.describe(
-						"Find only stories matching the specified team. This can be a team mention name or team name.",
+						"Find only stories matching the specified team. Should be a team name (use quotes for names with spaces).",
 					),
 				skillSet: z
 					.string()
@@ -284,7 +284,7 @@ The story will be added to the default state for the workflow.
 
 	async searchStories(params: QueryParams) {
 		const currentUser = await this.client.getCurrentUser();
-		const query = await buildSearchQuery(params, currentUser);
+		const query = await buildSearchQuery(params, currentUser, this.client);
 		const { stories, total } = await this.client.searchStories(query);
 
 		if (!stories) throw new Error(`Failed to search for stories matching your query: "${query}".`);

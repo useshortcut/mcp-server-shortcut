@@ -44,7 +44,7 @@ export class IterationTools extends BaseTools {
 					.string()
 					.optional()
 					.describe(
-						"Find only iterations matching the specified team. Should be a team mention name.",
+						"Find only iterations matching the specified team. Should be a team name (use quotes for names with spaces).",
 					),
 				created: date,
 				updated: date,
@@ -73,7 +73,7 @@ ${formatStoryList(stories, owners)}`);
 
 	async searchIterations(params: QueryParams) {
 		const currentUser = await this.client.getCurrentUser();
-		const query = await buildSearchQuery(params, currentUser);
+		const query = await buildSearchQuery(params, currentUser, this.client);
 		const { iterations, total } = await this.client.searchIterations(query);
 
 		if (!iterations)
