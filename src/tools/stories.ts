@@ -319,6 +319,24 @@ The story will be added to the default state for the workflow.
 				await tools.setStoryExternalLinks(storyPublicId, externalLinks),
 		);
 
+		server.tool(
+			"get-story-summary",
+			"Get only the title and description of a Shortcut story",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+			},
+			async ({ storyPublicId }) => await tools.getStorySummary(storyPublicId),
+		);
+
+		server.tool(
+			"get-story-tasks",
+			"Get all tasks (subtasks) for a Shortcut story",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+			},
+			async ({ storyPublicId }) => await tools.getStoryTasks(storyPublicId),
+		);
+
 		return tools;
 	}
 
@@ -672,5 +690,45 @@ The story will be added to the default state for the workflow.
 				: `Set ${linkCount} external link${linkCount === 1 ? "" : "s"} on story sc-${storyPublicId}`;
 
 		return this.toResult(`${message}. Story URL: ${updatedStory.app_url}`);
+	}
+
+	async getStorySummary(storyPublicId: number) {
+		const story = await this.client.getStory(storyPublicId);
+
+		if (!story)
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
+
+		return this.toResult(`Story summary for sc-${storyPublicId}`, {
+			id: story.id,
+			name: story.name,
+			description: story.description || "No description",
+			app_url: story.app_url,
+		});
+	}
+
+	async getStoryTasks(storyPublicId: number) {
+		const story = await this.client.getStory(storyPublicId);
+
+		if (!story)
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
+
+		const tasks = story.tasks || [];
+
+		if (tasks.length === 0) {
+			return this.toResult(`No tasks found for story sc-${storyPublicId}`);
+		}
+
+		return this.toResult(`Tasks for story sc-${storyPublicId} (${tasks.length} total)`, {
+			story_id: story.id,
+			story_name: story.name,
+			tasks: tasks.map((task) => ({
+				id: task.id,
+				description: task.description,
+				complete: task.complete,
+				owner_ids: task.owner_ids || [],
+				created_at: task.created_at,
+				updated_at: task.updated_at,
+			})),
+		});
 	}
 }
