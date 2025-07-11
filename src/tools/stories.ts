@@ -698,11 +698,26 @@ The story will be added to the default state for the workflow.
 		if (!story)
 			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
 
+		// Get requester info if available
+		let requesterInfo = null;
+		if (story.requested_by_id) {
+			const requester = await this.client.getUser(story.requested_by_id);
+			if (requester) {
+				requesterInfo = {
+					id: requester.id,
+					name: requester.profile?.name || requester.profile?.mention_name || "Unknown",
+				};
+			}
+		}
+
 		return this.toResult(`Story summary for sc-${storyPublicId}`, {
 			id: story.id,
 			name: story.name,
 			description: story.description || "No description",
 			app_url: story.app_url,
+			epic_id: story.epic_id || null,
+			requester_id: story.requested_by_id || null,
+			requester_name: requesterInfo?.name || null,
 		});
 	}
 
