@@ -111,12 +111,6 @@ export class StoryTools extends BaseTools {
 				updated: date,
 				completed: date,
 				due: date,
-				sort_by: z
-					.enum(["updated", "completed"])
-					.default("updated")
-					.describe(
-						"Sort method: 'updated' (smart sorting by completion date for completed stories, updated date for active stories - default), 'completed' (legacy mode)",
-					),
 			},
 			async (params) => await tools.searchStories(params),
 		);
@@ -145,12 +139,6 @@ export class StoryTools extends BaseTools {
 					.max(100)
 					.default(25)
 					.describe("Maximum number of stories to return (1-100, default 25)"),
-				sort_by: z
-					.enum(["updated", "completed"])
-					.default("updated")
-					.describe(
-						"Sort method: 'updated' (smart sorting by completion date for completed stories, updated date for active stories - default), 'completed' (legacy mode)",
-					),
 			},
 			async (params) => await tools.searchStoriesByOwner(params),
 		);
@@ -176,12 +164,6 @@ export class StoryTools extends BaseTools {
 					.max(100)
 					.default(25)
 					.describe("Maximum number of stories to return"),
-				sort_by: z
-					.enum(["updated", "completed"])
-					.default("updated")
-					.describe(
-						"Sort method: 'updated' (smart sorting by completion date for completed stories, updated date for active stories - default), 'completed' (legacy mode)",
-					),
 			},
 			async (params) => await tools.searchStoriesByMention(params),
 		);
@@ -386,22 +368,13 @@ The story will be added to the default state for the workflow.
 		return tools;
 	}
 
-	// ストーリーを日時でソートするヘルパーメソッド
-	private sortStories(stories: Story[], sortBy: "updated" | "completed" = "updated"): Story[] {
+	// ストーリーをスマートソートするヘルパーメソッド
+	// 完了済みはcompleted_at、未完了はupdated_atを使用してノイズを除去
+	private sortStoriesBySmartActivity(stories: Story[]): Story[] {
 		return stories.sort((a, b) => {
-			let dateA: Date;
-			let dateB: Date;
-
-			if (sortBy === "completed") {
-				// completedモード: completed_at優先、なければupdated_atを使用
-				dateA = a.completed_at ? new Date(a.completed_at) : new Date(a.updated_at);
-				dateB = b.completed_at ? new Date(b.completed_at) : new Date(b.updated_at);
-			} else {
-				// updatedモード: 完了済みはcompleted_at、未完了はupdated_atを使用
-				// これにより完了後の誆字修正等のノイズを除去
-				dateA = a.completed_at ? new Date(a.completed_at) : new Date(a.updated_at);
-				dateB = b.completed_at ? new Date(b.completed_at) : new Date(b.updated_at);
-			}
+			// 完了済みはcompleted_at、未完了はupdated_atを使用
+			const dateA = a.completed_at ? new Date(a.completed_at) : new Date(a.updated_at);
+			const dateB = b.completed_at ? new Date(b.completed_at) : new Date(b.updated_at);
 
 			return dateB.getTime() - dateA.getTime(); // 新しい順
 		});
@@ -409,7 +382,7 @@ The story will be added to the default state for the workflow.
 
 	// 互換性のためのラッパーメソッド
 	private sortStoriesByUpdatedAt(stories: Story[]): Story[] {
-		return this.sortStories(stories, "updated");
+		return this.sortStoriesBySmartActivity(stories);
 	}
 
 	async assignCurrentUserAsOwner(storyPublicId: number) {
@@ -525,13 +498,11 @@ The story will be added to the default state for the workflow.
 		if (!stories.length)
 			return this.toResult(`Result: No stories found matching query: "${query}"`);
 
-		// ソート方法に基づいてソート
-		const sortBy = params.sort_by || "updated";
-		const sortedStories = this.sortStories(stories, sortBy as "updated" | "completed");
+		// スマートソートでソート
+		const sortedStories = this.sortStoriesBySmartActivity(stories);
 
-		const sortDescription = sortBy === "updated" ? "smart activity time" : "completion date";
 		return this.toResult(
-			`Result (first ${sortedStories.length} shown of ${total} total stories found, sorted by ${sortDescription}):`,
+			`Result (first ${sortedStories.length} shown of ${total} total stories found, sorted by smart activity time):`,
 			await this.entitiesWithRelatedEntities(sortedStories, "stories"),
 		);
 	}
@@ -546,7 +517,6 @@ The story will be added to the default state for the workflow.
 		isUnstarted?: boolean;
 		isArchived?: boolean;
 		limit?: number;
-		sort_by?: "updated" | "completed";
 	}) {
 		const {
 			owner_id,
@@ -635,10 +605,8 @@ The story will be added to the default state for the workflow.
 				);
 			}
 
-			const sortDescription =
-				(params.sort_by || "updated") === "updated" ? "smart activity time" : "completion date";
 			return this.toResult(
-				`Found ${stories.length} of ${total} total stories owned by '${ownerUser.profile.mention_name}' (${ownerUser.profile.name}) using query: "${successfulQuery}" (sorted by ${sortDescription}):`,
+				`Found ${stories.length} of ${total} total stories owned by '${ownerUser.profile.mention_name}' (${ownerUser.profile.name}) using query: "${successfulQuery}" (sorted by smart activity time):`,
 				await this.entitiesWithRelatedEntities(stories, "stories"),
 			);
 		} catch (error) {
@@ -658,7 +626,6 @@ The story will be added to the default state for the workflow.
 		isUnstarted?: boolean;
 		isArchived?: boolean;
 		limit?: number;
-		sort_by?: "updated" | "completed";
 	}) {
 		const {
 			mention_name,
@@ -735,8 +702,7 @@ The story will be added to the default state for the workflow.
 				try {
 					const result = await this.client.searchStories(query, limit);
 					if (result.stories && result.stories.length > 0) {
-						const sortBy = params.sort_by || "updated";
-						stories = this.sortStories(result.stories, sortBy as "updated" | "completed");
+						stories = this.sortStoriesBySmartActivity(result.stories);
 						total = result.total || 0;
 						successfulQuery = query;
 						break; // 成功したら他の方法は試さない
@@ -752,10 +718,8 @@ The story will be added to the default state for the workflow.
 				);
 			}
 
-			const sortDescription =
-				(params.sort_by || "updated") === "updated" ? "smart activity time" : "completion date";
 			return this.toResult(
-				`Found ${stories.length} of ${total} total stories owned by '@${mention_name}' (${ownerUser.profile.name}) using query: "${successfulQuery}" (sorted by ${sortDescription}):`,
+				`Found ${stories.length} of ${total} total stories owned by '@${mention_name}' (${ownerUser.profile.name}) using query: "${successfulQuery}" (sorted by smart activity time):`,
 				await this.entitiesWithRelatedEntities(stories, "stories"),
 			);
 		} catch (error) {

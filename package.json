@@ -1,18 +1,22 @@
 {
-	"name": "@shortcut/mcp",
-	"author": "Shortcut (https://www.shortcut.com)",
+	"name": "@soramash/mcp-shortcut",
+	"version": "0.1.0",
 	"description": "Shortcut MCP Server",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/useshortcut/mcp-server-shortcut.git"
-	},
 	"keywords": [
 		"shortcut",
 		"mcp",
 		"modelcontextprotocol"
 	],
+	"homepage": "https://github.com/soramash/mcp-server-shortcut#readme",
+	"bugs": {
+		"url": "https://github.com/soramash/mcp-server-shortcut/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/soramash/mcp-server-shortcut.git"
+	},
 	"license": "MIT",
-	"version": "0.8.4",
+	"author": "soramash Forked from Shortcut (https://www.shortcut.com)",
 	"type": "module",
 	"main": "dist/index.js",
 	"bin": {
@@ -21,21 +25,6 @@
 	"files": [
 		"dist"
 	],
-	"devDependencies": {
-		"@biomejs/biome": "^1.9.4",
-		"@types/bun": "latest",
-		"bun": "^1.2.5",
-		"husky": "^9.1.7",
-		"shx": "^0.3.4"
-	},
-	"peerDependencies": {
-		"typescript": "^5"
-	},
-	"dependencies": {
-		"@modelcontextprotocol/sdk": "^1.11.3",
-		"@shortcut/client": "^1.1.0",
-		"zod": "^3.24.4"
-	},
 	"scripts": {
 		"test": "bun test",
 		"format": "biome check --write ./",
@@ -45,5 +34,20 @@
 		"prepublish": "bun run build",
 		"postbuild": "shx chmod +x dist/*.js",
 		"prepare": "husky"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.11.3",
+		"@shortcut/client": "^1.1.0",
+		"zod": "^3.24.4"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"@types/bun": "latest",
+		"bun": "^1.2.5",
+		"husky": "^9.1.7",
+		"shx": "^0.3.4"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
 	}
 }
