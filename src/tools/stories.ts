@@ -30,7 +30,7 @@ export class StoryTools extends BaseTools {
 
 		server.tool(
 			"search-stories",
-			"Find Shortcut stories with flexible search criteria. Results are sorted by last updated time (newest first) by default, or optionally by completion date.",
+			"Find Shortcut stories with flexible search criteria. Results are sorted by meaningful activity time - completed stories use completion date, active stories use last updated time (newest first). This avoids noise from post-completion edits like typo fixes.",
 			{
 				id: z.number().optional().describe("Find only stories with the specified public ID"),
 				name: z.string().optional().describe("Find only stories matching the specified name"),
@@ -115,7 +115,7 @@ export class StoryTools extends BaseTools {
 					.enum(["updated", "completed"])
 					.default("updated")
 					.describe(
-						"Sort by 'updated' (last updated time, default) or 'completed' (completion date with fallback to updated)",
+						"Sort method: 'updated' (smart sorting by completion date for completed stories, updated date for active stories - default), 'completed' (legacy mode)",
 					),
 			},
 			async (params) => await tools.searchStories(params),
@@ -124,7 +124,7 @@ export class StoryTools extends BaseTools {
 		// 新しいツール：特定のユーザーがOwnerのStoryを検索
 		server.tool(
 			"search-stories-by-owner",
-			"Find Shortcut stories owned by a specific user ID. This tool tries multiple search approaches if the primary owner search fails. Results are sorted by last updated time (newest first) by default, or optionally by completion date.",
+			"Find Shortcut stories owned by a specific user ID. This tool tries multiple search approaches if the primary owner search fails. Results are sorted by meaningful activity time - completed stories use completion date, active stories use last updated time (newest first). This avoids noise from post-completion edits.",
 			{
 				owner_id: z.string().describe("The user ID (UUID) of the owner to search for"),
 				state: z
@@ -149,7 +149,7 @@ export class StoryTools extends BaseTools {
 					.enum(["updated", "completed"])
 					.default("updated")
 					.describe(
-						"Sort by 'updated' (last updated time, default) or 'completed' (completion date with fallback to updated)",
+						"Sort method: 'updated' (smart sorting by completion date for completed stories, updated date for active stories - default), 'completed' (legacy mode)",
 					),
 			},
 			async (params) => await tools.searchStoriesByOwner(params),
@@ -158,7 +158,7 @@ export class StoryTools extends BaseTools {
 		// 代替ツール：メンション名でのOwner検索
 		server.tool(
 			"search-stories-by-mention",
-			"Find Shortcut stories owned by a specific user using their mention name (e.g., 'mash'). This is an alternative to search-stories-by-owner for when you have the mention name instead of UUID. Results are sorted by last updated time (newest first) by default, or optionally by completion date.",
+			"Find Shortcut stories owned by a specific user using their mention name (e.g., 'mash'). This is an alternative to search-stories-by-owner for when you have the mention name instead of UUID. Results are sorted by meaningful activity time - completed stories use completion date, active stories use last updated time (newest first). This avoids noise from post-completion edits.",
 			{
 				mention_name: z.string().describe("The mention name of the owner (without @ symbol)"),
 				state: z.string().optional().describe("Optional: Filter by workflow state"),
@@ -180,7 +180,7 @@ export class StoryTools extends BaseTools {
 					.enum(["updated", "completed"])
 					.default("updated")
 					.describe(
-						"Sort by 'updated' (last updated time, default) or 'completed' (completion date with fallback to updated)",
+						"Sort method: 'updated' (smart sorting by completion date for completed stories, updated date for active stories - default), 'completed' (legacy mode)",
 					),
 			},
 			async (params) => await tools.searchStoriesByMention(params),
@@ -393,13 +393,14 @@ The story will be added to the default state for the workflow.
 			let dateB: Date;
 
 			if (sortBy === "completed") {
-				// completed_at優先、なければupdated_atを使用
+				// completedモード: completed_at優先、なければupdated_atを使用
 				dateA = a.completed_at ? new Date(a.completed_at) : new Date(a.updated_at);
 				dateB = b.completed_at ? new Date(b.completed_at) : new Date(b.updated_at);
 			} else {
-				// updated_atでソート（デフォルト）
-				dateA = new Date(a.updated_at);
-				dateB = new Date(b.updated_at);
+				// updatedモード: 完了済みはcompleted_at、未完了はupdated_atを使用
+				// これにより完了後の誆字修正等のノイズを除去
+				dateA = a.completed_at ? new Date(a.completed_at) : new Date(a.updated_at);
+				dateB = b.completed_at ? new Date(b.completed_at) : new Date(b.updated_at);
 			}
 
 			return dateB.getTime() - dateA.getTime(); // 新しい順
@@ -528,8 +529,9 @@ The story will be added to the default state for the workflow.
 		const sortBy = params.sort_by || "updated";
 		const sortedStories = this.sortStories(stories, sortBy as "updated" | "completed");
 
+		const sortDescription = sortBy === "updated" ? "smart activity time" : "completion date";
 		return this.toResult(
-			`Result (first ${sortedStories.length} shown of ${total} total stories found, sorted by "${sortBy}"):`,
+			`Result (first ${sortedStories.length} shown of ${total} total stories found, sorted by ${sortDescription}):`,
 			await this.entitiesWithRelatedEntities(sortedStories, "stories"),
 		);
 	}
@@ -633,8 +635,10 @@ The story will be added to the default state for the workflow.
 				);
 			}
 
+			const sortDescription =
+				(params.sort_by || "updated") === "updated" ? "smart activity time" : "completion date";
 			return this.toResult(
-				`Found ${stories.length} of ${total} total stories owned by '${ownerUser.profile.mention_name}' (${ownerUser.profile.name}) using query: "${successfulQuery}" (sorted by "${params.sort_by || "updated"}"):`,
+				`Found ${stories.length} of ${total} total stories owned by '${ownerUser.profile.mention_name}' (${ownerUser.profile.name}) using query: "${successfulQuery}" (sorted by ${sortDescription}):`,
 				await this.entitiesWithRelatedEntities(stories, "stories"),
 			);
 		} catch (error) {
@@ -748,8 +752,10 @@ The story will be added to the default state for the workflow.
 				);
 			}
 
+			const sortDescription =
+				(params.sort_by || "updated") === "updated" ? "smart activity time" : "completion date";
 			return this.toResult(
-				`Found ${stories.length} of ${total} total stories owned by '@${mention_name}' (${ownerUser.profile.name}) using query: "${successfulQuery}" (sorted by "${params.sort_by || "updated"}"):`,
+				`Found ${stories.length} of ${total} total stories owned by '@${mention_name}' (${ownerUser.profile.name}) using query: "${successfulQuery}" (sorted by ${sortDescription}):`,
 				await this.entitiesWithRelatedEntities(stories, "stories"),
 			);
 		} catch (error) {
