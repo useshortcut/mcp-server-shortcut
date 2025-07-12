@@ -1,5 +1,5 @@
-import type { MemberInfo } from "@shortcut/client";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
+import type { MemberInfo } from "@shortcut/client";
 
 const keyRenames = { name: "title" } as const;
 
@@ -28,8 +28,8 @@ export const buildSearchQuery = async (
 	if (resolvedParams.project && typeof resolvedParams.project === "string" && client) {
 		try {
 			const projects = await client.listProjects();
-			const project = projects.find(p => 
-				p.name.toLowerCase() === resolvedParams.project.toString().toLowerCase()
+			const project = projects.find(
+				(p) => p.name.toLowerCase() === resolvedParams.project.toString().toLowerCase(),
 			);
 			if (project) {
 				resolvedParams.project = project.id;

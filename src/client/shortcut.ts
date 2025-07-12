@@ -108,6 +108,11 @@ export class ShortcutClientWrapper {
 		return user;
 	}
 
+	async getMember(userId: string) {
+		await this.loadMembers();
+		return this.userCache.get(userId) || null;
+	}
+
 	async getUserMap(userIds: string[]) {
 		await this.loadMembers();
 		return new Map(
@@ -233,8 +238,8 @@ export class ShortcutClientWrapper {
 		return milestone;
 	}
 
-	async searchStories(query: string) {
-		const response = await this.client.searchStories({ query, page_size: 25, detail: "full" });
+	async searchStories(query: string, limit = 25) {
+		const response = await this.client.searchStories({ query, page_size: limit, detail: "full" });
 		const stories = response?.data?.data;
 		const total = response?.data?.total;
 
@@ -469,6 +474,8 @@ export class ShortcutClientWrapper {
 				.map((id) => [id, this.projectCache.get(id)])
 				.filter((project): project is [number, Project | null] => project[1] !== null),
 		);
+	}
+
 	async addExternalLinkToStory(storyPublicId: number, externalLink: string): Promise<Story> {
 		const story = await this.getStory(storyPublicId);
 		if (!story) throw new Error(`Story ${storyPublicId} not found`);

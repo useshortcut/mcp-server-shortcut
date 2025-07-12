@@ -30,7 +30,7 @@ export class StoryTools extends BaseTools {
 
 		server.tool(
 			"search-stories",
-			"Find Shortcut stories.",
+			"Find Shortcut stories with flexible search criteria. Note: Results are not sorted by time and may appear in various orders depending on Shortcut's internal relevance scoring.",
 			{
 				id: z.number().optional().describe("Find only stories with the specified public ID"),
 				name: z.string().optional().describe("Find only stories matching the specified name"),
@@ -50,7 +50,10 @@ export class StoryTools extends BaseTools {
 				branch: z.string().optional().describe("Find only stories matching the specified branch"),
 				commit: z.string().optional().describe("Find only stories matching the specified commit"),
 				pr: z.number().optional().describe("Find only stories matching the specified pull request"),
-				project: z.union([z.number(), z.string()]).optional().describe("Find only stories matching the specified project ID or project name"),
+				project: z
+					.union([z.number(), z.string()])
+					.optional()
+					.describe("Find only stories matching the specified project ID or project name"),
 				epic: z.number().optional().describe("Find only stories matching the specified epic"),
 				objective: z
 					.number()
@@ -110,6 +113,59 @@ export class StoryTools extends BaseTools {
 				due: date,
 			},
 			async (params) => await tools.searchStories(params),
+		);
+
+		// 新しいツール：特定のユーザーがOwnerのStoryを検索
+		server.tool(
+			"search-stories-by-owner",
+			"Find Shortcut stories owned by a specific user ID. This tool tries multiple search approaches if the primary owner search fails. Note: Results are not sorted by time.",
+			{
+				owner_id: z.string().describe("The user ID (UUID) of the owner to search for"),
+				state: z
+					.string()
+					.optional()
+					.describe("Optional: Filter by workflow state (e.g., 'Done', 'In Progress')"),
+				type: z
+					.enum(["feature", "bug", "chore"])
+					.optional()
+					.describe("Optional: Filter by story type"),
+				isDone: is("completed").optional(),
+				isStarted: is("started").optional(),
+				isUnstarted: is("unstarted").optional(),
+				isArchived: is("archived").default(false),
+				limit: z
+					.number()
+					.min(1)
+					.max(100)
+					.default(25)
+					.describe("Maximum number of stories to return (1-100, default 25)"),
+			},
+			async (params) => await tools.searchStoriesByOwner(params),
+		);
+
+		// 代替ツール：メンション名でのOwner検索
+		server.tool(
+			"search-stories-by-mention",
+			"Find Shortcut stories owned by a specific user using their mention name (e.g., 'mash'). This is an alternative to search-stories-by-owner for when you have the mention name instead of UUID.",
+			{
+				mention_name: z.string().describe("The mention name of the owner (without @ symbol)"),
+				state: z.string().optional().describe("Optional: Filter by workflow state"),
+				type: z
+					.enum(["feature", "bug", "chore"])
+					.optional()
+					.describe("Optional: Filter by story type"),
+				isDone: is("completed").optional(),
+				isStarted: is("started").optional(),
+				isUnstarted: is("unstarted").optional(),
+				isArchived: is("archived").default(false),
+				limit: z
+					.number()
+					.min(1)
+					.max(100)
+					.default(25)
+					.describe("Maximum number of stories to return"),
+			},
+			async (params) => await tools.searchStoriesByMention(params),
 		);
 
 		server.tool(
@@ -422,12 +478,231 @@ The story will be added to the default state for the workflow.
 		const { stories, total } = await this.client.searchStories(query);
 
 		if (!stories) throw new Error(`Failed to search for stories matching your query: "${query}".`);
-		if (!stories.length) return this.toResult(`Result: No stories found.`);
+		if (!stories.length)
+			return this.toResult(`Result: No stories found matching query: "${query}"`);
 
 		return this.toResult(
 			`Result (first ${stories.length} shown of ${total} total stories found):`,
 			await this.entitiesWithRelatedEntities(stories, "stories"),
 		);
+	}
+
+	// 新しいメソッド：特定のユーザーがOwnerのStoryを検索
+	async searchStoriesByOwner({
+		owner_id,
+		state,
+		type,
+		isDone,
+		isStarted,
+		isUnstarted,
+		isArchived = false,
+		limit = 25,
+	}: {
+		owner_id: string;
+		state?: string;
+		type?: "feature" | "bug" | "chore";
+		isDone?: boolean;
+		isStarted?: boolean;
+		isUnstarted?: boolean;
+		isArchived?: boolean;
+		limit?: number;
+	}) {
+		try {
+			// ユーザー情報を取得して存在確認
+			const ownerUser = await this.client.getMember(owner_id);
+			if (!ownerUser) {
+				throw new Error(`User with ID '${owner_id}' not found`);
+			}
+
+			// 複数の検索方法を試行
+			const searchAttempts = [
+				// 方法1: UUIDでの検索
+				`owner:${owner_id}`,
+				// 方法2: mention nameでの検索
+				`owner:${ownerUser.profile.mention_name}`,
+				// 方法3: display nameでの検索
+				`owner:"${ownerUser.profile.name}"`,
+			];
+
+			let stories = null;
+			let total = 0;
+			let successfulQuery = "";
+
+			for (const baseQuery of searchAttempts) {
+				let query = baseQuery;
+
+				// アーカイブされていないストーリーのみを取得（デフォルト）
+				if (!isArchived) {
+					query += " !is:archived";
+				}
+
+				// オプションのフィルターを追加
+				if (state) {
+					query += ` state:"${state}"`;
+				}
+
+				if (type) {
+					query += ` type:${type}`;
+				}
+
+				if (isDone === true) {
+					query += " is:done";
+				} else if (isDone === false) {
+					query += " !is:done";
+				}
+
+				if (isStarted === true) {
+					query += " is:started";
+				} else if (isStarted === false) {
+					query += " !is:started";
+				}
+
+				if (isUnstarted === true) {
+					query += " is:unstarted";
+				} else if (isUnstarted === false) {
+					query += " !is:unstarted";
+				}
+
+				try {
+					const result = await this.client.searchStories(query, limit);
+					if (result.stories && result.stories.length > 0) {
+						stories = result.stories;
+						total = result.total || 0;
+						successfulQuery = query;
+						break; // 成功したら他の方法は試さない
+					}
+				} catch (searchError) {
+					// この検索方法が失敗しても次を試す
+				}
+			}
+
+			if (!stories || !stories.length) {
+				return this.toResult(
+					`No stories found for owner '${ownerUser.profile.mention_name}' (${ownerUser.profile.name}).\nTried multiple search methods including:\n- UUID: ${owner_id}\n- Mention name: ${ownerUser.profile.mention_name}\n- Display name: ${ownerUser.profile.name}\n\nNote: The user may not have any stories matching the specified criteria, or they might be archived.`,
+				);
+			}
+
+			return this.toResult(
+				`Found ${stories.length} of ${total} total stories owned by '${ownerUser.profile.mention_name}' (${ownerUser.profile.name}) using query: "${successfulQuery}":`,
+				await this.entitiesWithRelatedEntities(stories, "stories"),
+			);
+		} catch (error) {
+			throw new Error(
+				`Failed to search stories by owner: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
+	}
+
+	// 代替メソッド：メンション名でのOwner検索
+	async searchStoriesByMention({
+		mention_name,
+		state,
+		type,
+		isDone,
+		isStarted,
+		isUnstarted,
+		isArchived = false,
+		limit = 25,
+	}: {
+		mention_name: string;
+		state?: string;
+		type?: "feature" | "bug" | "chore";
+		isDone?: boolean;
+		isStarted?: boolean;
+		isUnstarted?: boolean;
+		isArchived?: boolean;
+		limit?: number;
+	}) {
+		try {
+			// メンション名からユーザー情報を検索
+			const members = await this.client.listMembers();
+			const ownerUser = members.find((m) => m.profile.mention_name === mention_name);
+
+			if (!ownerUser) {
+				return this.toResult(
+					`User with mention name '@${mention_name}' not found. Available users: ${members.map((m) => m.profile.mention_name).join(", ")}`,
+				);
+			}
+
+			// 複数の検索方法を試行
+			const searchAttempts = [
+				// 方法1: mention nameでの検索
+				`owner:${mention_name}`,
+				// 方法2: @付きでの検索
+				`owner:@${mention_name}`,
+				// 方法3: display nameでの検索
+				`owner:"${ownerUser.profile.name}"`,
+				// 方法4: UUIDでの検索
+				`owner:${ownerUser.id}`,
+			];
+
+			let stories = null;
+			let total = 0;
+			let successfulQuery = "";
+
+			for (const baseQuery of searchAttempts) {
+				let query = baseQuery;
+
+				// アーカイブされていないストーリーのみを取得（デフォルト）
+				if (!isArchived) {
+					query += " !is:archived";
+				}
+
+				// オプションのフィルターを追加
+				if (state) {
+					query += ` state:"${state}"`;
+				}
+
+				if (type) {
+					query += ` type:${type}`;
+				}
+
+				if (isDone === true) {
+					query += " is:done";
+				} else if (isDone === false) {
+					query += " !is:done";
+				}
+
+				if (isStarted === true) {
+					query += " is:started";
+				} else if (isStarted === false) {
+					query += " !is:started";
+				}
+
+				if (isUnstarted === true) {
+					query += " is:unstarted";
+				} else if (isUnstarted === false) {
+					query += " !is:unstarted";
+				}
+
+				try {
+					const result = await this.client.searchStories(query, limit);
+					if (result.stories && result.stories.length > 0) {
+						stories = result.stories;
+						total = result.total || 0;
+						successfulQuery = query;
+						break; // 成功したら他の方法は試さない
+					}
+				} catch (searchError) {
+					// この検索方法が失敗しても次を試す
+				}
+			}
+
+			if (!stories || !stories.length) {
+				return this.toResult(
+					`No stories found for owner '@${mention_name}' (${ownerUser.profile.name}).\nTried multiple search methods including:\n- Mention: ${mention_name}\n- @ Mention: @${mention_name}\n- Display name: ${ownerUser.profile.name}\n- UUID: ${ownerUser.id}\n\nNote: The user may not have any stories matching the specified criteria, or they might be archived.`,
+				);
+			}
+
+			return this.toResult(
+				`Found ${stories.length} of ${total} total stories owned by '@${mention_name}' (${ownerUser.profile.name}) using query: "${successfulQuery}":`,
+				await this.entitiesWithRelatedEntities(stories, "stories"),
+			);
+		} catch (error) {
+			throw new Error(
+				`Failed to search stories by mention: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
 	}
 
 	async getStory(storyPublicId: number) {

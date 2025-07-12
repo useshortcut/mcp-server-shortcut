@@ -37,7 +37,7 @@ export class ProjectTools extends BaseTools {
 
 	async listProjects() {
 		const projects = await this.client.listProjects();
-		
+
 		if (!projects || projects.length === 0) {
 			return this.toResult("No projects found.");
 		}
@@ -60,15 +60,15 @@ export class ProjectTools extends BaseTools {
 
 	async searchProjects(name?: string) {
 		const projects = await this.client.listProjects();
-		
+
 		if (!projects || projects.length === 0) {
 			return this.toResult("No projects found.");
 		}
 
 		let filteredProjects = projects;
 		if (name) {
-			filteredProjects = projects.filter(project => 
-				project.name.toLowerCase().includes(name.toLowerCase())
+			filteredProjects = projects.filter((project) =>
+				project.name.toLowerCase().includes(name.toLowerCase()),
 			);
 		}
 
