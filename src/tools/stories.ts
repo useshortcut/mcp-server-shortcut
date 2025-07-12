@@ -30,7 +30,7 @@ export class StoryTools extends BaseTools {
 
 		server.tool(
 			"search-stories",
-			"Find Shortcut stories with flexible search criteria. Results are sorted by last updated time (newest first).",
+			"Find Shortcut stories with flexible search criteria. Results are sorted by completion date (completed_at) if available, otherwise by last updated time (updated_at) - newest first.",
 			{
 				id: z.number().optional().describe("Find only stories with the specified public ID"),
 				name: z.string().optional().describe("Find only stories matching the specified name"),
@@ -118,7 +118,7 @@ export class StoryTools extends BaseTools {
 		// 新しいツール：特定のユーザーがOwnerのStoryを検索
 		server.tool(
 			"search-stories-by-owner",
-			"Find Shortcut stories owned by a specific user ID. This tool tries multiple search approaches if the primary owner search fails. Results are sorted by last updated time (newest first).",
+			"Find Shortcut stories owned by a specific user ID. This tool tries multiple search approaches if the primary owner search fails. Results are sorted by completion date (completed_at) if available, otherwise by last updated time (updated_at) - newest first.",
 			{
 				owner_id: z.string().describe("The user ID (UUID) of the owner to search for"),
 				state: z
@@ -146,7 +146,7 @@ export class StoryTools extends BaseTools {
 		// 代替ツール：メンション名でのOwner検索
 		server.tool(
 			"search-stories-by-mention",
-			"Find Shortcut stories owned by a specific user using their mention name (e.g., 'mash'). This is an alternative to search-stories-by-owner for when you have the mention name instead of UUID. Results are sorted by last updated time (newest first).",
+			"Find Shortcut stories owned by a specific user using their mention name (e.g., 'mash'). This is an alternative to search-stories-by-owner for when you have the mention name instead of UUID. Results are sorted by completion date (completed_at) if available, otherwise by last updated time (updated_at) - newest first.",
 			{
 				mention_name: z.string().describe("The mention name of the owner (without @ symbol)"),
 				state: z.string().optional().describe("Optional: Filter by workflow state"),
@@ -368,12 +368,20 @@ The story will be added to the default state for the workflow.
 		return tools;
 	}
 
-	// ストーリーを更新日時でソートするヘルパーメソッド
+	// ストーリーを日時でソートするヘルパーメソッド
+	// 優先順位: completed_at → updated_at（新しい順）
 	private sortStoriesByUpdatedAt(stories: Story[]): Story[] {
 		return stories.sort((a, b) => {
-			// updated_atを比較（新しい順）
-			const dateA = new Date(a.updated_at);
-			const dateB = new Date(b.updated_at);
+			// completed_atがある場合はそれを優先、なければupdated_atを使用
+			const getEffectiveDate = (story: Story): Date => {
+				if (story.completed_at) {
+					return new Date(story.completed_at);
+				}
+				return new Date(story.updated_at);
+			};
+
+			const dateA = getEffectiveDate(a);
+			const dateB = getEffectiveDate(b);
 			return dateB.getTime() - dateA.getTime();
 		});
 	}
@@ -491,11 +499,11 @@ The story will be added to the default state for the workflow.
 		if (!stories.length)
 			return this.toResult(`Result: No stories found matching query: "${query}"`);
 
-		// 更新日時でソート（新しい順）
+		// 完了日/更新日でソート（新しい順）
 		const sortedStories = this.sortStoriesByUpdatedAt(stories);
 
 		return this.toResult(
-			`Result (first ${sortedStories.length} shown of ${total} total stories found, sorted by last updated):`,
+			`Result (first ${sortedStories.length} shown of ${total} total stories found, sorted by completion/last updated):`,
 			await this.entitiesWithRelatedEntities(sortedStories, "stories"),
 		);
 	}
@@ -596,7 +604,7 @@ The story will be added to the default state for the workflow.
 			}
 
 			return this.toResult(
-				`Found ${stories.length} of ${total} total stories owned by '${ownerUser.profile.mention_name}' (${ownerUser.profile.name}) using query: "${successfulQuery}" (sorted by last updated):`,
+				`Found ${stories.length} of ${total} total stories owned by '${ownerUser.profile.mention_name}' (${ownerUser.profile.name}) using query: "${successfulQuery}" (sorted by completion/last updated):`,
 				await this.entitiesWithRelatedEntities(stories, "stories"),
 			);
 		} catch (error) {
@@ -708,7 +716,7 @@ The story will be added to the default state for the workflow.
 			}
 
 			return this.toResult(
-				`Found ${stories.length} of ${total} total stories owned by '@${mention_name}' (${ownerUser.profile.name}) using query: "${successfulQuery}" (sorted by last updated):`,
+				`Found ${stories.length} of ${total} total stories owned by '@${mention_name}' (${ownerUser.profile.name}) using query: "${successfulQuery}" (sorted by completion/last updated):`,
 				await this.entitiesWithRelatedEntities(stories, "stories"),
 			);
 		} catch (error) {
