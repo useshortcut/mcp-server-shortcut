@@ -45,6 +45,7 @@ await tools.searchStoriesByOwner({
 #### `search-stories` ツールの説明を改善
 - より明確な説明を追加
 - エラーメッセージを改善
+- **結果の時間順ソート**: すべての検索結果が最新の更新順（newest first）でソートされるように改善
 
 #### `ShortcutClientWrapper` の機能拡張
 - `getMember(userId)` メソッドを追加 - キャッシュからユーザー情報を取得
@@ -92,6 +93,7 @@ const result = await agent.call_tool("shortcut_search-stories", {
 2. **使いやすさ**: 特定のユースケース（Owner検索）に特化したシンプルなAPI
 3. **エラーハンドリング**: より明確なエラーメッセージとユーザーフィードバック
 4. **下位互換性**: 既存の `search-stories` ツールはそのまま利用可能
+5. **時間順ソート**: すべての検索結果が最新の更新順で表示され、最新の活動を簡単に把握可能
 
 ## 実装ファイル
 
