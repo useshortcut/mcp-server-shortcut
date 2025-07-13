@@ -8,13 +8,13 @@ export class TeamTools extends BaseTools {
 		const tools = new TeamTools(client);
 
 		server.tool(
-			"get-team",
+			"get_team",
 			"Get a Shortcut team by public ID",
 			{ teamPublicId: z.string().describe("The public ID of the team to get") },
 			async ({ teamPublicId }) => await tools.getTeam(teamPublicId),
 		);
 
-		server.tool("list-teams", "List all Shortcut teams", async () => await tools.getTeams());
+		server.tool("list_teams", "List all Shortcut teams", async () => await tools.listTeams());
 
 		return tools;
 	}

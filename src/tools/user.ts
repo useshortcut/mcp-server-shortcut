@@ -7,12 +7,12 @@ export class UserTools extends BaseTools {
 		const tools = new UserTools(client);
 
 		server.tool(
-			"get-current-user",
+			"get_current_user",
 			"Get the current user",
 			async () => await tools.getCurrentUser(),
 		);
 
-		server.tool("list-members", "Get all members", async () => await tools.listMembers());
+		server.tool("list_members", "Get all members", async () => await tools.listMembers());
 
 		return tools;
 	}

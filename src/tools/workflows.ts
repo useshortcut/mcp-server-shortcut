@@ -8,14 +8,14 @@ export class WorkflowTools extends BaseTools {
 		const tools = new WorkflowTools(client);
 
 		server.tool(
-			"get-workflow",
+			"get_workflow",
 			"Get a Shortcut workflow by public ID",
 			{ workflowPublicId: z.number().positive().describe("The public ID of the workflow to get") },
 			async ({ workflowPublicId }) => await tools.getWorkflow(workflowPublicId),
 		);
 
 		server.tool(
-			"list-workflows",
+			"list_workflows",
 			"List all Shortcut workflows",
 			async () => await tools.listWorkflows(),
 		);

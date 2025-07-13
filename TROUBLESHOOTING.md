@@ -12,9 +12,9 @@ Model tried to call unavailable tool 'search_stories'. Available tools: shortcut
 このエラーは**ツール名の不一致**が原因でした：
 
 1. **AIモデルが期待していたツール名**: `search_stories`
-2. **実際に利用可能なツール名**: `shortcut_search-stories`
+2. **実際に利用可能なツール名**: `shortcut_search_stories`
 
-MCPサーバーでは、ツール名に`shortcut_`プレフィックスが付加され、さらにハイフン（`-`）がアンダースコア（`_`）に変更されることがあります。
+MCPサーバーでは、ツール名に`shortcut_`プレフィックスが付加されます。ツール名は一貫してアンダースコア（`_`）形式を使用しています。
 
 ## 解決方法
 
@@ -27,7 +27,7 @@ agent.call_tool("search_stories", { ... })
 
 **正しい呼び出し:**
 ```javascript
-agent.call_tool("shortcut_search-stories", { ... })
+agent.call_tool("shortcut_search_stories", { ... })
 ```
 
 ### 2. 利用可能なツールを確認する
@@ -36,13 +36,13 @@ agent.call_tool("shortcut_search-stories", { ... })
 
 ```
 Available tools: 
-- shortcut_get-current-user
-- shortcut_list-members  
-- shortcut_get-story-branch-name
-- shortcut_get-story
-- shortcut_search-stories  ← これが正しい名前
-- shortcut_create-story
-- shortcut_update-story
+- shortcut_get_current_user
+- shortcut_list_members  
+- shortcut_get_story_branch_name
+- shortcut_get_story
+- shortcut_search_stories  ← これが正しい名前
+- shortcut_create_story
+- shortcut_update_story
 ...
 ```
 
