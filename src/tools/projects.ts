@@ -44,7 +44,7 @@ export class ProjectTools extends BaseTools {
 
 		return this.toResult(
 			`Found ${projects.length} projects:`,
-			await this.toCorrectedEntities(projects),
+			projects, // TODO: toCorrectedEntitiesが必要であれば実装を行う
 		);
 	}
 
@@ -55,7 +55,7 @@ export class ProjectTools extends BaseTools {
 			throw new Error(`Failed to retrieve Shortcut project with ID: ${projectId}`);
 		}
 
-		return this.toResult(`Project ID ${projectId}:`, await this.toCorrectedEntity(project));
+		return this.toResult(`Project ID ${projectId}:`, project); // TODO: toCorrectedEntityが必要であれば実装を行う
 	}
 
 	async searchProjects(name?: string) {
@@ -78,7 +78,7 @@ export class ProjectTools extends BaseTools {
 
 		return this.toResult(
 			`Found ${filteredProjects.length} projects matching "${name}":`,
-			await this.toCorrectedEntities(filteredProjects),
+			filteredProjects, // TODO: toCorrectedEntitiesが必要であれば実装を行う
 		);
 	}
 }

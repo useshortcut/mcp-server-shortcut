@@ -27,6 +27,19 @@ export class TeamTools extends BaseTools {
 		return this.toResult(`Team: ${team.id}`, await this.entityWithRelatedEntities(team, "team"));
 	}
 
+	async listTeams() {
+		const teams = await this.client.getTeams();
+
+		if (!teams || teams.length === 0) {
+			return this.toResult("No teams found.");
+		}
+
+		return this.toResult(
+			`Found ${teams.length} teams:`,
+			await this.entitiesWithRelatedEntities(teams, "teams"),
+		);
+	}
+
 	async getTeams() {
 		const teams = await this.client.getTeams();
 

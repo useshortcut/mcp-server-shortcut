@@ -42,8 +42,8 @@ describe("WorkflowTools", () => {
 
 			expect(mockTool).toHaveBeenCalledTimes(2);
 
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-workflow");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("list-workflows");
+			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get_workflow");
+			expect(mockTool.mock.calls?.[1]?.[0]).toBe("list_workflows");
 		});
 
 		test("should call correct function from tool", async () => {

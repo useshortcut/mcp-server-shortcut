@@ -373,16 +373,11 @@ The story will be added to the default state for the workflow.
 	private sortStoriesBySmartActivity(stories: Story[]): Story[] {
 		return stories.sort((a, b) => {
 			// 完了済みはcompleted_at、未完了はupdated_atを使用
-			const dateA = a.completed_at ? new Date(a.completed_at) : new Date(a.updated_at);
-			const dateB = b.completed_at ? new Date(b.completed_at) : new Date(b.updated_at);
+			const dateA = new Date(a.completed_at || a.updated_at || 0);
+			const dateB = new Date(b.completed_at || b.updated_at || 0);
 
 			return dateB.getTime() - dateA.getTime(); // 新しい順
 		});
-	}
-
-	// 互換性のためのラッパーメソッド
-	private sortStoriesByUpdatedAt(stories: Story[]): Story[] {
-		return this.sortStoriesBySmartActivity(stories);
 	}
 
 	async assignCurrentUserAsOwner(storyPublicId: number) {
@@ -499,7 +494,7 @@ The story will be added to the default state for the workflow.
 			return this.toResult(`Result: No stories found matching query: "${query}"`);
 
 		// スマートソートでソート
-		const sortedStories = this.sortStoriesBySmartActivity(stories);
+		const sortedStories = this.sortStoriesBySmartActivity(stories as Story[]);
 
 		return this.toResult(
 			`Result (first ${sortedStories.length} shown of ${total} total stories found, sorted by smart activity time):`,
@@ -588,8 +583,8 @@ The story will be added to the default state for the workflow.
 				try {
 					const result = await this.client.searchStories(query, limit);
 					if (result.stories && result.stories.length > 0) {
-						const sortBy = params.sort_by || "updated";
-						stories = this.sortStories(result.stories, sortBy as "updated" | "completed");
+						// スマートソートでソート
+						stories = this.sortStoriesBySmartActivity(result.stories as Story[]);
 						total = result.total || 0;
 						successfulQuery = query;
 						break; // 成功したら他の方法は試さない
@@ -702,7 +697,7 @@ The story will be added to the default state for the workflow.
 				try {
 					const result = await this.client.searchStories(query, limit);
 					if (result.stories && result.stories.length > 0) {
-						stories = this.sortStoriesBySmartActivity(result.stories);
+						stories = this.sortStoriesBySmartActivity(result.stories as Story[]);
 						total = result.total || 0;
 						successfulQuery = query;
 						break; // 成功したら他の方法は試さない

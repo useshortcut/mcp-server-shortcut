@@ -11,8 +11,18 @@ describe("ProjectTools", () => {
 		} as Partial<ShortcutClientWrapper> as ShortcutClientWrapper;
 
 		const mockServer = {
-			tool: () => {},
-		} as Partial<McpServer> as McpServer;
+			tool: () => ({
+				name: "test-tool",
+				description: "test",
+				inputSchema: {},
+				callback: () => ({}),
+				enabled: true,
+				enable: () => {},
+				disable: () => {},
+				[Symbol.toStringTag]: "test-tool",
+				[Symbol.dispose]: () => {},
+			}),
+		} as unknown as McpServer;
 
 		expect(() => ProjectTools.create(mockClient, mockServer)).not.toThrow();
 	});

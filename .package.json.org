@@ -1,0 +1,49 @@
+{
+	"name": "@shortcut/mcp",
+	"author": "Shortcut (https://www.shortcut.com)",
+	"description": "Shortcut MCP Server",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/useshortcut/mcp-server-shortcut.git"
+	},
+	"keywords": [
+		"shortcut",
+		"mcp",
+		"modelcontextprotocol"
+	],
+	"license": "MIT",
+	"version": "0.8.4",
+	"type": "module",
+	"main": "dist/index.js",
+	"bin": {
+		"mcp-server-shortcut": "dist/index.js"
+	},
+	"files": [
+		"dist"
+	],
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"@types/bun": "latest",
+		"bun": "^1.2.5",
+		"husky": "^9.1.7",
+		"shx": "^0.3.4"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.11.3",
+		"@shortcut/client": "^1.1.0",
+		"zod": "^3.24.4"
+	},
+	"scripts": {
+		"test": "bun test",
+		"format": "biome check --write ./",
+		"lint": "biome check ./",
+		"ts": "tsc -b",
+		"build": "bun build ./index.ts --outfile dist/index.js --target node",
+		"prepublish": "bun run build",
+		"postbuild": "shx chmod +x dist/*.js",
+		"prepare": "husky"
+	}
+}

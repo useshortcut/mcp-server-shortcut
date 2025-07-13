@@ -149,18 +149,20 @@ describe("StoryTools", () => {
 
 			StoryTools.create(mockClient, mockServer);
 
-			expect(mockTool).toHaveBeenCalledTimes(15);
+			expect(mockTool).toHaveBeenCalledTimes(17);
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-story-branch-name");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-story");
 			expect(mockTool.mock.calls?.[2]?.[0]).toBe("search-stories");
-			expect(mockTool.mock.calls?.[3]?.[0]).toBe("create-story");
-			expect(mockTool.mock.calls?.[4]?.[0]).toBe("update-story");
-			expect(mockTool.mock.calls?.[5]?.[0]).toBe("assign-current-user-as-owner");
-			expect(mockTool.mock.calls?.[6]?.[0]).toBe("unassign-current-user-as-owner");
-			expect(mockTool.mock.calls?.[7]?.[0]).toBe("create-story-comment");
-			expect(mockTool.mock.calls?.[8]?.[0]).toBe("add-task-to-story");
-			expect(mockTool.mock.calls?.[9]?.[0]).toBe("add-relation-to-story");
-			expect(mockTool.mock.calls?.[10]?.[0]).toBe("update-task");
+			expect(mockTool.mock.calls?.[3]?.[0]).toBe("search-stories-by-owner");
+			expect(mockTool.mock.calls?.[4]?.[0]).toBe("search-stories-by-mention");
+			expect(mockTool.mock.calls?.[5]?.[0]).toBe("create-story");
+			expect(mockTool.mock.calls?.[6]?.[0]).toBe("update-story");
+			expect(mockTool.mock.calls?.[7]?.[0]).toBe("assign-current-user-as-owner");
+			expect(mockTool.mock.calls?.[8]?.[0]).toBe("unassign-current-user-as-owner");
+			expect(mockTool.mock.calls?.[9]?.[0]).toBe("create-story-comment");
+			expect(mockTool.mock.calls?.[10]?.[0]).toBe("add-task-to-story");
+			expect(mockTool.mock.calls?.[11]?.[0]).toBe("add-relation-to-story");
+			expect(mockTool.mock.calls?.[12]?.[0]).toBe("update-task");
 		});
 	});
 
@@ -269,7 +271,9 @@ describe("StoryTools", () => {
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);
-			expect(textContent).toContain("Result (first 2 shown of 2 total stories found):");
+			expect(textContent).toContain(
+				"Result (first 2 shown of 2 total stories found, sorted by smart activity time):",
+			);
 			expect(textContent).toContain('"id": 123');
 			expect(textContent).toContain('"name": "Test Story 1"');
 			expect(textContent).toContain('"id": 456');
@@ -291,7 +295,7 @@ describe("StoryTools", () => {
 			const result = await storyTools.searchStories({});
 
 			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Result: No stories found.");
+			expect(result.content[0].text).toBe('Result: No stories found matching query: ""');
 		});
 
 		test("should throw error when stories search fails", async () => {

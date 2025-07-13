@@ -84,8 +84,8 @@ describe("TeamTools", () => {
 
 			expect(mockTool).toHaveBeenCalledTimes(2);
 
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-team");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("list-teams");
+			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get_team");
+			expect(mockTool.mock.calls?.[1]?.[0]).toBe("list_teams");
 		});
 
 		test("should call correct function from tool", async () => {
@@ -101,11 +101,11 @@ describe("TeamTools", () => {
 			await mockTool.mock.calls?.[0]?.[3]({ teamPublicId: "team1" });
 			expect(tools.getTeam).toHaveBeenCalledWith("team1");
 
-			spyOn(tools, "getTeams").mockImplementation(async () => ({
+			spyOn(tools, "listTeams").mockImplementation(async () => ({
 				content: [{ text: "", type: "text" }],
 			}));
 			await mockTool.mock.calls?.[1]?.[2]();
-			expect(tools.getTeams).toHaveBeenCalled();
+			expect(tools.listTeams).toHaveBeenCalled();
 		});
 	});
 
