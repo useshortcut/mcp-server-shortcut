@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type {
 	Branch,
@@ -14,6 +13,7 @@ import type {
 	UpdateStory,
 	Workflow,
 } from "@shortcut/client";
+import type { ShortcutClientWrapper } from "@/client/shortcut";
 import { StoryTools } from "./stories";
 
 describe("StoryTools", () => {

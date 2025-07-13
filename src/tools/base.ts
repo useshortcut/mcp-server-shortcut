@@ -1,4 +1,3 @@
-import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type {
 	Epic,
@@ -14,6 +13,7 @@ import type {
 	StorySlim,
 	Workflow,
 } from "@shortcut/client";
+import type { ShortcutClientWrapper } from "@/client/shortcut";
 
 // Simplified types for related entities
 type SimplifiedMember = {

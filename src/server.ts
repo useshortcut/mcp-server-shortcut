@@ -1,7 +1,7 @@
-import { ShortcutClientWrapper } from "@/client/shortcut";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { ShortcutClient } from "@shortcut/client";
+import { ShortcutClientWrapper } from "@/client/shortcut";
 import { name, version } from "../package.json";
 
 import { EpicTools } from "./tools/epics";

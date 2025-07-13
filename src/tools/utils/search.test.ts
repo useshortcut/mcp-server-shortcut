@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { MemberInfo } from "@shortcut/client";
-import { type QueryParams, buildSearchQuery } from "./search";
+import { buildSearchQuery, type QueryParams } from "./search";
 
 describe("buildSearchQuery", () => {
 	// Mock current user for testing

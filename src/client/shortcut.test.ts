@@ -1,4 +1,4 @@
-import { type Mock, describe, expect, mock, test } from "bun:test";
+import { describe, expect, type Mock, mock, test } from "bun:test";
 import type ShortcutClient from "@shortcut/client";
 import type { CreateStoryParams, UpdateStory } from "@shortcut/client";
 import { ShortcutClientWrapper } from "./shortcut";

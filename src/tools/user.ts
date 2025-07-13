@@ -1,5 +1,5 @@
-import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { ShortcutClientWrapper } from "@/client/shortcut";
 import { BaseTools } from "./base";
 
 export class UserTools extends BaseTools {
