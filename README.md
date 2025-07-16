@@ -1,10 +1,22 @@
 # @shortcut/mcp
 
+<img height="125" src="https://github.com/user-attachments/assets/7c3d3b8e-6252-4790-81cd-6640cd46a2d6" alt="Shortcut's logo" align="right">
+
+[![Version](https://badge.fury.io/js/@shortcut%2Fmcp.svg)](https://badge.fury.io/js/@shortcut%2Fmcp)
+[![Monthly Downloads](https://img.shields.io/npm/dm/@shortcut%2Fmcp)](https://www.npmjs.org/package/@shortcut%2Fmcp)
+[![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/useshortcut/mcp-server-shortcut/blob/main/LICENSE)
+[![PRs welcome!](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
+[![X](https://img.shields.io/twitter/follow/shortcut.svg?label=Follow%20@shortcut)](https://twitter.com/intent/follow?screen_name=shortcut)
+
+The MCP server for [Shortcut](https://shortcut.com).
+
+<br />
+
 ## Usage
 
 ### Windsurf
 
-See the [official Windsurf docs](https://codeium.com/docs/windsurf/mcp) for more information.
+See the [official Windsurf docs](https://docs.windsurf.com/windsurf/cascade/mcp) for more information.
 
 1. Open the `Windsurf MCP Configuration Panel`
 2. Click `Add custom server`.
