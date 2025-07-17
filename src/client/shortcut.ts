@@ -342,6 +342,18 @@ export class ShortcutClientWrapper {
 		return storyComment;
 	}
 
+	async getStoryComment(
+		storyPublicId: number,
+		commentPublicId: number,
+	): Promise<StoryComment | null> {
+		const response = await this.client.getStoryComment(storyPublicId, commentPublicId);
+		const storyComment = response?.data ?? null;
+
+		if (!storyComment) return null;
+
+		return storyComment;
+	}
+
 	async createIteration(params: CreateIteration): Promise<Iteration> {
 		const response = await this.client.createIteration(params);
 		const iteration = response?.data ?? null;

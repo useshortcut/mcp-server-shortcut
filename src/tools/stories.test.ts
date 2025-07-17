@@ -149,7 +149,7 @@ describe("StoryTools", () => {
 
 			StoryTools.create(mockClient, mockServer);
 
-			expect(mockTool).toHaveBeenCalledTimes(17);
+			expect(mockTool).toHaveBeenCalledTimes(18);
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-story-branch-name");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-story");
 			expect(mockTool.mock.calls?.[2]?.[0]).toBe("search-stories");
@@ -167,6 +167,7 @@ describe("StoryTools", () => {
 			expect(mockTool.mock.calls?.[14]?.[0]).toBe("set-story-external-links");
 			expect(mockTool.mock.calls?.[15]?.[0]).toBe("get-story-summary");
 			expect(mockTool.mock.calls?.[16]?.[0]).toBe("get-story-tasks");
+			expect(mockTool.mock.calls?.[17]?.[0]).toBe("get-story-comment");
 		});
 	});
 
@@ -1087,6 +1088,175 @@ describe("StoryTools", () => {
 			const result = await storyTools.setStoryExternalLinks(123, []);
 
 			expect(result.content[0].text).toContain("Removed all external links from story sc-123");
+		});
+	});
+
+	describe("getStoryComment method", () => {
+		const mockComment: StoryComment = {
+			id: 1001,
+			story_id: 123,
+			text: "This is a test comment",
+			author_id: "user1",
+			created_at: "2023-01-01T12:00:00Z",
+			updated_at: "2023-01-01T12:00:00Z",
+			app_url: "https://app.shortcut.com/test/story/123/comment/1001",
+			deleted: false,
+			blocker: false,
+			parent_id: null,
+			position: 1,
+			member_mention_ids: ["user2"],
+			group_mention_ids: [],
+			mention_ids: ["user2"],
+			entity_type: "story-comment",
+			unblocks_parent: false,
+			external_id: null,
+			reactions: [],
+		};
+
+		const getStoryCommentMock = mock(async (_storyId: number, commentId: number) => {
+			if (commentId === 1001) return mockComment;
+			return null;
+		});
+
+		const mockClient = {
+			getStoryComment: getStoryCommentMock,
+		} as unknown as ShortcutClientWrapper;
+
+		beforeEach(() => {
+			getStoryCommentMock.mockClear();
+		});
+
+		test("should return formatted comment details when comment is found", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.getStoryComment(123, 1001);
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Story comment for sc-123");
+			expect(textContent).toContain('"id": 1001');
+			expect(textContent).toContain('"story_id": 123');
+			expect(textContent).toContain('"text": "This is a test comment"');
+			expect(textContent).toContain('"author_id": "user1"');
+			expect(textContent).toContain('"created_at": "2023-01-01T12:00:00Z"');
+			expect(textContent).toContain('"updated_at": "2023-01-01T12:00:00Z"');
+			expect(textContent).toContain(
+				'"app_url": "https://app.shortcut.com/test/story/123/comment/1001"',
+			);
+			expect(textContent).toContain('"deleted": false');
+			expect(textContent).toContain('"blocker": false');
+			expect(textContent).toContain('"parent_id": null');
+			expect(textContent).toContain('"position": 1');
+			expect(textContent).toContain('"member_mention_ids": [');
+			expect(textContent).toContain('"user2"');
+			expect(textContent).toContain('"group_mention_ids": []');
+
+			expect(getStoryCommentMock).toHaveBeenCalledTimes(1);
+			expect(getStoryCommentMock).toHaveBeenCalledWith(123, 1001);
+		});
+
+		test("should throw error when comment is not found", async () => {
+			const storyTools = new StoryTools(mockClient);
+
+			await expect(() => storyTools.getStoryComment(123, 9999)).toThrow(
+				"Failed to retrieve comment with activity ID 9999 for story sc-123",
+			);
+
+			expect(getStoryCommentMock).toHaveBeenCalledTimes(1);
+			expect(getStoryCommentMock).toHaveBeenCalledWith(123, 9999);
+		});
+
+		test("should throw error when client returns null", async () => {
+			const mockClientWithNull = {
+				getStoryComment: mock(async () => null),
+			} as unknown as ShortcutClientWrapper;
+
+			const storyTools = new StoryTools(mockClientWithNull);
+
+			await expect(() => storyTools.getStoryComment(123, 1001)).toThrow(
+				"Failed to retrieve comment with activity ID 1001 for story sc-123",
+			);
+		});
+
+		test("should handle comment with threaded structure", async () => {
+			const threadedComment: StoryComment = {
+				...mockComment,
+				id: 1002,
+				parent_id: 1001,
+				position: 2,
+				text: "This is a threaded reply",
+				unblocks_parent: true,
+			};
+
+			const mockClientWithThreaded = {
+				getStoryComment: mock(async (_storyId: number, commentId: number) => {
+					if (commentId === 1002) return threadedComment;
+					return null;
+				}),
+			} as unknown as ShortcutClientWrapper;
+
+			const storyTools = new StoryTools(mockClientWithThreaded);
+			const result = await storyTools.getStoryComment(123, 1002);
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain('"id": 1002');
+			expect(textContent).toContain('"parent_id": 1001');
+			expect(textContent).toContain('"position": 2');
+			expect(textContent).toContain('"text": "This is a threaded reply"');
+		});
+
+		test("should handle comment with blocker flag", async () => {
+			const blockerComment: StoryComment = {
+				...mockComment,
+				id: 1003,
+				blocker: true,
+				text: "This is a blocker comment",
+			};
+
+			const mockClientWithBlocker = {
+				getStoryComment: mock(async (_storyId: number, commentId: number) => {
+					if (commentId === 1003) return blockerComment;
+					return null;
+				}),
+			} as unknown as ShortcutClientWrapper;
+
+			const storyTools = new StoryTools(mockClientWithBlocker);
+			const result = await storyTools.getStoryComment(123, 1003);
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain('"blocker": true');
+			expect(textContent).toContain('"text": "This is a blocker comment"');
+		});
+
+		test("should handle comment with mentions", async () => {
+			const commentWithMentions: StoryComment = {
+				...mockComment,
+				id: 1004,
+				member_mention_ids: ["user1", "user2", "user3"],
+				group_mention_ids: ["team1", "team2"],
+				text: "This comment mentions @user1 @user2 @user3 and @team1 @team2",
+			};
+
+			const mockClientWithMentions = {
+				getStoryComment: mock(async (_storyId: number, commentId: number) => {
+					if (commentId === 1004) return commentWithMentions;
+					return null;
+				}),
+			} as unknown as ShortcutClientWrapper;
+
+			const storyTools = new StoryTools(mockClientWithMentions);
+			const result = await storyTools.getStoryComment(123, 1004);
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain('"member_mention_ids": [');
+			expect(textContent).toContain('"user1"');
+			expect(textContent).toContain('"user2"');
+			expect(textContent).toContain('"user3"');
+			expect(textContent).toContain('"group_mention_ids": [');
+			expect(textContent).toContain('"team1"');
+			expect(textContent).toContain('"team2"');
 		});
 	});
 });

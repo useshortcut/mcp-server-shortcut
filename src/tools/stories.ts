@@ -337,6 +337,17 @@ The story will be added to the default state for the workflow.
 			async ({ storyPublicId }) => await tools.getStoryTasks(storyPublicId),
 		);
 
+		server.tool(
+			"get-story-comment",
+			"Get a specific story comment by activity ID",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+				activityId: z.number().positive().describe("The activity ID of the comment"),
+			},
+			async ({ storyPublicId, activityId }) =>
+				await tools.getStoryComment(storyPublicId, activityId),
+		);
+
 		return tools;
 	}
 
@@ -744,6 +755,32 @@ The story will be added to the default state for the workflow.
 				created_at: task.created_at,
 				updated_at: task.updated_at,
 			})),
+		});
+	}
+
+	async getStoryComment(storyPublicId: number, activityId: number) {
+		const comment = await this.client.getStoryComment(storyPublicId, activityId);
+
+		if (!comment) {
+			throw new Error(
+				`Failed to retrieve comment with activity ID ${activityId} for story sc-${storyPublicId}`,
+			);
+		}
+
+		return this.toResult(`Story comment for sc-${storyPublicId}`, {
+			id: comment.id,
+			story_id: comment.story_id,
+			text: comment.text,
+			author_id: comment.author_id,
+			created_at: comment.created_at,
+			updated_at: comment.updated_at,
+			app_url: comment.app_url,
+			deleted: comment.deleted,
+			blocker: comment.blocker,
+			parent_id: comment.parent_id,
+			position: comment.position,
+			member_mention_ids: comment.member_mention_ids,
+			group_mention_ids: comment.group_mention_ids,
 		});
 	}
 }
