@@ -26,7 +26,7 @@
 		"@types/bun": "latest",
 		"bun": "^1.2.5",
 		"husky": "^9.1.7",
-		"shx": "^0.3.4"
+		"tsdown": "^0.12.9"
 	},
 	"peerDependencies": {
 		"typescript": "^5"
@@ -41,9 +41,8 @@
 		"format": "biome check --write ./",
 		"lint": "biome check ./",
 		"ts": "tsc -b",
-		"build": "bun build ./index.ts --outfile dist/index.js --target node",
+		"build": "tsdown",
 		"prepublish": "bun run build",
-		"postbuild": "shx chmod +x dist/*.js",
 		"prepare": "husky"
 	}
 }
