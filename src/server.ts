@@ -4,6 +4,7 @@ import { ShortcutClient } from "@shortcut/client";
 import { ShortcutClientWrapper } from "@/client/shortcut";
 import { name, version } from "../package.json";
 
+import { DocumentTools } from "./tools/documents";
 import { EpicTools } from "./tools/epics";
 import { IterationTools } from "./tools/iterations";
 import { ObjectiveTools } from "./tools/objectives";
@@ -35,6 +36,7 @@ EpicTools.create(client, server);
 ObjectiveTools.create(client, server);
 TeamTools.create(client, server);
 WorkflowTools.create(client, server);
+DocumentTools.create(client, server);
 
 async function startServer() {
 	try {

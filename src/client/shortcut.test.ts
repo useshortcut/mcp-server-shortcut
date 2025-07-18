@@ -1,6 +1,6 @@
 import { describe, expect, type Mock, mock, test } from "bun:test";
 import type ShortcutClient from "@shortcut/client";
-import type { CreateStoryParams, UpdateStory } from "@shortcut/client";
+import type { CreateStoryParams, DocSlim, UpdateStory } from "@shortcut/client";
 import { ShortcutClientWrapper } from "./shortcut";
 
 describe("ShortcutClientWrapper", () => {
@@ -340,6 +340,62 @@ describe("ShortcutClientWrapper", () => {
 				expect(milestones?.length).toBe(2);
 				expect(total).toBe(2);
 				expect(mockClient.searchMilestones).toHaveBeenCalled();
+			});
+		});
+	});
+
+	describe("Documents", () => {
+		const mockDoc = {
+			id: "doc-123",
+			title: "Test Document",
+			app_url: "https://app.shortcut.com/workspace/write/doc-123",
+		} satisfies DocSlim;
+
+		describe("createDoc", () => {
+			test("should successfully create a document", async () => {
+				const mockClient = {
+					createDoc: mock(async () => ({ data: mockDoc })),
+				} as unknown as ShortcutClient;
+				const client = new ShortcutClientWrapper(mockClient);
+
+				const doc = await client.createDoc({
+					title: "Test Document",
+					content: "This is test content",
+				});
+
+				expect(doc).toEqual(mockDoc);
+				expect(mockClient.createDoc).toHaveBeenCalledWith({
+					title: "Test Document",
+					content: "This is test content",
+				});
+			});
+
+			test("should throw error when API returns no data", async () => {
+				const mockClient = {
+					createDoc: mock(async () => ({ data: null, status: 500 })),
+				} as unknown as ShortcutClient;
+				const client = new ShortcutClientWrapper(mockClient);
+
+				expect(
+					client.createDoc({
+						title: "Test Document",
+						content: "This is test content",
+					}),
+				).rejects.toThrow("Failed to create the document: 500");
+			});
+
+			test("should throw error when API response is undefined", async () => {
+				const mockClient = {
+					createDoc: mock(async () => ({ data: undefined, status: 400 })),
+				} as unknown as ShortcutClient;
+				const client = new ShortcutClientWrapper(mockClient);
+
+				expect(
+					client.createDoc({
+						title: "Test Document",
+						content: "This is test content",
+					}),
+				).rejects.toThrow("Failed to create the document: 400");
 			});
 		});
 	});

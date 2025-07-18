@@ -1,9 +1,11 @@
 import type {
 	ShortcutClient as BaseClient,
+	CreateDoc,
 	CreateEpic,
 	CreateIteration,
 	CreateStoryComment,
 	CreateStoryParams,
+	DocSlim,
 	Epic,
 	Group,
 	Iteration,
@@ -470,5 +472,14 @@ export class ShortcutClientWrapper {
 
 	async setStoryExternalLinks(storyPublicId: number, externalLinks: string[]): Promise<Story> {
 		return await this.updateStory(storyPublicId, { external_links: externalLinks });
+	}
+
+	async createDoc(params: CreateDoc): Promise<DocSlim> {
+		const response = await this.client.createDoc(params);
+		const doc = response?.data ?? null;
+
+		if (!doc) throw new Error(`Failed to create the document: ${response.status}`);
+
+		return doc;
 	}
 }
