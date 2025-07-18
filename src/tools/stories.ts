@@ -319,6 +319,35 @@ The story will be added to the default state for the workflow.
 				await tools.setStoryExternalLinks(storyPublicId, externalLinks),
 		);
 
+		server.tool(
+			"get-story-summary",
+			"Get only the title and description of a Shortcut story",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+			},
+			async ({ storyPublicId }) => await tools.getStorySummary(storyPublicId),
+		);
+
+		server.tool(
+			"get-story-tasks",
+			"Get all tasks (subtasks) for a Shortcut story",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+			},
+			async ({ storyPublicId }) => await tools.getStoryTasks(storyPublicId),
+		);
+
+		server.tool(
+			"get-story-comment",
+			"Get a specific story comment by activity ID",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+				activityId: z.number().positive().describe("The activity ID of the comment"),
+			},
+			async ({ storyPublicId, activityId }) =>
+				await tools.getStoryComment(storyPublicId, activityId),
+		);
+
 		return tools;
 	}
 
@@ -672,5 +701,86 @@ The story will be added to the default state for the workflow.
 				: `Set ${linkCount} external link${linkCount === 1 ? "" : "s"} on story sc-${storyPublicId}`;
 
 		return this.toResult(`${message}. Story URL: ${updatedStory.app_url}`);
+	}
+
+	async getStorySummary(storyPublicId: number) {
+		const story = await this.client.getStory(storyPublicId);
+
+		if (!story)
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
+
+		// Get requester info if available
+		let requesterInfo = null;
+		if (story.requested_by_id) {
+			const requester = await this.client.getUser(story.requested_by_id);
+			if (requester) {
+				requesterInfo = {
+					id: requester.id,
+					name: requester.profile?.name || requester.profile?.mention_name || "Unknown",
+				};
+			}
+		}
+
+		return this.toResult(`Story summary for sc-${storyPublicId}`, {
+			id: story.id,
+			name: story.name,
+			description: story.description || "No description",
+			app_url: story.app_url,
+			epic_id: story.epic_id || null,
+			requester_id: story.requested_by_id || null,
+			requester_name: requesterInfo?.name || null,
+		});
+	}
+
+	async getStoryTasks(storyPublicId: number) {
+		const story = await this.client.getStory(storyPublicId);
+
+		if (!story)
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
+
+		const tasks = story.tasks || [];
+
+		if (tasks.length === 0) {
+			return this.toResult(`No tasks found for story sc-${storyPublicId}`);
+		}
+
+		return this.toResult(`Tasks for story sc-${storyPublicId} (${tasks.length} total)`, {
+			story_id: story.id,
+			story_name: story.name,
+			tasks: tasks.map((task) => ({
+				id: task.id,
+				description: task.description,
+				complete: task.complete,
+				owner_ids: task.owner_ids || [],
+				created_at: task.created_at,
+				updated_at: task.updated_at,
+			})),
+		});
+	}
+
+	async getStoryComment(storyPublicId: number, activityId: number) {
+		const comment = await this.client.getStoryComment(storyPublicId, activityId);
+
+		if (!comment) {
+			throw new Error(
+				`Failed to retrieve comment with activity ID ${activityId} for story sc-${storyPublicId}`,
+			);
+		}
+
+		return this.toResult(`Story comment for sc-${storyPublicId}`, {
+			id: comment.id,
+			story_id: comment.story_id,
+			text: comment.text,
+			author_id: comment.author_id,
+			created_at: comment.created_at,
+			updated_at: comment.updated_at,
+			app_url: comment.app_url,
+			deleted: comment.deleted,
+			blocker: comment.blocker,
+			parent_id: comment.parent_id,
+			position: comment.position,
+			member_mention_ids: comment.member_mention_ids,
+			group_mention_ids: comment.group_mention_ids,
+		});
 	}
 }
