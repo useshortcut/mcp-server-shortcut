@@ -33,7 +33,7 @@
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.11.3",
-		"@shortcut/client": "^1.1.0",
+		"@shortcut/client": "^2.2.0",
 		"zod": "^3.24.4"
 	},
 	"scripts": {

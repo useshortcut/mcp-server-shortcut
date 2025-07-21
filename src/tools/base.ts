@@ -7,7 +7,7 @@ import type {
 	IterationSlim,
 	Member,
 	Milestone,
-	MilestoneSearchResult,
+	ObjectiveSearchResult,
 	Story,
 	StorySearchResult,
 	StorySlim,
@@ -376,7 +376,7 @@ export class BaseTools {
 			| IterationSlim
 			| Group
 			| Workflow
-			| MilestoneSearchResult
+			| ObjectiveSearchResult
 			| Milestone,
 	) {
 		if (entity.entity_type === "group") return this.getRelatedEntitiesForTeam(entity as Group);
@@ -399,7 +399,7 @@ export class BaseTools {
 			| IterationSlim
 			| Group
 			| Workflow
-			| MilestoneSearchResult
+			| ObjectiveSearchResult
 			| Milestone,
 	) {
 		if (entity.entity_type === "group") return this.getSimplifiedTeam(entity as Group);
@@ -423,7 +423,7 @@ export class BaseTools {
 			| IterationSlim
 			| Group
 			| Workflow
-			| MilestoneSearchResult
+			| ObjectiveSearchResult
 			| Milestone,
 		entityType = "entity",
 	) {
@@ -445,7 +445,7 @@ export class BaseTools {
 			| IterationSlim
 			| Group
 			| Workflow
-			| MilestoneSearchResult
+			| ObjectiveSearchResult
 			| Milestone
 		)[],
 		entityType = "entities",
