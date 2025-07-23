@@ -21,7 +21,7 @@ describe("validation utilities", () => {
 			];
 
 			for (const dateStr of validDates) {
-				const result = date.safeParse(dateStr);
+				const result = date().safeParse(dateStr);
 				expect(result.success).toBe(true);
 			}
 		});
@@ -38,13 +38,13 @@ describe("validation utilities", () => {
 			];
 
 			for (const dateStr of invalidDates) {
-				const result = date.safeParse(dateStr);
+				const result = date().safeParse(dateStr);
 				expect(result.success).toBe(false);
 			}
 		});
 
 		test("should allow undefined values", () => {
-			const result = date.safeParse(undefined);
+			const result = date().safeParse(undefined);
 			expect(result.success).toBe(true);
 		});
 	});
