@@ -43,9 +43,9 @@ export class ObjectiveTools extends BaseTools {
 				isDone: is("completed"),
 				isArchived: is("archived"),
 				hasOwner: has("an owner"),
-				created: date,
-				updated: date,
-				completed: date,
+				created: date(),
+				updated: date(),
+				completed: date(),
 			},
 			async (params) => await tools.searchObjectives(params),
 		);

@@ -56,10 +56,10 @@ export class IterationTools extends BaseTools {
 					.describe(
 						"Find only iterations matching the specified team. This can be a team ID or mention name.",
 					),
-				created: date,
-				updated: date,
-				startDate: date,
-				endDate: date,
+				created: date(),
+				updated: date(),
+				startDate: date(),
+				endDate: date(),
 			},
 			async (params) => await tools.searchIterations(params),
 		);
