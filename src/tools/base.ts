@@ -333,8 +333,10 @@ export class BaseTools {
 		if (!entity) return { users: {}, workflows: {} };
 		const { member_ids, workflow_ids } = entity;
 
-		const users = await this.client.getUserMap(member_ids);
-		const workflows = await this.client.getWorkflowMap(workflow_ids);
+		const [users, workflows] = await Promise.all([
+			this.client.getUserMap(member_ids),
+			this.client.getWorkflowMap(workflow_ids),
+		]);
 
 		return {
 			users: Object.fromEntries(
@@ -386,27 +388,29 @@ export class BaseTools {
 		if (!entity) return { users: {}, workflows: {}, teams: {}, objectives: {} };
 		const { group_id, owner_ids, milestone_id, requested_by_id, follower_ids, comments } = entity;
 
-		const usersForEpicMap = await this.client.getUserMap([
-			...new Set(
-				[
-					...(owner_ids || []),
-					requested_by_id,
-					...(follower_ids || []),
-					...(comments || []).map((comment) => comment.author_id),
-				].filter(Boolean),
-			),
+		const [usersForEpicMap, teams, fullMilestone] = await Promise.all([
+			this.client.getUserMap([
+				...new Set(
+					[
+						...(owner_ids || []),
+						requested_by_id,
+						...(follower_ids || []),
+						...(comments || []).map((comment) => comment.author_id),
+					].filter(Boolean),
+				),
+			]),
+			this.client.getTeamMap(group_id ? [group_id] : []),
+			milestone_id ? this.client.getMilestone(milestone_id) : null,
 		]);
+
 		const usersForEpic = Object.fromEntries(
 			[...usersForEpicMap.entries()]
 				.filter(([_, user]) => !!user)
 				.map(([id, user]) => [id, this.getSimplifiedMember(user)]),
 		) as Record<string, SimplifiedMember>;
-		const teams = await this.client.getTeamMap(group_id ? [group_id] : []);
 		const team = this.getSimplifiedTeam(teams.get(group_id || ""));
 		const { users, workflows } = await this.getRelatedEntitiesForTeam(teams.get(group_id || ""));
-		const milestone = this.getSimplifiedObjective(
-			milestone_id ? await this.client.getMilestone(milestone_id) : null,
-		);
+		const milestone = this.getSimplifiedObjective(fullMilestone);
 
 		return {
 			users: this.mergeRelatedEntities([usersForEpic, users]),
@@ -440,26 +444,30 @@ export class BaseTools {
 			custom_fields,
 		} = entity;
 
-		const fullUsersForStory = await this.client.getUserMap([
-			...new Set(
-				[
-					...(owner_ids || []),
-					requested_by_id,
-					...(follower_ids || []),
-					...(comments || []).map((comment) => comment.author_id || ""),
-				].filter(Boolean),
-			),
-		]);
+		const [fullUsersForStory, teamsForStory, workflowsForStory, iteration, epic] =
+			await Promise.all([
+				this.client.getUserMap([
+					...new Set(
+						[
+							...(owner_ids || []),
+							requested_by_id,
+							...(follower_ids || []),
+							...(comments || []).map((comment) => comment.author_id || ""),
+						].filter(Boolean),
+					),
+				]),
+				this.client.getTeamMap(group_id ? [group_id] : []),
+				this.client.getWorkflowMap(workflow_id ? [workflow_id] : []),
+				iteration_id ? this.client.getIteration(iteration_id) : null,
+				epic_id ? this.client.getEpic(epic_id) : null,
+			]);
 		const usersForStory = Object.fromEntries(
 			[...fullUsersForStory.entries()]
 				.filter(([_, user]) => !!user)
 				.map(([id, user]) => [id, this.getSimplifiedMember(user)]),
 		) as Record<string, SimplifiedMember>;
-		const teamsForStory = await this.client.getTeamMap(group_id ? [group_id] : []);
-		const workflowsForStory = await this.client.getWorkflowMap(workflow_id ? [workflow_id] : []);
-		const iteration = iteration_id ? await this.client.getIteration(iteration_id) : null;
+
 		const simplifiedIteration = this.getSimplifiedIteration(iteration);
-		const epic = epic_id ? await this.client.getEpic(epic_id) : null;
 		const simplifiedEpic = this.getSimplifiedEpic(epic, kind);
 
 		const teamForStory = teamsForStory.get(group_id || "");
