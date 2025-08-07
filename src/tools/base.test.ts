@@ -193,7 +193,7 @@ describe("BaseTools", () => {
 				content: [
 					{
 						type: "text",
-						text: 'test message\n\n{\n  "id": 1,\n  "name": "test"\n}',
+						text: 'test message\n\n<json>\n{\n  "id": 1,\n  "name": "test"\n}\n</json>',
 					},
 				],
 			});

@@ -251,7 +251,7 @@ describe("IterationTools", () => {
 					getIteration: getIterationMock,
 				}),
 			);
-			const result = await iterationTools.getIteration(1);
+			const result = await iterationTools.getIteration(1, true);
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);

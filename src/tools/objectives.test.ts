@@ -121,7 +121,7 @@ describe("ObjectiveTools", () => {
 
 		test("should return formatted objective details when objective is found", async () => {
 			const objectiveTools = new ObjectiveTools(mockClient);
-			const result = await objectiveTools.getObjective(1);
+			const result = await objectiveTools.getObjective(1, true);
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);
@@ -160,7 +160,7 @@ describe("ObjectiveTools", () => {
 				getEpic: mock(async () => null),
 			} as unknown as ShortcutClientWrapper);
 
-			const result = await objectiveTools.getObjective(2);
+			const result = await objectiveTools.getObjective(2, true);
 
 			expect(result.content[0].type).toBe("text");
 			expect(result.content[0].text).toContain('"completed": true');

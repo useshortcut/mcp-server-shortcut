@@ -98,8 +98,8 @@ describe("TeamTools", () => {
 			spyOn(tools, "getTeam").mockImplementation(async () => ({
 				content: [{ text: "", type: "text" }],
 			}));
-			await mockTool.mock.calls?.[0]?.[3]({ teamPublicId: "team1" });
-			expect(tools.getTeam).toHaveBeenCalledWith("team1");
+			await mockTool.mock.calls?.[0]?.[3]({ teamPublicId: "team1", full: false });
+			expect(tools.getTeam).toHaveBeenCalledWith("team1", false);
 
 			spyOn(tools, "getTeams").mockImplementation(async () => ({
 				content: [{ text: "", type: "text" }],
@@ -128,7 +128,7 @@ describe("TeamTools", () => {
 
 		test("should return formatted team details when team is found", async () => {
 			const teamTools = new TeamTools(mockClient);
-			const result = await teamTools.getTeam("team1");
+			const result = await teamTools.getTeam("team1", true);
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);
@@ -165,7 +165,7 @@ describe("TeamTools", () => {
 				getMilestone: mock(async () => null),
 			} as unknown as ShortcutClientWrapper);
 
-			const result = await teamTools.getTeam("team1");
+			const result = await teamTools.getTeam("team1", true);
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);

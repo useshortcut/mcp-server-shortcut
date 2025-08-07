@@ -133,7 +133,7 @@ describe("EpicTools", () => {
 
 		test("should handle completed and archived epics correctly", async () => {
 			const epicTools = new EpicTools(mockClient);
-			const result = await epicTools.getEpic(3);
+			const result = await epicTools.getEpic(3, true);
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);
@@ -149,7 +149,7 @@ describe("EpicTools", () => {
 
 		test("should handle epics with null deadline", async () => {
 			const epicTools = new EpicTools(mockClient);
-			const result = await epicTools.getEpic(2);
+			const result = await epicTools.getEpic(2, true);
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);

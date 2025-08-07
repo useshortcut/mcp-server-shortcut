@@ -32,8 +32,15 @@ export class IterationTools extends BaseTools {
 			"Get a Shortcut iteration by public ID",
 			{
 				iterationPublicId: z.number().positive().describe("The public ID of the iteration to get"),
+				full: z
+					.boolean()
+					.optional()
+					.default(false)
+					.describe(
+						"True to return all iteration fields from the API. False to return a slim version that excludes uncommon fields",
+					),
 			},
-			async ({ iterationPublicId }) => await tools.getIteration(iterationPublicId),
+			async ({ iterationPublicId, full }) => await tools.getIteration(iterationPublicId, full),
 		);
 
 		server.tool(
@@ -130,7 +137,7 @@ export class IterationTools extends BaseTools {
 		);
 	}
 
-	async getIteration(iterationPublicId: number) {
+	async getIteration(iterationPublicId: number, full = false) {
 		const iteration = await this.client.getIteration(iterationPublicId);
 
 		if (!iteration)
@@ -140,7 +147,7 @@ export class IterationTools extends BaseTools {
 
 		return this.toResult(
 			`Iteration: ${iterationPublicId}`,
-			await this.entityWithRelatedEntities(iteration, "iteration"),
+			await this.entityWithRelatedEntities(iteration, "iteration", full),
 		);
 	}
 

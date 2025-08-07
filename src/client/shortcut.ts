@@ -5,6 +5,7 @@ import type {
 	CreateIteration,
 	CreateStoryComment,
 	CreateStoryParams,
+	CustomField,
 	DocSlim,
 	Epic,
 	Group,
@@ -34,11 +35,13 @@ export class ShortcutClientWrapper {
 	private userCache: Cache<string, Member>;
 	private teamCache: Cache<string, Group>;
 	private workflowCache: Cache<number, Workflow>;
+	private customFieldCache: Cache<string, CustomField>;
 
 	constructor(private client: BaseClient) {
 		this.userCache = new Cache();
 		this.teamCache = new Cache();
 		this.workflowCache = new Cache();
+		this.customFieldCache = new Cache();
 	}
 
 	private async loadMembers() {
@@ -74,6 +77,19 @@ export class ShortcutClientWrapper {
 		}
 	}
 
+	private async loadCustomFields() {
+		if (this.customFieldCache.isStale) {
+			const response = await this.client.listCustomFields();
+			const customFields = response?.data ?? null;
+
+			if (customFields) {
+				this.customFieldCache.setMany(
+					customFields.map((customField) => [customField.id, customField]),
+				);
+			}
+		}
+	}
+
 	async getCurrentUser() {
 		if (this.currentUser) return this.currentUser;
 
@@ -101,7 +117,7 @@ export class ShortcutClientWrapper {
 		return new Map(
 			userIds
 				.map((id) => [id, this.userCache.get(id)])
-				.filter((user): user is [string, Member | null] => user[1] !== null),
+				.filter((user): user is [string, Member] => user[1] !== null),
 		);
 	}
 
@@ -124,7 +140,7 @@ export class ShortcutClientWrapper {
 		return new Map(
 			workflowIds
 				.map((id) => [id, this.workflowCache.get(id)])
-				.filter((workflow): workflow is [number, Workflow | null] => workflow[1] !== null),
+				.filter((workflow): workflow is [number, Workflow] => workflow[1] !== null),
 		);
 	}
 
@@ -154,7 +170,7 @@ export class ShortcutClientWrapper {
 		return new Map(
 			teamIds
 				.map((id) => [id, this.teamCache.get(id)])
-				.filter((team): team is [string, Group | null] => team[1] !== null),
+				.filter((team): team is [string, Group] => team[1] !== null),
 		);
 	}
 
@@ -481,5 +497,19 @@ export class ShortcutClientWrapper {
 		if (!doc) throw new Error(`Failed to create the document: ${response.status}`);
 
 		return doc;
+	}
+
+	async getCustomFieldMap(customFieldIds: string[]) {
+		await this.loadCustomFields();
+		return new Map(
+			customFieldIds
+				.map((id) => [id, this.customFieldCache.get(id)])
+				.filter((customField): customField is [string, CustomField] => customField[1] !== null),
+		);
+	}
+
+	async getCustomFields() {
+		await this.loadCustomFields();
+		return Array.from(this.customFieldCache.values());
 	}
 }

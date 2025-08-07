@@ -187,7 +187,7 @@ describe("StoryTools", () => {
 
 		test("should return formatted story details when story is found", async () => {
 			const storyTools = new StoryTools(mockClient);
-			const result = await storyTools.getStory(123);
+			const result = await storyTools.getStory(123, true);
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);
@@ -230,7 +230,7 @@ describe("StoryTools", () => {
 				getEpic: mock(async () => null),
 			} as unknown as ShortcutClientWrapper);
 
-			const result = await storyTools.getStory(456);
+			const result = await storyTools.getStory(456, true);
 
 			expect(result.content[0].type).toBe("text");
 			expect(result.content[0].text).toContain('"deadline": null');

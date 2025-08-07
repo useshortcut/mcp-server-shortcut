@@ -11,11 +11,28 @@ import type {
 	Story,
 	StorySearchResult,
 	StorySlim,
+	ThreadedComment,
 	Workflow,
 } from "@shortcut/client";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 
 // Simplified types for related entities
+type SimplifiedComment = {
+	id: number;
+	text: string;
+	author_id: string | null;
+};
+type SimplifiedTask = {
+	id: number;
+	description: string;
+	complete: boolean;
+};
+type SimplifiedCustomField = {
+	field_id: string;
+	value_id: string;
+	field_name: string;
+	value_name: string;
+};
 type SimplifiedMember = {
 	id: string;
 	email_address: string | null | undefined;
@@ -46,7 +63,7 @@ type SimplifiedObjective = {
 	state: string;
 	categories: string[];
 };
-type SimplifiedEpic = {
+type SimplifiedEpicList = {
 	id: number;
 	name: string;
 	app_url: string;
@@ -54,6 +71,12 @@ type SimplifiedEpic = {
 	state: string;
 	team_id: string | null;
 	objective_id: number | null;
+	owner_ids: string[];
+};
+type SimplifiedEpic = SimplifiedEpicList & {
+	description: string;
+	deadline: string | null;
+	comments: SimplifiedComment[];
 };
 type SimplifiedIteration = {
 	id: number;
@@ -64,7 +87,7 @@ type SimplifiedIteration = {
 	start_date: string;
 	end_date: string;
 };
-type SimplifiedStory = {
+type SimplifiedStoryList = {
 	id: number;
 	name: string;
 	app_url: string;
@@ -76,7 +99,26 @@ type SimplifiedStory = {
 	workflow_state_id: number;
 	owner_ids: string[];
 	requested_by_id: string | null;
+	parent_story_id: number | null;
+	sub_task_ids: number[];
 };
+type SimplifiedStory = SimplifiedStoryList & {
+	description: string;
+	comments: SimplifiedComment[];
+	related_stories: number[];
+	labels: string[];
+	pull_requests: string[];
+	branches: string[];
+	suggested_branch_name: string | null;
+	estimate: number | null;
+	custom_fields: string[];
+	external_links: string[];
+	tasks: SimplifiedTask[];
+	blocked: boolean;
+	blocker: boolean;
+};
+
+type SimplifiedKind = "simple" | "list" | "full";
 
 /**
  * Base class for all tools.
@@ -130,8 +172,12 @@ export class BaseTools {
 		return { id, name, email_address, mention_name, role, disabled, is_owner };
 	}
 
-	private getSimplifiedStory(entity: Story | null | undefined): SimplifiedStory | null {
+	private getSimplifiedStory(
+		entity: Story | null | undefined,
+		kind: SimplifiedKind,
+	): SimplifiedStory | SimplifiedStoryList | null {
 		if (!entity) return null;
+
 		const {
 			id,
 			name,
@@ -144,7 +190,49 @@ export class BaseTools {
 			workflow_state_id,
 			owner_ids,
 			requested_by_id,
+			estimate,
+			labels,
+			comments,
+			description,
+			external_links,
+			story_links,
+			pull_requests,
+			formatted_vcs_branch_name,
+			branches,
+			parent_story_id,
+			sub_task_story_ids,
+			tasks,
+			custom_fields,
+			blocked,
+			blocker,
 		} = entity;
+
+		const additionalFields: Partial<SimplifiedStory> = {};
+
+		if (kind === "simple") {
+			additionalFields.description = description;
+			additionalFields.estimate = estimate ?? null;
+			additionalFields.comments = (comments || [])
+				.filter((c) => !c.deleted)
+				.map(({ id, author_id, text }) => ({ id, author_id: author_id ?? null, text: text ?? "" }));
+			additionalFields.labels = (labels || []).map((l) => l.name);
+			additionalFields.external_links = external_links || [];
+			additionalFields.suggested_branch_name = formatted_vcs_branch_name ?? null;
+			additionalFields.pull_requests = (pull_requests || []).map((pr) => pr.url);
+			additionalFields.branches = (branches || []).map((b) => b.name);
+			additionalFields.related_stories = (story_links || []).map((sl) =>
+				sl.type === "object" ? sl.subject_id : sl.object_id,
+			);
+			additionalFields.tasks = (tasks || []).map((t) => ({
+				id: t.id,
+				description: t.description,
+				complete: t.complete,
+			}));
+			additionalFields.custom_fields = (custom_fields || []).map((field) => field.value_id);
+			additionalFields.blocked = blocked;
+			additionalFields.blocker = blocker;
+		}
+
 		return {
 			id,
 			name,
@@ -157,6 +245,9 @@ export class BaseTools {
 			workflow_state_id,
 			owner_ids,
 			requested_by_id,
+			parent_story_id: parent_story_id ?? null,
+			sub_task_ids: sub_task_story_ids ?? [],
+			...additionalFields,
 		};
 	}
 
@@ -182,9 +273,40 @@ export class BaseTools {
 		return { app_url, id, name, archived, state, categories: categories.map((cat) => cat.name) };
 	}
 
-	private getSimplifiedEpic(entity: Epic | null | undefined): SimplifiedEpic | null {
+	private getSimplifiedEpic(
+		entity: Epic | null | undefined,
+		kind: SimplifiedKind,
+	): SimplifiedEpic | SimplifiedEpicList | null {
 		if (!entity) return null;
-		const { id, name, app_url, archived, group_id, state, milestone_id } = entity;
+
+		const {
+			id,
+			name,
+			app_url,
+			archived,
+			group_id,
+			state,
+			milestone_id,
+			comments,
+			description,
+			deadline,
+			owner_ids,
+		} = entity;
+
+		const additionalFields: Partial<SimplifiedEpic> = {};
+
+		if (kind === "simple") {
+			additionalFields.comments = (comments || [])
+				.filter((comment) => !comment.deleted)
+				.map(({ id, author_id, text }: ThreadedComment) => ({
+					id,
+					author_id,
+					text,
+				}));
+			additionalFields.description = description;
+			additionalFields.deadline = deadline ?? null;
+		}
+
 		return {
 			id,
 			name,
@@ -193,6 +315,8 @@ export class BaseTools {
 			state,
 			team_id: group_id || null,
 			objective_id: milestone_id || null,
+			owner_ids,
+			...additionalFields,
 		};
 	}
 
@@ -260,10 +384,17 @@ export class BaseTools {
 		objectives: Record<string, SimplifiedObjective>;
 	}> {
 		if (!entity) return { users: {}, workflows: {}, teams: {}, objectives: {} };
-		const { group_id, owner_ids, milestone_id, requested_by_id, follower_ids } = entity;
+		const { group_id, owner_ids, milestone_id, requested_by_id, follower_ids, comments } = entity;
 
 		const usersForEpicMap = await this.client.getUserMap([
-			...new Set([...(owner_ids || []), requested_by_id, ...(follower_ids || [])].filter(Boolean)),
+			...new Set(
+				[
+					...(owner_ids || []),
+					requested_by_id,
+					...(follower_ids || []),
+					...(comments || []).map((comment) => comment.author_id),
+				].filter(Boolean),
+			),
 		]);
 		const usersForEpic = Object.fromEntries(
 			[...usersForEpicMap.entries()]
@@ -285,13 +416,17 @@ export class BaseTools {
 		};
 	}
 
-	private async getRelatedEntitiesForStory(entity: Story): Promise<{
+	private async getRelatedEntitiesForStory(
+		entity: Story,
+		kind: SimplifiedKind,
+	): Promise<{
 		users: Record<string, SimplifiedMember>;
 		workflows: Record<string, SimplifiedWorkflow>;
 		teams: Record<string, SimplifiedTeam>;
 		objectives: Record<string, SimplifiedObjective>;
 		iterations: Record<string, SimplifiedIteration>;
-		epics: Record<string, SimplifiedEpic>;
+		epics: Record<string, SimplifiedEpic | SimplifiedEpicList>;
+		custom_fields: Record<string, SimplifiedCustomField>;
 	}> {
 		const {
 			group_id,
@@ -301,10 +436,19 @@ export class BaseTools {
 			requested_by_id,
 			follower_ids,
 			workflow_id,
+			comments,
+			custom_fields,
 		} = entity;
 
 		const fullUsersForStory = await this.client.getUserMap([
-			...new Set([...(owner_ids || []), requested_by_id, ...(follower_ids || [])].filter(Boolean)),
+			...new Set(
+				[
+					...(owner_ids || []),
+					requested_by_id,
+					...(follower_ids || []),
+					...(comments || []).map((comment) => comment.author_id || ""),
+				].filter(Boolean),
+			),
 		]);
 		const usersForStory = Object.fromEntries(
 			[...fullUsersForStory.entries()]
@@ -316,7 +460,7 @@ export class BaseTools {
 		const iteration = iteration_id ? await this.client.getIteration(iteration_id) : null;
 		const simplifiedIteration = this.getSimplifiedIteration(iteration);
 		const epic = epic_id ? await this.client.getEpic(epic_id) : null;
-		const simplifiedEpic = this.getSimplifiedEpic(epic);
+		const simplifiedEpic = this.getSimplifiedEpic(epic, kind);
 
 		const teamForStory = teamsForStory.get(group_id || "");
 		const workflowForStory = this.getSimplifiedWorkflow(workflowsForStory.get(workflow_id));
@@ -355,6 +499,25 @@ export class BaseTools {
 		const epics = simplifiedEpic ? { [simplifiedEpic.id]: simplifiedEpic } : {};
 		const iterations = simplifiedIteration ? { [simplifiedIteration.id]: simplifiedIteration } : {};
 
+		const relatedCustomFields: Record<string, SimplifiedCustomField> = {};
+		if (custom_fields?.length) {
+			const customFieldMap = await this.client.getCustomFieldMap(
+				custom_fields.map((cf) => cf.field_id),
+			);
+			custom_fields.forEach((cf) => {
+				const field = customFieldMap.get(cf.field_id);
+				if (!field) return;
+				const value = field.values?.find((v) => v.id === cf.value_id);
+				if (!value) return;
+
+				relatedCustomFields[cf.value_id] = {
+					field_id: cf.field_id,
+					value_id: cf.value_id,
+					field_name: field.name,
+					value_name: value.value,
+				};
+			});
+		}
 		return {
 			users,
 			epics,
@@ -362,6 +525,7 @@ export class BaseTools {
 			workflows,
 			teams,
 			objectives,
+			custom_fields: relatedCustomFields,
 		};
 	}
 
@@ -378,12 +542,14 @@ export class BaseTools {
 			| Workflow
 			| ObjectiveSearchResult
 			| Milestone,
+		kind: SimplifiedKind,
 	) {
 		if (entity.entity_type === "group") return this.getRelatedEntitiesForTeam(entity as Group);
 		if (entity.entity_type === "iteration")
 			return this.getRelatedEntitiesForIteration(entity as Iteration);
 		if (entity.entity_type === "epic") return this.getRelatedEntitiesForEpic(entity as Epic);
-		if (entity.entity_type === "story") return this.getRelatedEntitiesForStory(entity as Story);
+		if (entity.entity_type === "story")
+			return this.getRelatedEntitiesForStory(entity as Story, kind);
 
 		return {};
 	}
@@ -401,11 +567,12 @@ export class BaseTools {
 			| Workflow
 			| ObjectiveSearchResult
 			| Milestone,
+		kind: SimplifiedKind,
 	) {
 		if (entity.entity_type === "group") return this.getSimplifiedTeam(entity as Group);
 		if (entity.entity_type === "iteration") return this.getSimplifiedIteration(entity as Iteration);
-		if (entity.entity_type === "epic") return this.getSimplifiedEpic(entity as Epic);
-		if (entity.entity_type === "story") return this.getSimplifiedStory(entity as Story);
+		if (entity.entity_type === "epic") return this.getSimplifiedEpic(entity as Epic, kind);
+		if (entity.entity_type === "story") return this.getSimplifiedStory(entity as Story, kind);
 		if (entity.entity_type === "milestone") return this.getSimplifiedObjective(entity as Milestone);
 		if (entity.entity_type === "workflow") return this.getSimplifiedWorkflow(entity as Workflow);
 
@@ -426,10 +593,12 @@ export class BaseTools {
 			| ObjectiveSearchResult
 			| Milestone,
 		entityType = "entity",
+		full = false,
 	) {
-		const relatedEntities = await this.getRelatedEntities(entity);
+		const finalEntity = full ? entity : this.getSimplifiedEntity(entity, "simple");
+		const relatedEntities = await this.getRelatedEntities(entity, full ? "full" : "simple");
 		return {
-			[entityType]: this.renameEntityProps(entity as unknown as Record<string, unknown>),
+			[entityType]: this.renameEntityProps(finalEntity as unknown as Record<string, unknown>),
 			relatedEntities,
 		};
 	}
@@ -451,10 +620,10 @@ export class BaseTools {
 		entityType = "entities",
 	) {
 		const relatedEntities = await Promise.all(
-			entities.map((entity) => this.getRelatedEntities(entity)),
+			entities.map((entity) => this.getRelatedEntities(entity, "list")),
 		);
 		return {
-			[entityType]: entities.map((entity) => this.getSimplifiedEntity(entity)),
+			[entityType]: entities.map((entity) => this.getSimplifiedEntity(entity, "list")),
 			relatedEntities: this.mergeRelatedEntities(relatedEntities),
 		};
 	}
@@ -464,7 +633,7 @@ export class BaseTools {
 			content: [
 				{
 					type: "text",
-					text: `${message}${data !== undefined ? `\n\n${JSON.stringify(data, null, 2)}` : ""}`,
+					text: `${message}${data !== undefined ? `\n\n<json>\n${JSON.stringify(data, null, 2)}\n</json>` : ""}`,
 				},
 			],
 		};
