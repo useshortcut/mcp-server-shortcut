@@ -30,6 +30,12 @@ export class EpicTools extends BaseTools {
 			"search-epics",
 			"Find Shortcut epics.",
 			{
+				nextPageToken: z
+					.string()
+					.optional()
+					.describe(
+						"If a next_page_token was returned from the search result, pass it in to get the next page of results.  Should be combined with the original search parameters.",
+					),
 				id: z.number().optional().describe("Find only epics with the specified public ID"),
 				name: z.string().optional().describe("Find only epics matching the specified name"),
 				description: z
@@ -67,7 +73,7 @@ export class EpicTools extends BaseTools {
 				completed: date(),
 				due: date(),
 			},
-			async (params) => await tools.searchEpics(params),
+			async ({ nextPageToken, ...params }) => await tools.searchEpics(params, nextPageToken),
 		);
 
 		server.tool(
@@ -85,17 +91,18 @@ export class EpicTools extends BaseTools {
 		return tools;
 	}
 
-	async searchEpics(params: QueryParams) {
+	async searchEpics(params: QueryParams, nextToken?: string) {
 		const currentUser = await this.client.getCurrentUser();
 		const query = await buildSearchQuery(params, currentUser);
-		const { epics, total } = await this.client.searchEpics(query);
+		const { epics, total, next_page_token } = await this.client.searchEpics(query, nextToken);
 
 		if (!epics) throw new Error(`Failed to search for epics matching your query: "${query}"`);
 		if (!epics.length) return this.toResult(`Result: No epics found.`);
 
 		return this.toResult(
-			`Result (first ${epics.length} shown of ${total} total epics found):`,
+			`Result (${epics.length} shown of ${total} total epics found):`,
 			await this.entitiesWithRelatedEntities(epics, "epics"),
+			next_page_token,
 		);
 	}
 

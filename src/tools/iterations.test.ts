@@ -207,7 +207,7 @@ describe("IterationTools", () => {
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);
-			expect(textContent).toContain("Result (first 2 shown of 2 total iterations found):");
+			expect(textContent).toContain("Result (2 shown of 2 total iterations found):");
 			expect(textContent).toContain('"id": 1');
 			expect(textContent).toContain('"name": "Iteration 1"');
 			expect(textContent).toContain('"id": 2');

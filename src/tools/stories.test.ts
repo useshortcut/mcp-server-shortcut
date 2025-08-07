@@ -150,9 +150,9 @@ describe("StoryTools", () => {
 			StoryTools.create(mockClient, mockServer);
 
 			expect(mockTool).toHaveBeenCalledTimes(15);
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-story-branch-name");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-story");
-			expect(mockTool.mock.calls?.[2]?.[0]).toBe("search-stories");
+			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-story");
+			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-stories");
+			expect(mockTool.mock.calls?.[2]?.[0]).toBe("get-story-branch-name");
 			expect(mockTool.mock.calls?.[3]?.[0]).toBe("create-story");
 			expect(mockTool.mock.calls?.[4]?.[0]).toBe("update-story");
 			expect(mockTool.mock.calls?.[5]?.[0]).toBe("assign-current-user-as-owner");
@@ -285,7 +285,7 @@ describe("StoryTools", () => {
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);
-			expect(textContent).toContain("Result (first 2 shown of 2 total stories found):");
+			expect(textContent).toContain("Result (2 shown of 2 total stories found):");
 			expect(textContent).toContain('"id": 123');
 			expect(textContent).toContain('"name": "Test Story 1"');
 			expect(textContent).toContain('"id": 456');

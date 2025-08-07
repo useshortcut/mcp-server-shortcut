@@ -44,6 +44,19 @@ export class ShortcutClientWrapper {
 		this.customFieldCache = new Cache();
 	}
 
+	private getNextPageToken(next: string | null | undefined) {
+		let next_page_token = null;
+
+		if (next) {
+			try {
+				const [, t] = /next=(.+)(?:&|$)/.exec(next) || [];
+				if (t) next_page_token = t;
+			} catch {}
+		}
+
+		return next_page_token;
+	}
+
 	private async loadMembers() {
 		if (this.userCache.isStale) {
 			const response = await this.client.listMembers({});
@@ -237,24 +250,36 @@ export class ShortcutClientWrapper {
 		return milestone;
 	}
 
-	async searchStories(query: string) {
-		const response = await this.client.searchStories({ query, page_size: 25, detail: "full" });
+	async searchStories(query: string, nextToken?: string) {
+		const response = await this.client.searchStories({
+			query,
+			page_size: 25,
+			detail: "full",
+			next: nextToken,
+		});
 		const stories = response?.data?.data;
 		const total = response?.data?.total;
+		const next = response?.data?.next;
 
-		if (!stories) return { stories: null, total: null };
+		if (!stories) return { stories: null, total: null, next_page_token: null };
 
-		return { stories, total };
+		return { stories, total, next_page_token: this.getNextPageToken(next) };
 	}
 
-	async searchIterations(query: string) {
-		const response = await this.client.searchIterations({ query, page_size: 25, detail: "full" });
+	async searchIterations(query: string, nextToken?: string) {
+		const response = await this.client.searchIterations({
+			query,
+			page_size: 25,
+			detail: "full",
+			next: nextToken,
+		});
 		const iterations = response?.data?.data;
 		const total = response?.data?.total;
+		const next = response?.data?.next;
 
-		if (!iterations) return { iterations: null, total: null };
+		if (!iterations) return { iterations: null, total: null, next_page_token: null };
 
-		return { iterations, total };
+		return { iterations, total, next_page_token: this.getNextPageToken(next) };
 	}
 
 	async getActiveIteration(teamIds: string[]) {
@@ -317,24 +342,36 @@ export class ShortcutClientWrapper {
 		return upcomingIterationByTeam;
 	}
 
-	async searchEpics(query: string) {
-		const response = await this.client.searchEpics({ query, page_size: 25, detail: "full" });
+	async searchEpics(query: string, nextToken?: string) {
+		const response = await this.client.searchEpics({
+			query,
+			page_size: 25,
+			detail: "full",
+			next: nextToken,
+		});
 		const epics = response?.data?.data;
 		const total = response?.data?.total;
+		const next = response?.data?.next;
 
-		if (!epics) return { epics: null, total: null };
+		if (!epics) return { epics: null, total: null, next_page_token: null };
 
-		return { epics, total };
+		return { epics, total, next_page_token: this.getNextPageToken(next) };
 	}
 
-	async searchMilestones(query: string) {
-		const response = await this.client.searchMilestones({ query, page_size: 25, detail: "full" });
+	async searchMilestones(query: string, nextToken?: string) {
+		const response = await this.client.searchMilestones({
+			query,
+			page_size: 25,
+			detail: "full",
+			next: nextToken,
+		});
 		const milestones = response?.data?.data;
 		const total = response?.data?.total;
+		const next = response?.data?.next;
 
-		if (!milestones) return { milestones: null, total: null };
+		if (!milestones) return { milestones: null, total: null, next_page_token: null };
 
-		return { milestones, total };
+		return { milestones, total, next_page_token: this.getNextPageToken(next) };
 	}
 
 	async listIterationStories(iterationPublicId: number, includeDescription = false) {

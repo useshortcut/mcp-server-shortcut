@@ -11,15 +11,6 @@ export class StoryTools extends BaseTools {
 		const tools = new StoryTools(client);
 
 		server.tool(
-			"get-story-branch-name",
-			"Get a valid branch name for a specific story.",
-			{
-				storyPublicId: z.number().positive().describe("The public Id of the story"),
-			},
-			async ({ storyPublicId }) => await tools.getStoryBranchName(storyPublicId),
-		);
-
-		server.tool(
 			"get-story",
 			"Get a Shortcut story by public ID",
 			{
@@ -39,6 +30,12 @@ export class StoryTools extends BaseTools {
 			"search-stories",
 			"Find Shortcut stories.",
 			{
+				nextPageToken: z
+					.string()
+					.optional()
+					.describe(
+						"If a next_page_token was returned from the search result, pass it in to get the next page of results. Should be combined with the original search parameters.",
+					),
 				id: z.number().optional().describe("Find only stories with the specified public ID"),
 				name: z.string().optional().describe("Find only stories matching the specified name"),
 				description: z
@@ -116,7 +113,16 @@ export class StoryTools extends BaseTools {
 				completed: date(),
 				due: date(),
 			},
-			async (params) => await tools.searchStories(params),
+			async ({ nextPageToken, ...params }) => await tools.searchStories(params, nextPageToken),
+		);
+
+		server.tool(
+			"get-story-branch-name",
+			"Get a valid branch name for a specific story.",
+			{
+				storyPublicId: z.number().positive().describe("The public Id of the story"),
+			},
+			async ({ storyPublicId }) => await tools.getStoryBranchName(storyPublicId),
 		);
 
 		server.tool(
@@ -436,17 +442,18 @@ The story will be added to the default state for the workflow.
 		return this.toResult(`Created story: ${story.id}`);
 	}
 
-	async searchStories(params: QueryParams) {
+	async searchStories(params: QueryParams, nextToken?: string) {
 		const currentUser = await this.client.getCurrentUser();
 		const query = await buildSearchQuery(params, currentUser);
-		const { stories, total } = await this.client.searchStories(query);
+		const { stories, total, next_page_token } = await this.client.searchStories(query, nextToken);
 
 		if (!stories) throw new Error(`Failed to search for stories matching your query: "${query}".`);
 		if (!stories.length) return this.toResult(`Result: No stories found.`);
 
 		return this.toResult(
-			`Result (first ${stories.length} shown of ${total} total stories found):`,
+			`Result (${stories.length} shown of ${total} total stories found):`,
 			await this.entitiesWithRelatedEntities(stories, "stories"),
+			next_page_token,
 		);
 	}
 
