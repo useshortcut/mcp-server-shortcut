@@ -636,12 +636,16 @@ export class BaseTools {
 		};
 	}
 
-	protected toResult(message: string, data?: unknown): CallToolResult {
+	protected toResult(
+		message: string,
+		data?: unknown,
+		paginationToken?: string | null | undefined,
+	): CallToolResult {
 		return {
 			content: [
 				{
 					type: "text",
-					text: `${message}${data !== undefined ? `\n\n<json>\n${JSON.stringify(data, null, 2)}\n</json>` : ""}`,
+					text: `${message}${data !== undefined ? `\n\n<json>\n${JSON.stringify(data, null, 2)}\n</json>${paginationToken ? `\n\n<next-page-token>${paginationToken}</next-page-token>` : ""}` : ""}`,
 				},
 			],
 		};

@@ -29,6 +29,12 @@ export class ObjectiveTools extends BaseTools {
 			"search-objectives",
 			"Find Shortcut objectives.",
 			{
+				nextPageToken: z
+					.string()
+					.optional()
+					.describe(
+						"If a next_page_token was returned from the search result, pass it in to get the next page of results. Should be combined with the original search parameters.",
+					),
 				id: z.number().optional().describe("Find objectives matching the specified id"),
 				name: z.string().optional().describe("Find objectives matching the specified name"),
 				description: z
@@ -54,24 +60,28 @@ export class ObjectiveTools extends BaseTools {
 				updated: date(),
 				completed: date(),
 			},
-			async (params) => await tools.searchObjectives(params),
+			async ({ nextPageToken, ...params }) => await tools.searchObjectives(params, nextPageToken),
 		);
 
 		return tools;
 	}
 
-	async searchObjectives(params: QueryParams) {
+	async searchObjectives(params: QueryParams, nextToken?: string) {
 		const currentUser = await this.client.getCurrentUser();
 		const query = await buildSearchQuery(params, currentUser);
-		const { milestones, total } = await this.client.searchMilestones(query);
+		const { milestones, total, next_page_token } = await this.client.searchMilestones(
+			query,
+			nextToken,
+		);
 
 		if (!milestones)
 			throw new Error(`Failed to search for milestones matching your query: "${query}"`);
 		if (!milestones.length) return this.toResult(`Result: No milestones found.`);
 
 		return this.toResult(
-			`Result (first ${milestones.length} shown of ${total} total milestones found):`,
+			`Result (${milestones.length} shown of ${total} total milestones found):`,
 			await this.entitiesWithRelatedEntities(milestones, "objectives"),
+			next_page_token,
 		);
 	}
 

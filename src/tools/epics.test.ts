@@ -208,7 +208,7 @@ describe("EpicTools", () => {
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);
-			expect(textContent).toContain("Result (first 3 shown of 3 total epics found):");
+			expect(textContent).toContain("Result (3 shown of 3 total epics found):");
 			expect(textContent).toContain('"id": 1');
 			expect(textContent).toContain('"name": "Epic 1"');
 			expect(textContent).toContain('"id": 2');

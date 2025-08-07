@@ -47,6 +47,12 @@ export class IterationTools extends BaseTools {
 			"search-iterations",
 			"Find Shortcut iterations.",
 			{
+				nextPageToken: z
+					.string()
+					.optional()
+					.describe(
+						"If a next_page_token was returned from the search result, pass it in to get the next page of results. Should be combined with the original search parameters.",
+					),
 				id: z.number().optional().describe("Find only iterations with the specified public ID"),
 				name: z.string().optional().describe("Find only iterations matching the specified name"),
 				description: z
@@ -68,7 +74,7 @@ export class IterationTools extends BaseTools {
 				startDate: date(),
 				endDate: date(),
 			},
-			async (params) => await tools.searchIterations(params),
+			async ({ nextPageToken, ...params }) => await tools.searchIterations(params, nextPageToken),
 		);
 
 		server.tool(
@@ -122,18 +128,22 @@ export class IterationTools extends BaseTools {
 		);
 	}
 
-	async searchIterations(params: QueryParams) {
+	async searchIterations(params: QueryParams, nextToken?: string) {
 		const currentUser = await this.client.getCurrentUser();
 		const query = await buildSearchQuery(params, currentUser);
-		const { iterations, total } = await this.client.searchIterations(query);
+		const { iterations, total, next_page_token } = await this.client.searchIterations(
+			query,
+			nextToken,
+		);
 
 		if (!iterations)
 			throw new Error(`Failed to search for iterations matching your query: "${query}".`);
 		if (!iterations.length) return this.toResult(`Result: No iterations found.`);
 
 		return this.toResult(
-			`Result (first ${iterations.length} shown of ${total} total iterations found):`,
+			`Result (${iterations.length} shown of ${total} total iterations found):`,
 			await this.entitiesWithRelatedEntities(iterations, "iterations"),
+			next_page_token,
 		);
 	}
 
