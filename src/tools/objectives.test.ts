@@ -121,7 +121,7 @@ describe("ObjectiveTools", () => {
 
 		test("should return formatted objective details when objective is found", async () => {
 			const objectiveTools = new ObjectiveTools(mockClient);
-			const result = await objectiveTools.getObjective(1);
+			const result = await objectiveTools.getObjective(1, true);
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);
@@ -133,6 +133,23 @@ describe("ObjectiveTools", () => {
 			expect(textContent).toContain('"completed": false');
 			expect(textContent).toContain('"started": true');
 			expect(textContent).toContain('"app_url": "https://app.shortcut.com/test/milestone/1"');
+		});
+
+		test("should return simplified objective when full = false", async () => {
+			const objectiveTools = new ObjectiveTools(mockClient);
+			const result = await objectiveTools.getObjective(1, false);
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Objective: 1");
+			expect(textContent).toContain('"id": 1');
+			expect(textContent).toContain('"name": "Objective 1"');
+			expect(textContent).toContain('"app_url": "https://app.shortcut.com/test/milestone/1"');
+
+			// Should have basic objective fields in simplified format
+			expect(textContent).toContain('"archived"');
+			expect(textContent).toContain('"state"');
+			expect(textContent).toContain('"categories"');
 		});
 
 		test("should handle objective not found", async () => {
@@ -160,7 +177,7 @@ describe("ObjectiveTools", () => {
 				getEpic: mock(async () => null),
 			} as unknown as ShortcutClientWrapper);
 
-			const result = await objectiveTools.getObjective(2);
+			const result = await objectiveTools.getObjective(2, true);
 
 			expect(result.content[0].type).toBe("text");
 			expect(result.content[0].text).toContain('"completed": true');

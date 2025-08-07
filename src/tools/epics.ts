@@ -13,8 +13,17 @@ export class EpicTools extends BaseTools {
 		server.tool(
 			"get-epic",
 			"Get a Shortcut epic by public ID",
-			{ epicPublicId: z.number().positive().describe("The public ID of the epic to get") },
-			async ({ epicPublicId }) => await tools.getEpic(epicPublicId),
+			{
+				epicPublicId: z.number().positive().describe("The public ID of the epic to get"),
+				full: z
+					.boolean()
+					.optional()
+					.default(false)
+					.describe(
+						"True to return all epic fields from the API. False to return a slim version that excludes uncommon fields",
+					),
+			},
+			async ({ epicPublicId, full }) => await tools.getEpic(epicPublicId, full),
 		);
 
 		server.tool(
@@ -90,14 +99,14 @@ export class EpicTools extends BaseTools {
 		);
 	}
 
-	async getEpic(epicPublicId: number) {
+	async getEpic(epicPublicId: number, full = false) {
 		const epic = await this.client.getEpic(epicPublicId);
 
 		if (!epic) throw new Error(`Failed to retrieve Shortcut epic with public ID: ${epicPublicId}`);
 
 		return this.toResult(
 			`Epic: ${epicPublicId}`,
-			await this.entityWithRelatedEntities(epic, "epic"),
+			await this.entityWithRelatedEntities(epic, "epic", full),
 		);
 	}
 

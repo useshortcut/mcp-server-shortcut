@@ -10,8 +10,17 @@ export class WorkflowTools extends BaseTools {
 		server.tool(
 			"get-workflow",
 			"Get a Shortcut workflow by public ID",
-			{ workflowPublicId: z.number().positive().describe("The public ID of the workflow to get") },
-			async ({ workflowPublicId }) => await tools.getWorkflow(workflowPublicId),
+			{
+				workflowPublicId: z.number().positive().describe("The public ID of the workflow to get"),
+				full: z
+					.boolean()
+					.optional()
+					.default(false)
+					.describe(
+						"True to return all workflow fields from the API. False to return a slim version that excludes uncommon fields",
+					),
+			},
+			async ({ workflowPublicId, full }) => await tools.getWorkflow(workflowPublicId, full),
 		);
 
 		server.tool(
@@ -23,14 +32,14 @@ export class WorkflowTools extends BaseTools {
 		return tools;
 	}
 
-	async getWorkflow(workflowPublicId: number) {
+	async getWorkflow(workflowPublicId: number, full = false) {
 		const workflow = await this.client.getWorkflow(workflowPublicId);
 
 		if (!workflow) return this.toResult(`Workflow with public ID: ${workflowPublicId} not found.`);
 
 		return this.toResult(
 			`Workflow: ${workflow.id}`,
-			await this.entityWithRelatedEntities(workflow, "workflow"),
+			await this.entityWithRelatedEntities(workflow, "workflow", full),
 		);
 	}
 

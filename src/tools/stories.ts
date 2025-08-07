@@ -24,8 +24,15 @@ export class StoryTools extends BaseTools {
 			"Get a Shortcut story by public ID",
 			{
 				storyPublicId: z.number().positive().describe("The public ID of the story to get"),
+				full: z
+					.boolean()
+					.optional()
+					.default(false)
+					.describe(
+						"True to return all story fields from the API. False to return a slim version that excludes uncommon fields",
+					),
 			},
-			async ({ storyPublicId }) => await tools.getStory(storyPublicId),
+			async ({ storyPublicId, full }) => await tools.getStory(storyPublicId, full),
 		);
 
 		server.tool(
@@ -443,7 +450,7 @@ The story will be added to the default state for the workflow.
 		);
 	}
 
-	async getStory(storyPublicId: number) {
+	async getStory(storyPublicId: number, full = false) {
 		const story = await this.client.getStory(storyPublicId);
 
 		if (!story)
@@ -451,7 +458,7 @@ The story will be added to the default state for the workflow.
 
 		return this.toResult(
 			`Story: sc-${storyPublicId}`,
-			await this.entityWithRelatedEntities(story, "story"),
+			await this.entityWithRelatedEntities(story, "story", full),
 		);
 	}
 

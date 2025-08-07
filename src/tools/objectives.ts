@@ -14,8 +14,15 @@ export class ObjectiveTools extends BaseTools {
 			"Get a Shortcut objective by public ID",
 			{
 				objectivePublicId: z.number().positive().describe("The public ID of the objective to get"),
+				full: z
+					.boolean()
+					.optional()
+					.default(false)
+					.describe(
+						"True to return all objective fields from the API. False to return a slim version that excludes uncommon fields",
+					),
 			},
-			async ({ objectivePublicId }) => await tools.getObjective(objectivePublicId),
+			async ({ objectivePublicId, full }) => await tools.getObjective(objectivePublicId, full),
 		);
 
 		server.tool(
@@ -68,7 +75,7 @@ export class ObjectiveTools extends BaseTools {
 		);
 	}
 
-	async getObjective(objectivePublicId: number) {
+	async getObjective(objectivePublicId: number, full = false) {
 		const objective = await this.client.getMilestone(objectivePublicId);
 
 		if (!objective)
@@ -76,7 +83,7 @@ export class ObjectiveTools extends BaseTools {
 
 		return this.toResult(
 			`Objective: ${objectivePublicId}`,
-			await this.entityWithRelatedEntities(objective, "objective"),
+			await this.entityWithRelatedEntities(objective, "objective", full),
 		);
 	}
 }

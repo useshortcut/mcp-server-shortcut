@@ -187,7 +187,7 @@ describe("StoryTools", () => {
 
 		test("should return formatted story details when story is found", async () => {
 			const storyTools = new StoryTools(mockClient);
-			const result = await storyTools.getStory(123);
+			const result = await storyTools.getStory(123, true);
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);
@@ -201,6 +201,22 @@ describe("StoryTools", () => {
 			expect(textContent).toContain('"started": true');
 			expect(textContent).toContain('"deadline": "2023-12-31"');
 			expect(textContent).toContain('"app_url": "https://app.shortcut.com/test/story/123"');
+		});
+
+		test("should return simplified story when full = false", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.getStory(123, false);
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Story: sc-123");
+			expect(textContent).toContain('"id": 123');
+			expect(textContent).toContain('"name": "Test Story 1"');
+
+			// When full = false, should have simplified entity structure
+			// The main difference is that it goes through getSimplifiedEntity which adds specific fields
+			expect(textContent).toContain('"story"');
+			expect(textContent).toContain('"relatedEntities"');
 		});
 
 		test("should handle story not found", async () => {
@@ -230,7 +246,7 @@ describe("StoryTools", () => {
 				getEpic: mock(async () => null),
 			} as unknown as ShortcutClientWrapper);
 
-			const result = await storyTools.getStory(456);
+			const result = await storyTools.getStory(456, true);
 
 			expect(result.content[0].type).toBe("text");
 			expect(result.content[0].text).toContain('"deadline": null');

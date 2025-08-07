@@ -131,9 +131,25 @@ describe("EpicTools", () => {
 			expect(textContent).toContain('"app_url": "https://app.shortcut.com/test/epic/1"');
 		});
 
+		test("should return simplified epic when full = false", async () => {
+			const epicTools = new EpicTools(mockClient);
+			const result = await epicTools.getEpic(1, false);
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Epic: 1");
+			expect(textContent).toContain('"id": 1');
+			expect(textContent).toContain('"name": "Epic 1"');
+
+			// Should contain simplified additional fields when full = false
+			expect(textContent).toContain('"description": "Description for Epic 1"');
+			expect(textContent).toContain('"deadline": "2025-04-01"');
+			expect(textContent).toContain('"comments"');
+		});
+
 		test("should handle completed and archived epics correctly", async () => {
 			const epicTools = new EpicTools(mockClient);
-			const result = await epicTools.getEpic(3);
+			const result = await epicTools.getEpic(3, true);
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);
@@ -149,7 +165,7 @@ describe("EpicTools", () => {
 
 		test("should handle epics with null deadline", async () => {
 			const epicTools = new EpicTools(mockClient);
-			const result = await epicTools.getEpic(2);
+			const result = await epicTools.getEpic(2, true);
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);

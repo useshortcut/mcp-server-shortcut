@@ -56,8 +56,8 @@ describe("WorkflowTools", () => {
 			spyOn(tools, "getWorkflow").mockImplementation(async () => ({
 				content: [{ text: "", type: "text" }],
 			}));
-			await mockTool.mock.calls?.[0]?.[3]({ workflowPublicId: 1 });
-			expect(tools.getWorkflow).toHaveBeenCalledWith(1);
+			await mockTool.mock.calls?.[0]?.[3]({ workflowPublicId: 1, full: false });
+			expect(tools.getWorkflow).toHaveBeenCalledWith(1, false);
 
 			spyOn(tools, "listWorkflows").mockImplementation(async () => ({
 				content: [{ text: "", type: "text" }],
@@ -75,7 +75,7 @@ describe("WorkflowTools", () => {
 
 		test("should return formatted workflow details when workflow is found", async () => {
 			const workflowTools = new WorkflowTools(mockClient);
-			const result = await workflowTools.getWorkflow(1);
+			const result = await workflowTools.getWorkflow(1, true);
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);

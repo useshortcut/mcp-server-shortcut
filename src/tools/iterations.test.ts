@@ -251,7 +251,7 @@ describe("IterationTools", () => {
 					getIteration: getIterationMock,
 				}),
 			);
-			const result = await iterationTools.getIteration(1);
+			const result = await iterationTools.getIteration(1, true);
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);
@@ -263,6 +263,25 @@ describe("IterationTools", () => {
 			expect(textContent).toContain('"end_date": "2023-01-14"');
 			expect(textContent).toContain('"status": "started"');
 			expect(textContent).toContain('"app_url": "https://app.shortcut.com/test/iteration/1"');
+		});
+
+		test("should return simplified iteration when full = false", async () => {
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getIteration: getIterationMock,
+				}),
+			);
+			const result = await iterationTools.getIteration(1, false);
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Iteration: 1");
+			expect(textContent).toContain('"id": 1');
+			expect(textContent).toContain('"name": "Iteration 1"');
+
+			// When full = false, should have simplified entity structure
+			expect(textContent).toContain('"iteration"');
+			expect(textContent).toContain('"relatedEntities"');
 		});
 
 		test("should handle iteration not found", async () => {
