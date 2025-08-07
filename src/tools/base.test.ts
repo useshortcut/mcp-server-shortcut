@@ -1,7 +1,18 @@
 import { describe, expect, mock, test } from "bun:test";
-import type { Epic, Group, Iteration, Member, Milestone, Story, Workflow } from "@shortcut/client";
+import type {
+	Epic,
+	Group,
+	Iteration,
+	LabelSlim,
+	Member,
+	Milestone,
+	Story,
+	Task,
+	ThreadedComment,
+	Workflow,
+} from "@shortcut/client";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
-import { BaseTools } from "./base";
+import { BaseTools, type SimplifiedEpic, type SimplifiedStory } from "./base";
 
 describe("BaseTools", () => {
 	const mockMembers: Member[] = [
@@ -125,8 +136,8 @@ describe("BaseTools", () => {
 	];
 
 	class TestTools extends BaseTools {
-		publicEntityWithRelatedEntities(entity: unknown, entityType?: string) {
-			return this.entityWithRelatedEntities(entity as Story, entityType);
+		publicEntityWithRelatedEntities(entity: unknown, entityType?: string, full?: boolean) {
+			return this.entityWithRelatedEntities(entity as Story, entityType, full);
 		}
 
 		publicEntitiesWithRelatedEntities(entities: unknown[], entityType?: string) {
@@ -363,6 +374,135 @@ describe("BaseTools", () => {
 			expect(result).toHaveProperty("iteration");
 			expect(result).toHaveProperty("relatedEntities");
 			expect(typeof result.relatedEntities).toBe("object");
+		});
+	});
+
+	describe("full parameter behavior", () => {
+		test("should return simplified entity when full = false", async () => {
+			const mockStoryWithDetails: Story = {
+				...mockStories[0],
+				description: "Detailed story description",
+				comments: [
+					{
+						id: 1,
+						author_id: "user1",
+						text: "First comment",
+						deleted: false,
+					} as unknown as ThreadedComment[],
+				],
+				labels: [{ name: "frontend" }, { name: "urgent" }] as LabelSlim[],
+				external_links: ["https://example.com"],
+				tasks: [{ id: 1, description: "First task", complete: false }] as Task[],
+				estimate: 5,
+				blocked: true,
+				blocker: false,
+			} as unknown as Story;
+
+			const mockClient = createMockClient();
+			const tools = new TestTools(mockClient);
+
+			const result = await tools.publicEntityWithRelatedEntities(
+				mockStoryWithDetails,
+				"story",
+				false,
+			);
+
+			// When full = false, should have simplified fields included
+			expect(result.story).toHaveProperty("description", "Detailed story description");
+			expect(result.story).toHaveProperty("comments");
+			expect(result.story).toHaveProperty("labels");
+			expect(result.story).toHaveProperty("external_links");
+			expect(result.story).toHaveProperty("tasks");
+			expect(result.story).toHaveProperty("estimate", 5);
+			expect(result.story).toHaveProperty("blocked", true);
+			expect(result.story).toHaveProperty("blocker", false);
+
+			// Comments should be simplified
+			expect((result.story as SimplifiedStory).comments[0]).toHaveProperty("id", 1);
+			expect((result.story as SimplifiedStory).comments[0]).toHaveProperty("author_id", "user1");
+			expect((result.story as SimplifiedStory).comments[0]).toHaveProperty("text", "First comment");
+
+			// Labels should be simplified to names only
+			expect((result.story as SimplifiedStory).labels).toEqual(["frontend", "urgent"]);
+
+			// Tasks should be simplified
+			expect((result.story as SimplifiedStory).tasks[0]).toHaveProperty("id", 1);
+			expect((result.story as SimplifiedStory).tasks[0]).toHaveProperty(
+				"description",
+				"First task",
+			);
+			expect((result.story as SimplifiedStory).tasks[0]).toHaveProperty("complete", false);
+		});
+
+		test("should return full entity when full = true", async () => {
+			const mockStoryWithDetails: Story = {
+				...mockStories[0],
+				description: "Detailed story description",
+				comments: [{ id: 1, author_id: "user1", text: "First comment", deleted: false }],
+				labels: [{ name: "frontend" }, { name: "urgent" }] as LabelSlim[],
+			} as Story;
+
+			const mockClient = createMockClient();
+			const tools = new TestTools(mockClient);
+
+			const result = await tools.publicEntityWithRelatedEntities(
+				mockStoryWithDetails,
+				"story",
+				true,
+			);
+
+			// When full = true, should return the original entity (minus renamed props)
+			expect(result.story).toHaveProperty("description", "Detailed story description");
+			// Full entity should have all original fields preserved
+			expect((result.story as SimplifiedStory).comments).toBeDefined();
+			expect((result.story as SimplifiedStory).labels).toBeDefined();
+		});
+
+		test("should return simplified epic when full = false", async () => {
+			const mockEpicWithDetails: Epic = {
+				...mockEpics[0],
+				description: "Detailed epic description",
+				deadline: "2024-12-31",
+				comments: [{ id: 1, author_id: "user1", text: "Epic comment", deleted: false }],
+			} as Epic;
+
+			const mockClient = createMockClient();
+			const tools = new TestTools(mockClient);
+
+			const result = await tools.publicEntityWithRelatedEntities(
+				mockEpicWithDetails,
+				"epic",
+				false,
+			);
+
+			// When full = false for epic, should include simplified additional fields
+			expect(result.epic).toHaveProperty("description", "Detailed epic description");
+			expect(result.epic).toHaveProperty("deadline", "2024-12-31");
+			expect(result.epic).toHaveProperty("comments");
+
+			// Comments should be simplified
+			expect((result.epic as SimplifiedEpic).comments[0]).toHaveProperty("id", 1);
+			expect((result.epic as SimplifiedEpic).comments[0]).toHaveProperty("author_id", "user1");
+			expect((result.epic as SimplifiedEpic).comments[0]).toHaveProperty("text", "Epic comment");
+		});
+
+		test("should return basic epic when full = true", async () => {
+			const mockEpicWithDetails: Epic = {
+				...mockEpics[0],
+				description: "Detailed epic description",
+				deadline: "2024-12-31",
+				comments: [{ id: 1, author_id: "user1", text: "Epic comment", deleted: false }],
+			} as Epic;
+
+			const mockClient = createMockClient();
+			const tools = new TestTools(mockClient);
+
+			const result = await tools.publicEntityWithRelatedEntities(mockEpicWithDetails, "epic", true);
+
+			// When full = true for epic, should return the original entity (minus renamed props)
+			expect(result.epic).toHaveProperty("description", "Detailed epic description");
+			expect(result.epic).toHaveProperty("deadline", "2024-12-31");
+			expect((result.epic as SimplifiedEpic).comments).toBeDefined();
 		});
 	});
 });

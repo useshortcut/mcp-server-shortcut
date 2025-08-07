@@ -135,6 +135,23 @@ describe("ObjectiveTools", () => {
 			expect(textContent).toContain('"app_url": "https://app.shortcut.com/test/milestone/1"');
 		});
 
+		test("should return simplified objective when full = false", async () => {
+			const objectiveTools = new ObjectiveTools(mockClient);
+			const result = await objectiveTools.getObjective(1, false);
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Objective: 1");
+			expect(textContent).toContain('"id": 1');
+			expect(textContent).toContain('"name": "Objective 1"');
+			expect(textContent).toContain('"app_url": "https://app.shortcut.com/test/milestone/1"');
+
+			// Should have basic objective fields in simplified format
+			expect(textContent).toContain('"archived"');
+			expect(textContent).toContain('"state"');
+			expect(textContent).toContain('"categories"');
+		});
+
 		test("should handle objective not found", async () => {
 			const objectiveTools = new ObjectiveTools({
 				getMilestone: mock(async () => null),

@@ -17,23 +17,23 @@ import type {
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 
 // Simplified types for related entities
-type SimplifiedComment = {
+export type SimplifiedComment = {
 	id: number;
 	text: string;
 	author_id: string | null;
 };
-type SimplifiedTask = {
+export type SimplifiedTask = {
 	id: number;
 	description: string;
 	complete: boolean;
 };
-type SimplifiedCustomField = {
+export type SimplifiedCustomField = {
 	field_id: string;
 	value_id: string;
 	field_name: string;
 	value_name: string;
 };
-type SimplifiedMember = {
+export type SimplifiedMember = {
 	id: string;
 	email_address: string | null | undefined;
 	mention_name: string;
@@ -42,12 +42,12 @@ type SimplifiedMember = {
 	disabled: boolean;
 	is_owner: boolean;
 };
-type SimplifiedWorkflow = {
+export type SimplifiedWorkflow = {
 	id: number;
 	name: string;
 	states: { id: number; name: string; type: string }[];
 };
-type SimplifiedTeam = {
+export type SimplifiedTeam = {
 	id: string;
 	name: string;
 	archived: boolean;
@@ -55,7 +55,7 @@ type SimplifiedTeam = {
 	member_ids: string[];
 	workflow_ids: number[];
 };
-type SimplifiedObjective = {
+export type SimplifiedObjective = {
 	id: number;
 	name: string;
 	app_url: string;
@@ -63,7 +63,7 @@ type SimplifiedObjective = {
 	state: string;
 	categories: string[];
 };
-type SimplifiedEpicList = {
+export type SimplifiedEpicList = {
 	id: number;
 	name: string;
 	app_url: string;
@@ -73,12 +73,12 @@ type SimplifiedEpicList = {
 	objective_id: number | null;
 	owner_ids: string[];
 };
-type SimplifiedEpic = SimplifiedEpicList & {
+export type SimplifiedEpic = SimplifiedEpicList & {
 	description: string;
 	deadline: string | null;
 	comments: SimplifiedComment[];
 };
-type SimplifiedIteration = {
+export type SimplifiedIteration = {
 	id: number;
 	name: string;
 	app_url: string;
@@ -87,7 +87,7 @@ type SimplifiedIteration = {
 	start_date: string;
 	end_date: string;
 };
-type SimplifiedStoryList = {
+export type SimplifiedStoryList = {
 	id: number;
 	name: string;
 	app_url: string;
@@ -102,7 +102,7 @@ type SimplifiedStoryList = {
 	parent_story_id: number | null;
 	sub_task_ids: number[];
 };
-type SimplifiedStory = SimplifiedStoryList & {
+export type SimplifiedStory = SimplifiedStoryList & {
 	description: string;
 	comments: SimplifiedComment[];
 	related_stories: number[];
@@ -118,7 +118,7 @@ type SimplifiedStory = SimplifiedStoryList & {
 	blocker: boolean;
 };
 
-type SimplifiedKind = "simple" | "list" | "full";
+export type SimplifiedKind = "simple" | "list" | "full";
 
 /**
  * Base class for all tools.
