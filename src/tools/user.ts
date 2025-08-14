@@ -12,6 +12,12 @@ export class UserTools extends BaseTools {
 			async () => await tools.getCurrentUser(),
 		);
 
+		server.tool(
+			"get-current-user-teams",
+			"Get a list of teams where the current user is a member",
+			async () => await tools.getCurrentUserTeams(),
+		);
+
 		server.tool("list-members", "Get all members", async () => await tools.listMembers());
 
 		return tools;
@@ -23,6 +29,21 @@ export class UserTools extends BaseTools {
 		if (!user) throw new Error("Failed to retrieve current user.");
 
 		return this.toResult(`Current user:`, user);
+	}
+
+	async getCurrentUserTeams() {
+		const teams = await this.client.getTeams();
+		const currentUser = await this.client.getCurrentUser();
+
+		if (!currentUser) throw new Error("Failed to get current user.");
+
+		const userTeams = teams.filter((team) => team.member_ids.includes(currentUser.id));
+		if (!userTeams.length) return this.toResult(`Current user is not a member of any teams.`);
+
+		return this.toResult(
+			`Current user is a member of ${userTeams.length} teams:`,
+			await this.entitiesWithRelatedEntities(userTeams, "teams"),
+		);
 	}
 
 	async listMembers() {

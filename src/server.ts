@@ -29,6 +29,7 @@ if (!apiToken) {
 const server = new McpServer({ name, version });
 const client = new ShortcutClientWrapper(new ShortcutClient(apiToken));
 
+// The order these are created impacts the order they are listed to the LLM. Most important tools should be at the top.
 UserTools.create(client, server);
 StoryTools.create(client, server);
 IterationTools.create(client, server);

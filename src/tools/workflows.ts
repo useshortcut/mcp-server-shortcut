@@ -8,6 +8,18 @@ export class WorkflowTools extends BaseTools {
 		const tools = new WorkflowTools(client);
 
 		server.tool(
+			"get-default-workflow",
+			"Get the default workflow for a specific team or the global default if no team is specified.",
+			{
+				teamPublicId: z
+					.string()
+					.optional()
+					.describe("The public ID of the team to get the default workflow for."),
+			},
+			async ({ teamPublicId }) => await tools.getDefaultWorkflow(teamPublicId),
+		);
+
+		server.tool(
 			"get-workflow",
 			"Get a Shortcut workflow by public ID",
 			{
@@ -30,6 +42,40 @@ export class WorkflowTools extends BaseTools {
 		);
 
 		return tools;
+	}
+
+	async getDefaultWorkflow(teamPublicId?: string) {
+		if (teamPublicId) {
+			try {
+				const teamDefaultWorkflowId = await this.client
+					.getTeam(teamPublicId)
+					.then((t) => t?.default_workflow_id);
+				if (teamDefaultWorkflowId) {
+					const teamDefaultWorkflow = await this.client.getWorkflow(teamDefaultWorkflowId);
+					if (teamDefaultWorkflow) {
+						return this.toResult(
+							`Default workflow for team "${teamPublicId}" has id ${teamDefaultWorkflow.id}.`,
+							await this.entityWithRelatedEntities(teamDefaultWorkflow, "workflow"),
+						);
+					}
+				}
+			} catch {}
+		}
+
+		const currentUser = await this.client.getCurrentUser();
+		if (!currentUser) throw new Error("Failed to retrieve current user.");
+
+		const workspaceDefaultWorkflowId = currentUser.workspace2.default_workflow_id;
+		const workspaceDefaultWorkflow = await this.client.getWorkflow(workspaceDefaultWorkflowId);
+
+		if (workspaceDefaultWorkflow) {
+			return this.toResult(
+				`${teamPublicId ? `No default workflow found for team with public ID "${teamPublicId}". The general default workflow has id ` : "Default workflow has id "}${workspaceDefaultWorkflow.id}.`,
+				await this.entityWithRelatedEntities(workspaceDefaultWorkflow, "workflow"),
+			);
+		}
+
+		return this.toResult("No default workflow found.");
 	}
 
 	async getWorkflow(workflowPublicId: number, full = false) {
