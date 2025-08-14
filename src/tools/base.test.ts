@@ -144,8 +144,8 @@ describe("BaseTools", () => {
 			return this.entitiesWithRelatedEntities(entities as Story[], entityType);
 		}
 
-		publicToResult(str: string, data?: unknown) {
-			return this.toResult(str, data);
+		publicToResult(str: string, data?: unknown, paginationToken?: string | null | undefined) {
+			return this.toResult(str, data, paginationToken);
 		}
 	}
 
@@ -199,6 +199,52 @@ describe("BaseTools", () => {
 			const tools = new TestTools({} as ShortcutClientWrapper);
 			const data = { id: 1, name: "test" };
 			const result = tools.publicToResult("test message", data);
+
+			expect(result).toEqual({
+				content: [
+					{
+						type: "text",
+						text: 'test message\n\n<json>\n{\n  "id": 1,\n  "name": "test"\n}\n</json>',
+					},
+				],
+			});
+		});
+
+		test("should return result with text content, JSON data, and pagination token", () => {
+			const tools = new TestTools({} as ShortcutClientWrapper);
+			const data = { id: 1, name: "test" };
+			const paginationToken = "next-page-123";
+			const result = tools.publicToResult("test message", data, paginationToken);
+
+			expect(result).toEqual({
+				content: [
+					{
+						type: "text",
+						text: 'test message\n\n<json>\n{\n  "id": 1,\n  "name": "test"\n}\n</json>\n\n<next-page-token>next-page-123</next-page-token>',
+					},
+				],
+			});
+		});
+
+		test("should handle null pagination token", () => {
+			const tools = new TestTools({} as ShortcutClientWrapper);
+			const data = { id: 1, name: "test" };
+			const result = tools.publicToResult("test message", data, null);
+
+			expect(result).toEqual({
+				content: [
+					{
+						type: "text",
+						text: 'test message\n\n<json>\n{\n  "id": 1,\n  "name": "test"\n}\n</json>',
+					},
+				],
+			});
+		});
+
+		test("should handle undefined pagination token", () => {
+			const tools = new TestTools({} as ShortcutClientWrapper);
+			const data = { id: 1, name: "test" };
+			const result = tools.publicToResult("test message", data, undefined);
 
 			expect(result).toEqual({
 				content: [

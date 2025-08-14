@@ -54,6 +54,7 @@ export type SimplifiedTeam = {
 	mention_name: string;
 	member_ids: string[];
 	workflow_ids: number[];
+	default_workflow_id: number | null;
 };
 export type SimplifiedObjective = {
 	id: number;
@@ -263,8 +264,17 @@ export class BaseTools {
 
 	private getSimplifiedTeam(entity: Group | null | undefined): SimplifiedTeam | null {
 		if (!entity) return null;
-		const { archived, id, name, mention_name, member_ids, workflow_ids } = entity;
-		return { id, name, archived, mention_name, member_ids, workflow_ids };
+		const { archived, id, name, mention_name, member_ids, workflow_ids, default_workflow_id } =
+			entity;
+		return {
+			id,
+			name,
+			archived,
+			mention_name,
+			member_ids,
+			workflow_ids,
+			default_workflow_id: default_workflow_id ?? null,
+		};
 	}
 
 	private getSimplifiedObjective(entity: Milestone | null | undefined): SimplifiedObjective | null {
@@ -499,10 +509,11 @@ export class BaseTools {
 			workflowsForEpic,
 			workflowForStory ? { [workflowForStory.id]: workflowForStory } : {},
 		]);
+		const simplifiedStoryTeam = this.getSimplifiedTeam(teamForStory);
 		const teams = this.mergeRelatedEntities([
 			teamsForIteration,
 			teamsForEpic,
-			teamForStory ? { [teamForStory.id]: teamForStory } : {},
+			simplifiedStoryTeam ? { [simplifiedStoryTeam.id]: simplifiedStoryTeam } : {},
 		]);
 		const epics = simplifiedEpic ? { [simplifiedEpic.id]: simplifiedEpic } : {};
 		const iterations = simplifiedIteration ? { [simplifiedIteration.id]: simplifiedIteration } : {};

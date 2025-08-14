@@ -18,9 +18,10 @@ describe("UserTools", () => {
 
 			UserTools.create(mockClient, mockServer);
 
-			expect(mockTool).toHaveBeenCalledTimes(2);
+			expect(mockTool).toHaveBeenCalledTimes(3);
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-current-user");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("list-members");
+			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-current-user-teams");
+			expect(mockTool.mock.calls?.[2]?.[0]).toBe("list-members");
 		});
 
 		test("should call correct function from tool", async () => {
@@ -70,6 +71,119 @@ describe("UserTools", () => {
 			} as unknown as ShortcutClientWrapper);
 
 			await expect(() => userTools.getCurrentUser()).toThrow("API error");
+		});
+	});
+
+	describe("getCurrentUserTeams method", () => {
+		const mockTeams = [
+			{
+				id: "team1",
+				name: "Engineering",
+				archived: false,
+				mention_name: "@engineering",
+				member_ids: ["user1", "user2"],
+				workflow_ids: [1, 2],
+				entity_type: "group",
+			},
+			{
+				id: "team2",
+				name: "Design",
+				archived: false,
+				mention_name: "@design",
+				member_ids: ["user2", "user3"],
+				workflow_ids: [2],
+				entity_type: "group",
+			},
+			{
+				id: "team3",
+				name: "Marketing",
+				archived: false,
+				mention_name: "@marketing",
+				member_ids: ["user3", "user4"],
+				workflow_ids: [3],
+				entity_type: "group",
+			},
+		];
+
+		test("should return teams where current user is a member", async () => {
+			const userTools = new UserTools({
+				getCurrentUser: mock(async () => ({ ...mockCurrentUser, id: "user1" })),
+				getTeams: mock(async () => mockTeams),
+				getUserMap: mock(async () => new Map()),
+				getWorkflowMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
+			} as unknown as ShortcutClientWrapper);
+
+			const result = await userTools.getCurrentUserTeams();
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Current user is a member of 1 teams:");
+			expect(textContent).toContain('"id": "team1"');
+			expect(textContent).toContain('"name": "Engineering"');
+		});
+
+		test("should return multiple teams for user with multiple memberships", async () => {
+			const userTools = new UserTools({
+				getCurrentUser: mock(async () => ({ ...mockCurrentUser, id: "user2" })),
+				getTeams: mock(async () => mockTeams),
+				getUserMap: mock(async () => new Map()),
+				getWorkflowMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
+			} as unknown as ShortcutClientWrapper);
+
+			const result = await userTools.getCurrentUserTeams();
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain("Current user is a member of 2 teams:");
+			expect(textContent).toContain('"id": "team1"');
+			expect(textContent).toContain('"name": "Engineering"');
+			expect(textContent).toContain('"id": "team2"');
+			expect(textContent).toContain('"name": "Design"');
+		});
+
+		test("should handle user with no team memberships", async () => {
+			const userTools = new UserTools({
+				getCurrentUser: mock(async () => ({ ...mockCurrentUser, id: "user5" })),
+				getTeams: mock(async () => mockTeams),
+			} as unknown as ShortcutClientWrapper);
+
+			const result = await userTools.getCurrentUserTeams();
+
+			expect(result.content[0].type).toBe("text");
+			expect(String(result.content[0].text)).toBe("Current user is not a member of any teams.");
+		});
+
+		test("should throw error when current user is not found", async () => {
+			const userTools = new UserTools({
+				getCurrentUser: mock(async () => null),
+				getTeams: mock(async () => mockTeams),
+			} as unknown as ShortcutClientWrapper);
+
+			await expect(() => userTools.getCurrentUserTeams()).toThrow("Failed to get current user.");
+		});
+
+		test("should propagate errors from getTeams", async () => {
+			const userTools = new UserTools({
+				getCurrentUser: mock(async () => mockCurrentUser),
+				getTeams: mock(async () => {
+					throw new Error("Teams API error");
+				}),
+			} as unknown as ShortcutClientWrapper);
+
+			await expect(() => userTools.getCurrentUserTeams()).toThrow("Teams API error");
+		});
+
+		test("should propagate errors from getCurrentUser", async () => {
+			const userTools = new UserTools({
+				getCurrentUser: mock(async () => {
+					throw new Error("User API error");
+				}),
+				getTeams: mock(async () => mockTeams),
+			} as unknown as ShortcutClientWrapper);
+
+			await expect(() => userTools.getCurrentUserTeams()).toThrow("User API error");
 		});
 	});
 
