@@ -118,7 +118,7 @@ describe("UserTools", () => {
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = String(result.content[0].text);
-			expect(textContent).toContain("Current user is a member of 1 teams:");
+			expect(textContent).toContain('Current user is a member of team "Engineering":');
 			expect(textContent).toContain('"id": "team1"');
 			expect(textContent).toContain('"name": "Engineering"');
 		});
@@ -184,6 +184,39 @@ describe("UserTools", () => {
 			} as unknown as ShortcutClientWrapper);
 
 			await expect(() => userTools.getCurrentUserTeams()).toThrow("User API error");
+		});
+
+		test("should ignore archived teams", async () => {
+			const teamsWithArchived = [
+				...mockTeams,
+				{
+					id: "team4",
+					name: "Archived Team",
+					archived: true,
+					mention_name: "@archived",
+					member_ids: ["user1", "user2"],
+					workflow_ids: [4],
+					entity_type: "group",
+				},
+			];
+
+			const userTools = new UserTools({
+				getCurrentUser: mock(async () => ({ ...mockCurrentUser, id: "user1" })),
+				getTeams: mock(async () => teamsWithArchived),
+				getUserMap: mock(async () => new Map()),
+				getWorkflowMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
+			} as unknown as ShortcutClientWrapper);
+
+			const result = await userTools.getCurrentUserTeams();
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = String(result.content[0].text);
+			expect(textContent).toContain('Current user is a member of team "Engineering":');
+			expect(textContent).toContain('"id": "team1"');
+			expect(textContent).toContain('"name": "Engineering"');
+			expect(textContent).not.toContain('"id": "team4"');
+			expect(textContent).not.toContain('"name": "Archived Team"');
 		});
 	});
 

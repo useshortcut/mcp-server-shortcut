@@ -37,8 +37,18 @@ export class UserTools extends BaseTools {
 
 		if (!currentUser) throw new Error("Failed to get current user.");
 
-		const userTeams = teams.filter((team) => team.member_ids.includes(currentUser.id));
+		const userTeams = teams.filter(
+			(team) => !team.archived && team.member_ids.includes(currentUser.id),
+		);
 		if (!userTeams.length) return this.toResult(`Current user is not a member of any teams.`);
+
+		if (userTeams.length === 1) {
+			const team = userTeams[0];
+			return this.toResult(
+				`Current user is a member of team "${team.name}":`,
+				await this.entityWithRelatedEntities(team, "team"),
+			);
+		}
 
 		return this.toResult(
 			`Current user is a member of ${userTeams.length} teams:`,
