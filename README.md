@@ -75,7 +75,7 @@ You can either add a new MCP server from the command line:
 
 ```shell
 # Grab your Shortcut token here: https://app.shortcut.com/settings/account/api-tokens
-claude mcp add shortcut -e API_KEY=$SHORTCUT_API_TOKEN  -- npx -y @shortcut/mcp@latest
+claude mcp add shortcut --transport=stdio -e API_KEY=$SHORTCUT_API_TOKEN -- npx -y @shortcut/mcp@latest
 ```
 
 Or you can edit the local JSON file directly:
