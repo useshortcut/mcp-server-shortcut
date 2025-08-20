@@ -71,6 +71,15 @@ See the [official Claude Code docs](https://docs.anthropic.com/en/docs/agents-an
 
 _You can add a new MCP server from the Claude Code CLI. But modifying the json file directly is simpler!_
 
+You can either add a new MCP server from the command line:
+
+```shell
+# Grab your Shortcut token here: https://app.shortcut.com/settings/account/api-tokens
+claude mcp add shortcut --transport=stdio -e API_KEY=$SHORTCUT_API_TOKEN -- npx -y @shortcut/mcp@latest
+```
+
+Or you can edit the local JSON file directly:
+
 1. Open the Claude Code configuration file (it should be in `~/.claude.json`).
 2. Find the `projects` > `mcpServers` section and add the following details and save the file:
 
