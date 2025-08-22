@@ -1,3 +1,6 @@
+import { File } from "node:buffer";
+import { readFileSync } from "node:fs";
+import { basename } from "node:path";
 import type {
 	ShortcutClient as BaseClient,
 	CreateDoc,
@@ -534,6 +537,19 @@ export class ShortcutClientWrapper {
 		if (!doc) throw new Error(`Failed to create the document: ${response.status}`);
 
 		return doc;
+	}
+
+	async uploadFile(storyId: number, filePath: string) {
+		const fileContent = readFileSync(filePath);
+		const fileName = basename(filePath);
+		const file = new File([fileContent], fileName);
+		// biome-ignore lint/suspicious/noExplicitAny: I think the JS API expects a browser File.. but Node's File type is different, but compatible.
+		const response = await this.client.uploadFiles({ story_id: storyId, file0: file as any });
+		const uploadedFile = response?.data ?? null;
+
+		if (!uploadedFile?.length) throw new Error(`Failed to upload the file: ${response.status}`);
+
+		return uploadedFile[0];
 	}
 
 	async getCustomFieldMap(customFieldIds: string[]) {
