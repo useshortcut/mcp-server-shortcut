@@ -149,18 +149,19 @@ describe("StoryTools", () => {
 
 			StoryTools.create(mockClient, mockServer);
 
-			expect(mockTool).toHaveBeenCalledTimes(15);
+			expect(mockTool).toHaveBeenCalledTimes(16);
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-story");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-stories");
 			expect(mockTool.mock.calls?.[2]?.[0]).toBe("get-story-branch-name");
 			expect(mockTool.mock.calls?.[3]?.[0]).toBe("create-story");
 			expect(mockTool.mock.calls?.[4]?.[0]).toBe("update-story");
-			expect(mockTool.mock.calls?.[5]?.[0]).toBe("assign-current-user-as-owner");
-			expect(mockTool.mock.calls?.[6]?.[0]).toBe("unassign-current-user-as-owner");
-			expect(mockTool.mock.calls?.[7]?.[0]).toBe("create-story-comment");
-			expect(mockTool.mock.calls?.[8]?.[0]).toBe("add-task-to-story");
-			expect(mockTool.mock.calls?.[9]?.[0]).toBe("add-relation-to-story");
-			expect(mockTool.mock.calls?.[10]?.[0]).toBe("update-task");
+			expect(mockTool.mock.calls?.[5]?.[0]).toBe("upload-file-to-story");
+			expect(mockTool.mock.calls?.[6]?.[0]).toBe("assign-current-user-as-owner");
+			expect(mockTool.mock.calls?.[7]?.[0]).toBe("unassign-current-user-as-owner");
+			expect(mockTool.mock.calls?.[8]?.[0]).toBe("create-story-comment");
+			expect(mockTool.mock.calls?.[9]?.[0]).toBe("add-task-to-story");
+			expect(mockTool.mock.calls?.[10]?.[0]).toBe("add-relation-to-story");
+			expect(mockTool.mock.calls?.[11]?.[0]).toBe("update-task");
 		});
 	});
 

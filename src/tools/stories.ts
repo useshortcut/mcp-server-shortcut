@@ -216,6 +216,16 @@ The story will be added to the default state for the workflow.
 		);
 
 		server.tool(
+			"upload-file-to-story",
+			"Upload a file and link it to a story.",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+				filePath: z.string().describe("The path to the file to upload"),
+			},
+			async ({ storyPublicId, filePath }) => await tools.uploadFileToStory(storyPublicId, filePath),
+		);
+
+		server.tool(
 			"assign-current-user-as-owner",
 			"Assign the current user as the owner of a story",
 			{
@@ -528,6 +538,23 @@ The story will be added to the default state for the workflow.
 		const updatedStory = await this.client.updateStory(storyPublicId, updateParams);
 
 		return this.toResult(`Updated story sc-${storyPublicId}. Story URL: ${updatedStory.app_url}`);
+	}
+
+	async uploadFileToStory(storyPublicId: number, filePath: string) {
+		if (!storyPublicId) throw new Error("Story public ID is required");
+		if (!filePath) throw new Error("File path is required");
+
+		const story = await this.client.getStory(storyPublicId);
+		if (!story)
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
+
+		const uploadedFile = await this.client.uploadFile(storyPublicId, filePath);
+
+		if (!uploadedFile) throw new Error(`Failed to upload file to story sc-${storyPublicId}`);
+
+		return this.toResult(
+			`Uploaded file "${uploadedFile.name}" to story sc-${storyPublicId}. File ID is: ${uploadedFile.id}`,
+		);
 	}
 
 	async addTaskToStory({
