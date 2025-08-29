@@ -6,8 +6,8 @@ import { buildSearchQuery, type QueryParams } from "./utils/search";
 import { date, has, is, user } from "./utils/validation";
 
 export class ObjectiveTools extends BaseTools {
-	static create(client: ShortcutClientWrapper, server: McpServer) {
-		const tools = new ObjectiveTools(client);
+	static create(client: ShortcutClientWrapper, server: McpServer, isReadonly = false) {
+		const tools = new ObjectiveTools(client, isReadonly);
 
 		server.tool(
 			"get-objective",

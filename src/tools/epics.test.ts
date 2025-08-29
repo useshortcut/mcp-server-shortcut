@@ -110,6 +110,22 @@ describe("EpicTools", () => {
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-epics");
 			expect(mockTool.mock.calls?.[2]?.[0]).toBe("create-epic");
 		});
+
+		test("should register only read-only tools when readonly is true", () => {
+			const mockClient = createMockClient();
+			const mockTool = mock();
+			const mockServer = { tool: mockTool } as unknown as McpServer;
+
+			EpicTools.create(mockClient, mockServer, true);
+
+			expect(mockTool).toHaveBeenCalledTimes(2);
+			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-epic");
+			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-epics");
+
+			// Verify write operations are not registered
+			const registeredTools = mockTool.mock.calls?.map((call) => call[0]) || [];
+			expect(registeredTools).not.toContain("create-epic");
+		});
 	});
 
 	describe("getEpic method", () => {

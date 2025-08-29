@@ -164,8 +164,37 @@ describe("StoryTools", () => {
 			expect(mockTool.mock.calls?.[11]?.[0]).toBe("add-relation-to-story");
 			expect(mockTool.mock.calls?.[12]?.[0]).toBe("add-external-link-to-story");
 			expect(mockTool.mock.calls?.[13]?.[0]).toBe("remove-external-link-from-story");
-			expect(mockTool.mock.calls?.[14]?.[0]).toBe("get-stories-by-external-link");
-			expect(mockTool.mock.calls?.[15]?.[0]).toBe("set-story-external-links");
+			expect(mockTool.mock.calls?.[14]?.[0]).toBe("set-story-external-links");
+			expect(mockTool.mock.calls?.[15]?.[0]).toBe("get-stories-by-external-link");
+		});
+
+		test("should register only read-only tools when readonly is true", () => {
+			const mockClient = createMockClient();
+			const mockTool = mock();
+			const mockServer = { tool: mockTool } as unknown as McpServer;
+
+			StoryTools.create(mockClient, mockServer, true);
+
+			expect(mockTool).toHaveBeenCalledTimes(4);
+			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-story");
+			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-stories");
+			expect(mockTool.mock.calls?.[2]?.[0]).toBe("get-story-branch-name");
+			expect(mockTool.mock.calls?.[3]?.[0]).toBe("get-stories-by-external-link");
+
+			// Verify write operations are not registered
+			const registeredTools = mockTool.mock.calls?.map((call) => call[0]) || [];
+			expect(registeredTools).not.toContain("create-story");
+			expect(registeredTools).not.toContain("update-story");
+			expect(registeredTools).not.toContain("upload-file-to-story");
+			expect(registeredTools).not.toContain("assign-current-user-as-owner");
+			expect(registeredTools).not.toContain("unassign-current-user-as-owner");
+			expect(registeredTools).not.toContain("create-story-comment");
+			expect(registeredTools).not.toContain("add-task-to-story");
+			expect(registeredTools).not.toContain("update-task");
+			expect(registeredTools).not.toContain("add-relation-to-story");
+			expect(registeredTools).not.toContain("add-external-link-to-story");
+			expect(registeredTools).not.toContain("remove-external-link-from-story");
+			expect(registeredTools).not.toContain("set-story-external-links");
 		});
 	});
 

@@ -3,8 +3,8 @@ import type { ShortcutClientWrapper } from "@/client/shortcut";
 import { BaseTools } from "./base";
 
 export class UserTools extends BaseTools {
-	static create(client: ShortcutClientWrapper, server: McpServer) {
-		const tools = new UserTools(client);
+	static create(client: ShortcutClientWrapper, server: McpServer, isReadonly = false) {
+		const tools = new UserTools(client, isReadonly);
 
 		server.tool(
 			"get-current-user",

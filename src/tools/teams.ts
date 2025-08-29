@@ -4,8 +4,8 @@ import type { ShortcutClientWrapper } from "@/client/shortcut";
 import { BaseTools } from "./base";
 
 export class TeamTools extends BaseTools {
-	static create(client: ShortcutClientWrapper, server: McpServer) {
-		const tools = new TeamTools(client);
+	static create(client: ShortcutClientWrapper, server: McpServer, isReadonly = false) {
+		const tools = new TeamTools(client, isReadonly);
 
 		server.tool(
 			"get-team",
