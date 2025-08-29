@@ -125,7 +125,10 @@ export type SimplifiedKind = "simple" | "list" | "full";
  * Base class for all tools.
  */
 export class BaseTools {
-	constructor(protected client: ShortcutClientWrapper) {}
+	constructor(
+		protected client: ShortcutClientWrapper,
+		protected isReadonly = false,
+	) {}
 
 	private renameEntityProps<T extends Record<string, unknown>>(entity: T) {
 		if (!entity || typeof entity !== "object") return entity;

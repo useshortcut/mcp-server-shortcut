@@ -7,8 +7,8 @@ import { buildSearchQuery, type QueryParams } from "./utils/search";
 import { date } from "./utils/validation";
 
 export class IterationTools extends BaseTools {
-	static create(client: ShortcutClientWrapper, server: McpServer) {
-		const tools = new IterationTools(client);
+	static create(client: ShortcutClientWrapper, server: McpServer, isReadonly = false) {
+		const tools = new IterationTools(client, isReadonly);
 
 		server.tool(
 			"get-iteration-stories",
@@ -77,18 +77,20 @@ export class IterationTools extends BaseTools {
 			async ({ nextPageToken, ...params }) => await tools.searchIterations(params, nextPageToken),
 		);
 
-		server.tool(
-			"create-iteration",
-			"Create a new Shortcut iteration",
-			{
-				name: z.string().describe("The name of the iteration"),
-				startDate: z.string().describe("The start date of the iteration in YYYY-MM-DD format"),
-				endDate: z.string().describe("The end date of the iteration in YYYY-MM-DD format"),
-				teamId: z.string().optional().describe("The ID of a team to assign the iteration to"),
-				description: z.string().optional().describe("A description of the iteration"),
-			},
-			async (params) => await tools.createIteration(params),
-		);
+		if (!isReadonly) {
+			server.tool(
+				"create-iteration",
+				"Create a new Shortcut iteration",
+				{
+					name: z.string().describe("The name of the iteration"),
+					startDate: z.string().describe("The start date of the iteration in YYYY-MM-DD format"),
+					endDate: z.string().describe("The end date of the iteration in YYYY-MM-DD format"),
+					teamId: z.string().optional().describe("The ID of a team to assign the iteration to"),
+					description: z.string().optional().describe("A description of the iteration"),
+				},
+				async (params) => await tools.createIteration(params),
+			);
+		}
 
 		server.tool(
 			"get-active-iterations",

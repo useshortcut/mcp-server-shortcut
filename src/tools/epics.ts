@@ -7,8 +7,8 @@ import { buildSearchQuery, type QueryParams } from "./utils/search";
 import { date, has, is, user } from "./utils/validation";
 
 export class EpicTools extends BaseTools {
-	static create(client: ShortcutClientWrapper, server: McpServer) {
-		const tools = new EpicTools(client);
+	static create(client: ShortcutClientWrapper, server: McpServer, isReadonly = false) {
+		const tools = new EpicTools(client, isReadonly);
 
 		server.tool(
 			"get-epic",
@@ -76,17 +76,19 @@ export class EpicTools extends BaseTools {
 			async ({ nextPageToken, ...params }) => await tools.searchEpics(params, nextPageToken),
 		);
 
-		server.tool(
-			"create-epic",
-			"Create a new Shortcut epic.",
-			{
-				name: z.string().describe("The name of the epic"),
-				owner: z.string().optional().describe("The user ID of the owner of the epic"),
-				description: z.string().optional().describe("A description of the epic"),
-				teamId: z.string().optional().describe("The ID of a team to assign the epic to"),
-			},
-			async (params) => await tools.createEpic(params),
-		);
+		if (!isReadonly) {
+			server.tool(
+				"create-epic",
+				"Create a new Shortcut epic.",
+				{
+					name: z.string().describe("The name of the epic"),
+					owner: z.string().optional().describe("The user ID of the owner of the epic"),
+					description: z.string().optional().describe("A description of the epic"),
+					teamId: z.string().optional().describe("The ID of a team to assign the epic to"),
+				},
+				async (params) => await tools.createEpic(params),
+			);
+		}
 
 		return tools;
 	}

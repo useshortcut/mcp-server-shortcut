@@ -143,8 +143,8 @@ Or you can edit the local JSON file directly:
 - **add-relation-to-story** - Add a story relationship (relates to, blocks, duplicates, etc.)
 - **add-external-link-to-story** - Add an external link to a Shortcut story
 - **remove-external-link-from-story** - Remove an external link from a Shortcut story
-- **get-stories-by-external-link** - Find all stories that contain a specific external link
 - **set-story-external-links** - Replace all external links on a story with a new set of links
+- **get-stories-by-external-link** - Find all stories that contain a specific external link
 
 ### Epics
 
@@ -186,6 +186,30 @@ Or you can edit the local JSON file directly:
 ### Documents
 
 - **create-document** - Create a new document in Shortcut with HTML content
+
+## Read-only mode
+
+You can run the MCP server in read-only mode by setting the `SHORTCUT_READONLY` environment variable to `true`. This will disable all tools that modify data in Shortcut.
+
+Example:
+
+```json
+{
+  "mcpServers": {
+    "shortcut": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@shortcut/mcp@latest"
+      ],
+      "env": {
+        "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>",
+        "SHORTCUT_READONLY": "true"
+      }
+    }
+  }
+}
+```
 
 ## Issues and Troubleshooting
 

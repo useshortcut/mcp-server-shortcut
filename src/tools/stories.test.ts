@@ -164,8 +164,8 @@ describe("StoryTools", () => {
 			expect(mockTool.mock.calls?.[11]?.[0]).toBe("add-relation-to-story");
 			expect(mockTool.mock.calls?.[12]?.[0]).toBe("add-external-link-to-story");
 			expect(mockTool.mock.calls?.[13]?.[0]).toBe("remove-external-link-from-story");
-			expect(mockTool.mock.calls?.[14]?.[0]).toBe("get-stories-by-external-link");
-			expect(mockTool.mock.calls?.[15]?.[0]).toBe("set-story-external-links");
+			expect(mockTool.mock.calls?.[14]?.[0]).toBe("set-story-external-links");
+			expect(mockTool.mock.calls?.[15]?.[0]).toBe("get-stories-by-external-link");
 		});
 	});
 
