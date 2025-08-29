@@ -125,6 +125,68 @@ Or you can edit the local JSON file directly:
   }
 ```
 
+## Available Tools
+
+### Stories
+
+- **get-story** - Get a single Shortcut story by ID
+- **search-stories** - Find Shortcut stories with filtering and search options
+- **get-story-branch-name** - Get the recommended branch name (based on workspace settings) for a specific story.
+- **create-story** - Create a new Shortcut story
+- **update-story** - Update an existing Shortcut story
+- **upload-file-to-story** - Upload a file and link it to a story
+- **assign-current-user-as-owner** - Assign the current user as the owner of a story
+- **unassign-current-user-as-owner** - Unassign the current user as the owner of a story
+- **create-story-comment** - Create a comment on a story
+- **add-task-to-story** - Add a task to a story
+- **update-task** - Update a task in a story
+- **add-relation-to-story** - Add a story relationship (relates to, blocks, duplicates, etc.)
+- **add-external-link-to-story** - Add an external link to a Shortcut story
+- **remove-external-link-from-story** - Remove an external link from a Shortcut story
+- **get-stories-by-external-link** - Find all stories that contain a specific external link
+- **set-story-external-links** - Replace all external links on a story with a new set of links
+
+### Epics
+
+- **get-epic** - Get a Shortcut epic by ID
+- **search-epics** - Find Shortcut epics with filtering and search options
+- **create-epic** - Create a new Shortcut epic
+
+### Iterations
+
+- **get-iteration-stories** - Get stories in a specific iteration by iteration ID
+- **get-iteration** - Get a Shortcut iteration by ID
+- **search-iterations** - Find Shortcut iterations with filtering and search options
+- **create-iteration** - Create a new Shortcut iteration with start/end dates
+- **get-active-iterations** - Get active iterations for the current user based on team memberships
+- **get-upcoming-iterations** - Get upcoming iterations for the current user based on team memberships
+
+### Objectives
+
+- **get-objective** - Get a Shortcut objective by ID
+- **search-objectives** - Find Shortcut objectives with filtering and search options
+
+### Teams
+
+- **get-team** - Get a Shortcut team by ID
+- **list-teams** - List all Shortcut teams
+
+### Workflows
+
+- **get-default-workflow** - Get the default workflow for a specific team or the workspace default
+- **get-workflow** - Get a Shortcut workflow by ID
+- **list-workflows** - List all Shortcut workflows
+
+### Users
+
+- **get-current-user** - Get the current user information
+- **get-current-user-teams** - Get a list of teams where the current user is a member
+- **list-users** - Get all workspace users
+
+### Documents
+
+- **create-document** - Create a new document in Shortcut with HTML content
+
 ## Issues and Troubleshooting
 
 Before doing anything else, please make sure you are running the latest version!

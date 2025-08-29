@@ -21,7 +21,7 @@ describe("UserTools", () => {
 			expect(mockTool).toHaveBeenCalledTimes(3);
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-current-user");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-current-user-teams");
-			expect(mockTool.mock.calls?.[2]?.[0]).toBe("list-members");
+			expect(mockTool.mock.calls?.[2]?.[0]).toBe("list-users");
 		});
 
 		test("should call correct function from tool", async () => {

@@ -268,21 +268,6 @@ The story will be added to the default state for the workflow.
 		);
 
 		server.tool(
-			"add-relation-to-story",
-			"Add a story relationship to a story",
-			{
-				storyPublicId: z.number().positive().describe("The public ID of the story"),
-				relatedStoryPublicId: z.number().positive().describe("The public ID of the related story"),
-				relationshipType: z
-					.enum(["relates to", "blocks", "blocked by", "duplicates", "duplicated by"])
-					.optional()
-					.default("relates to")
-					.describe("The type of relationship"),
-			},
-			async (params) => await tools.addRelationToStory(params),
-		);
-
-		server.tool(
 			"update-task",
 			"Update a task in a story",
 			{
@@ -296,6 +281,21 @@ The story will be added to the default state for the workflow.
 				isCompleted: z.boolean().optional().describe("Whether the task is completed or not"),
 			},
 			async (params) => await tools.updateTask(params),
+		);
+
+		server.tool(
+			"add-relation-to-story",
+			"Add a story relationship to a story",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+				relatedStoryPublicId: z.number().positive().describe("The public ID of the related story"),
+				relationshipType: z
+					.enum(["relates to", "blocks", "blocked by", "duplicates", "duplicated by"])
+					.optional()
+					.default("relates to")
+					.describe("The type of relationship"),
+			},
+			async (params) => await tools.addRelationToStory(params),
 		);
 
 		server.tool(
