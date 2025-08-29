@@ -31,6 +31,16 @@ describe("DocumentTools", () => {
 				"Create a new document in Shortcut with a title and content. Returns the document's id, title, and app_url. Note: Use HTML markup for the content (e.g., <p>, <h1>, <ul>, <strong>) rather than Markdown.",
 			);
 		});
+
+		test("should not register any tools when readonly is true", () => {
+			const mockClient = createMockClient();
+			const mockTool = mock();
+			const mockServer = { tool: mockTool } as unknown as McpServer;
+
+			DocumentTools.create(mockClient, mockServer, true);
+
+			expect(mockTool).toHaveBeenCalledTimes(0);
+		});
 	});
 
 	describe("tool handler", () => {

@@ -88,6 +88,19 @@ describe("TeamTools", () => {
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("list-teams");
 		});
 
+		test("should register the same tools when readonly is true", () => {
+			const mockClient = {} as ShortcutClientWrapper;
+			const mockTool = mock();
+			const mockServer = { tool: mockTool } as unknown as McpServer;
+
+			TeamTools.create(mockClient, mockServer, true);
+
+			expect(mockTool).toHaveBeenCalledTimes(2);
+
+			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-team");
+			expect(mockTool.mock.calls?.[1]?.[0]).toBe("list-teams");
+		});
+
 		test("should call correct function from tool", async () => {
 			const mockClient = {} as ShortcutClientWrapper;
 			const mockTool = mock();

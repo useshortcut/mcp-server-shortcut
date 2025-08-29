@@ -47,6 +47,20 @@ describe("WorkflowTools", () => {
 			expect(mockTool.mock.calls?.[2]?.[0]).toBe("list-workflows");
 		});
 
+		test("should register the same tools when readonly is true", () => {
+			const mockClient = {} as ShortcutClientWrapper;
+			const mockTool = mock();
+			const mockServer = { tool: mockTool } as unknown as McpServer;
+
+			WorkflowTools.create(mockClient, mockServer, true);
+
+			expect(mockTool).toHaveBeenCalledTimes(3);
+
+			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-default-workflow");
+			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-workflow");
+			expect(mockTool.mock.calls?.[2]?.[0]).toBe("list-workflows");
+		});
+
 		test("should call correct function from tool", async () => {
 			const mockClient = {} as ShortcutClientWrapper;
 			const mockTool = mock();

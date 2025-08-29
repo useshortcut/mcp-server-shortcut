@@ -50,6 +50,18 @@ describe("ObjectiveTools", () => {
 			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-objective");
 			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-objectives");
 		});
+
+		test("should register the same tools when readonly is true", () => {
+			const mockClient = {} as unknown as ShortcutClientWrapper;
+			const mockTool = mock();
+			const mockServer = { tool: mockTool } as unknown as McpServer;
+
+			ObjectiveTools.create(mockClient, mockServer, true);
+
+			expect(mockTool).toHaveBeenCalledTimes(2);
+			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-objective");
+			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-objectives");
+		});
 	});
 
 	describe("searchObjectives method", () => {

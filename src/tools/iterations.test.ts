@@ -148,6 +148,25 @@ describe("IterationTools", () => {
 			expect(mockTool.mock.calls?.[4]?.[0]).toBe("get-active-iterations");
 			expect(mockTool.mock.calls?.[5]?.[0]).toBe("get-upcoming-iterations");
 		});
+
+		test("should register only read-only tools when readonly is true", () => {
+			const mockClient = createMockClient();
+			const mockTool = mock();
+			const mockServer = { tool: mockTool } as unknown as McpServer;
+
+			IterationTools.create(mockClient, mockServer, true);
+
+			expect(mockTool).toHaveBeenCalledTimes(5);
+			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-iteration-stories");
+			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-iteration");
+			expect(mockTool.mock.calls?.[2]?.[0]).toBe("search-iterations");
+			expect(mockTool.mock.calls?.[3]?.[0]).toBe("get-active-iterations");
+			expect(mockTool.mock.calls?.[4]?.[0]).toBe("get-upcoming-iterations");
+
+			// Verify write operations are not registered
+			const registeredTools = mockTool.mock.calls?.map((call) => call[0]) || [];
+			expect(registeredTools).not.toContain("create-iteration");
+		});
 	});
 
 	describe("getIterationStories method", () => {
