@@ -18,7 +18,7 @@ export class UserTools extends BaseTools {
 			async () => await tools.getCurrentUserTeams(),
 		);
 
-		server.tool("list-members", "Get all members", async () => await tools.listMembers());
+		server.tool("list-users", "Get all users", async () => await tools.listMembers());
 
 		return tools;
 	}
