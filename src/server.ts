@@ -44,14 +44,30 @@ const isToolEnabled = (toolName: string) => {
 };
 
 // The order these are created impacts the order they are listed to the LLM. Most important tools should be at the top.
-if (isToolEnabled("user")) UserTools.create(client, server, isReadonly);
-if (isToolEnabled("stories")) StoryTools.create(client, server, isReadonly);
-if (isToolEnabled("iterations")) IterationTools.create(client, server, isReadonly);
-if (isToolEnabled("epics")) EpicTools.create(client, server, isReadonly);
-if (isToolEnabled("objectives")) ObjectiveTools.create(client, server, isReadonly);
-if (isToolEnabled("teams")) TeamTools.create(client, server, isReadonly);
-if (isToolEnabled("workflows")) WorkflowTools.create(client, server, isReadonly);
-if (isToolEnabled("documents")) DocumentTools.create(client, server, isReadonly);
+if (isToolEnabled("user")) {
+	UserTools.create(client, server, isReadonly);
+}
+if (isToolEnabled("stories")) {
+	StoryTools.create(client, server, isReadonly);
+}
+if (isToolEnabled("iterations")) {
+	IterationTools.create(client, server, isReadonly);
+}
+if (isToolEnabled("epics")) {
+	EpicTools.create(client, server, isReadonly);
+}
+if (isToolEnabled("objectives")) {
+	ObjectiveTools.create(client, server, isReadonly);
+}
+if (isToolEnabled("teams")) {
+	TeamTools.create(client, server, isReadonly);
+}
+if (isToolEnabled("workflows")) {
+	WorkflowTools.create(client, server, isReadonly);
+}
+if (isToolEnabled("documents")) {
+	DocumentTools.create(client, server, isReadonly);
+}
 
 async function startServer() {
 	try {
