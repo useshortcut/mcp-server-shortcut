@@ -15,8 +15,9 @@ import { WorkflowTools } from "./tools/workflows";
 
 let apiToken = process.env.SHORTCUT_API_TOKEN;
 let isReadonly = process.env.SHORTCUT_READONLY === "true";
+let enabledTools = process.env.SHORTCUT_TOOLS?.split(",").map(tool => tool.trim()) || null;
 
-// If a SHORTCUT_API_TOKEN is provided as an argument, use it instead of the environment variable.
+// If a setting is provided as an argument, use it instead of the environment variable.
 if (process.argv.length >= 3) {
 	process.argv
 		.slice(2)
@@ -24,6 +25,7 @@ if (process.argv.length >= 3) {
 		.forEach(([name, value]) => {
 			if (name === "SHORTCUT_API_TOKEN") apiToken = value;
 			if (name === "SHORTCUT_READONLY") isReadonly = value === "true";
+			if (name === "SHORTCUT_TOOLS") enabledTools = value.split(",").map(tool => tool.trim());
 		});
 }
 
@@ -35,15 +37,37 @@ if (!apiToken) {
 const server = new McpServer({ name, version });
 const client = new ShortcutClientWrapper(new ShortcutClient(apiToken));
 
+// Helper function to check if a tool should be enabled.
+// All tools are enabled by default unless specified otherwise.
+const isToolEnabled = (toolName: string) => {
+	return enabledTools === null || enabledTools.includes(toolName);
+};
+
 // The order these are created impacts the order they are listed to the LLM. Most important tools should be at the top.
-UserTools.create(client, server, isReadonly);
-StoryTools.create(client, server, isReadonly);
-IterationTools.create(client, server, isReadonly);
-EpicTools.create(client, server, isReadonly);
-ObjectiveTools.create(client, server, isReadonly);
-TeamTools.create(client, server, isReadonly);
-WorkflowTools.create(client, server, isReadonly);
-DocumentTools.create(client, server, isReadonly);
+if (isToolEnabled("user")) {
+	UserTools.create(client, server, isReadonly);
+}
+if (isToolEnabled("stories")) {
+	StoryTools.create(client, server, isReadonly);
+}
+if (isToolEnabled("iterations")) {
+	IterationTools.create(client, server, isReadonly);
+}
+if (isToolEnabled("epics")) {
+	EpicTools.create(client, server, isReadonly);
+}
+if (isToolEnabled("objectives")) {
+	ObjectiveTools.create(client, server, isReadonly);
+}
+if (isToolEnabled("teams")) {
+	TeamTools.create(client, server, isReadonly);
+}
+if (isToolEnabled("workflows")) {
+	WorkflowTools.create(client, server, isReadonly);
+}
+if (isToolEnabled("documents")) {
+	DocumentTools.create(client, server, isReadonly);
+}
 
 async function startServer() {
 	try {
