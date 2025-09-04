@@ -187,6 +187,41 @@ Or you can edit the local JSON file directly:
 
 - **create-document** - Create a new document in Shortcut with HTML content
 
+## Limit tools
+
+You can limit the tools available to the LLM by setting the `SHORTCUT_TOOLS` environment variable to a comma-separated list of entity types.
+
+Example:
+
+```json
+{
+  "mcpServers": {
+    "shortcut": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@shortcut/mcp@latest"
+      ],
+      "env": {
+        "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>",
+        "SHORTCUT_TOOLS": "stories,epics"
+      }
+    }
+  }
+}
+```
+
+The following values are accepted:
+
+- `users`
+- `stories`
+- `epics`
+- `iterations`
+- `objectives`
+- `teams`
+- `workflows`
+- `documents`
+
 ## Read-only mode
 
 You can run the MCP server in read-only mode by setting the `SHORTCUT_READONLY` environment variable to `true`. This will disable all tools that modify data in Shortcut.
