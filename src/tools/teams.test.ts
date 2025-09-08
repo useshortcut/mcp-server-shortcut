@@ -1,7 +1,7 @@
 import { describe, expect, mock, spyOn, test } from "bun:test";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Group, Member, Workflow } from "@shortcut/client";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
+import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { TeamTools } from "./teams";
 
 describe("TeamTools", () => {
@@ -78,33 +78,20 @@ describe("TeamTools", () => {
 		test("should register the correct tools with the server", () => {
 			const mockClient = {} as ShortcutClientWrapper;
 			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
+			const mockServer = { addToolWithReadAccess: mockTool } as unknown as CustomMcpServer;
 
 			TeamTools.create(mockClient, mockServer);
 
 			expect(mockTool).toHaveBeenCalledTimes(2);
 
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-team");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("list-teams");
-		});
-
-		test("should register the same tools when readonly is true", () => {
-			const mockClient = {} as ShortcutClientWrapper;
-			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
-
-			TeamTools.create(mockClient, mockServer, true);
-
-			expect(mockTool).toHaveBeenCalledTimes(2);
-
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-team");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("list-teams");
+			expect(mockTool.mock.calls?.[0]?.[0]).toBe("teams-get-by-id");
+			expect(mockTool.mock.calls?.[1]?.[0]).toBe("teams-list");
 		});
 
 		test("should call correct function from tool", async () => {
 			const mockClient = {} as ShortcutClientWrapper;
 			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
+			const mockServer = { addToolWithReadAccess: mockTool } as unknown as CustomMcpServer;
 
 			const tools = TeamTools.create(mockClient, mockServer);
 

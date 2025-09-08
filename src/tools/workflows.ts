@@ -1,14 +1,14 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
+import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { BaseTools } from "./base";
 
 export class WorkflowTools extends BaseTools {
-	static create(client: ShortcutClientWrapper, server: McpServer, isReadonly = false) {
-		const tools = new WorkflowTools(client, isReadonly);
+	static create(client: ShortcutClientWrapper, server: CustomMcpServer) {
+		const tools = new WorkflowTools(client);
 
-		server.tool(
-			"get-default-workflow",
+		server.addToolWithReadAccess(
+			"workflows-get-default",
 			"Get the default workflow for a specific team or the global default if no team is specified.",
 			{
 				teamPublicId: z
@@ -19,8 +19,8 @@ export class WorkflowTools extends BaseTools {
 			async ({ teamPublicId }) => await tools.getDefaultWorkflow(teamPublicId),
 		);
 
-		server.tool(
-			"get-workflow",
+		server.addToolWithReadAccess(
+			"workflows-get-by-id",
 			"Get a Shortcut workflow by public ID",
 			{
 				workflowPublicId: z.number().positive().describe("The public ID of the workflow to get"),
@@ -35,8 +35,8 @@ export class WorkflowTools extends BaseTools {
 			async ({ workflowPublicId, full }) => await tools.getWorkflow(workflowPublicId, full),
 		);
 
-		server.tool(
-			"list-workflows",
+		server.addToolWithReadAccess(
+			"workflows-list",
 			"List all Shortcut workflows",
 			async () => await tools.listWorkflows(),
 		);

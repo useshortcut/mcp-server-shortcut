@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CreateIteration, Iteration, Member, MemberInfo, Story } from "@shortcut/client";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
+import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { IterationTools } from "./iterations";
 
 describe("IterationTools", () => {
@@ -135,37 +135,24 @@ describe("IterationTools", () => {
 	describe("create method", () => {
 		test("should register the correct tools with the server", () => {
 			const mockClient = createMockClient();
-			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
+			const mockToolRead = mock();
+			const mockToolWrite = mock();
+			const mockServer = {
+				addToolWithReadAccess: mockToolRead,
+				addToolWithWriteAccess: mockToolWrite,
+			} as unknown as CustomMcpServer;
 
 			IterationTools.create(mockClient, mockServer);
 
-			expect(mockTool).toHaveBeenCalledTimes(6);
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-iteration-stories");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-iteration");
-			expect(mockTool.mock.calls?.[2]?.[0]).toBe("search-iterations");
-			expect(mockTool.mock.calls?.[3]?.[0]).toBe("create-iteration");
-			expect(mockTool.mock.calls?.[4]?.[0]).toBe("get-active-iterations");
-			expect(mockTool.mock.calls?.[5]?.[0]).toBe("get-upcoming-iterations");
-		});
+			expect(mockToolRead).toHaveBeenCalledTimes(5);
+			expect(mockToolRead.mock.calls?.[0]?.[0]).toBe("iterations-get-stories");
+			expect(mockToolRead.mock.calls?.[1]?.[0]).toBe("iterations-get-by-id");
+			expect(mockToolRead.mock.calls?.[2]?.[0]).toBe("iterations-search");
+			expect(mockToolRead.mock.calls?.[3]?.[0]).toBe("iterations-get-active");
+			expect(mockToolRead.mock.calls?.[4]?.[0]).toBe("iterations-get-upcoming");
 
-		test("should register only read-only tools when readonly is true", () => {
-			const mockClient = createMockClient();
-			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
-
-			IterationTools.create(mockClient, mockServer, true);
-
-			expect(mockTool).toHaveBeenCalledTimes(5);
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-iteration-stories");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-iteration");
-			expect(mockTool.mock.calls?.[2]?.[0]).toBe("search-iterations");
-			expect(mockTool.mock.calls?.[3]?.[0]).toBe("get-active-iterations");
-			expect(mockTool.mock.calls?.[4]?.[0]).toBe("get-upcoming-iterations");
-
-			// Verify write operations are not registered
-			const registeredTools = mockTool.mock.calls?.map((call) => call[0]) || [];
-			expect(registeredTools).not.toContain("create-iteration");
+			expect(mockToolWrite).toHaveBeenCalledTimes(1);
+			expect(mockToolWrite.mock.calls?.[0]?.[0]).toBe("iterations-create");
 		});
 	});
 

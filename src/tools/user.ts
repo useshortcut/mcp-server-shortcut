@@ -1,24 +1,28 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
+import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { BaseTools } from "./base";
 
 export class UserTools extends BaseTools {
-	static create(client: ShortcutClientWrapper, server: McpServer, isReadonly = false) {
-		const tools = new UserTools(client, isReadonly);
+	static create(client: ShortcutClientWrapper, server: CustomMcpServer) {
+		const tools = new UserTools(client);
 
-		server.tool(
-			"get-current-user",
+		server.addToolWithReadAccess(
+			"users-get-current",
 			"Get the current user",
 			async () => await tools.getCurrentUser(),
 		);
 
-		server.tool(
-			"get-current-user-teams",
+		server.addToolWithReadAccess(
+			"users-get-current-teams",
 			"Get a list of teams where the current user is a member",
 			async () => await tools.getCurrentUserTeams(),
 		);
 
-		server.tool("list-users", "Get all users", async () => await tools.listMembers());
+		server.addToolWithReadAccess(
+			"users-list",
+			"Get all users",
+			async () => await tools.listMembers(),
+		);
 
 		return tools;
 	}

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CreateEpic, Epic, Member, MemberInfo } from "@shortcut/client";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
+import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { EpicTools } from "./epics";
 
 describe("EpicTools", () => {
@@ -99,32 +99,21 @@ describe("EpicTools", () => {
 	describe("create method", () => {
 		test("should register the correct tools with the server", () => {
 			const mockClient = createMockClient();
-			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
+			const mockToolRead = mock();
+			const mockToolWrite = mock();
+			const mockServer = {
+				addToolWithReadAccess: mockToolRead,
+				addToolWithWriteAccess: mockToolWrite,
+			} as unknown as CustomMcpServer;
 
 			EpicTools.create(mockClient, mockServer);
 
-			expect(mockTool).toHaveBeenCalledTimes(3);
+			expect(mockToolRead).toHaveBeenCalledTimes(2);
+			expect(mockToolRead.mock.calls?.[0]?.[0]).toBe("epics-get-by-id");
+			expect(mockToolRead.mock.calls?.[1]?.[0]).toBe("epics-search");
 
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-epic");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-epics");
-			expect(mockTool.mock.calls?.[2]?.[0]).toBe("create-epic");
-		});
-
-		test("should register only read-only tools when readonly is true", () => {
-			const mockClient = createMockClient();
-			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
-
-			EpicTools.create(mockClient, mockServer, true);
-
-			expect(mockTool).toHaveBeenCalledTimes(2);
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-epic");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-epics");
-
-			// Verify write operations are not registered
-			const registeredTools = mockTool.mock.calls?.map((call) => call[0]) || [];
-			expect(registeredTools).not.toContain("create-epic");
+			expect(mockToolWrite).toHaveBeenCalledTimes(1);
+			expect(mockToolWrite.mock.calls?.[0]?.[0]).toBe("epics-create");
 		});
 	});
 

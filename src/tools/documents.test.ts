@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { DocSlim } from "@shortcut/client";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
+import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { DocumentTools } from "./documents";
 
 describe("DocumentTools", () => {
@@ -21,25 +21,15 @@ describe("DocumentTools", () => {
 		test("should register the create-document tool with the server", () => {
 			const mockClient = createMockClient();
 			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
+			const mockServer = { addToolWithWriteAccess: mockTool } as unknown as CustomMcpServer;
 
 			DocumentTools.create(mockClient, mockServer);
 
 			expect(mockTool).toHaveBeenCalledTimes(1);
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("create-document");
+			expect(mockTool.mock.calls?.[0]?.[0]).toBe("documents-create");
 			expect(mockTool.mock.calls?.[0]?.[1]).toBe(
 				"Create a new document in Shortcut with a title and content. Returns the document's id, title, and app_url. Note: Use HTML markup for the content (e.g., <p>, <h1>, <ul>, <strong>) rather than Markdown.",
 			);
-		});
-
-		test("should not register any tools when readonly is true", () => {
-			const mockClient = createMockClient();
-			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
-
-			DocumentTools.create(mockClient, mockServer, true);
-
-			expect(mockTool).toHaveBeenCalledTimes(0);
 		});
 	});
 
@@ -48,7 +38,7 @@ describe("DocumentTools", () => {
 			const createDocMock = mock(async () => mockDoc);
 			const mockClient = createMockClient({ createDoc: createDocMock });
 			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
+			const mockServer = { addToolWithWriteAccess: mockTool } as unknown as CustomMcpServer;
 
 			DocumentTools.create(mockClient, mockServer);
 
@@ -76,7 +66,7 @@ describe("DocumentTools", () => {
 			});
 			const mockClient = createMockClient({ createDoc: createDocMock });
 			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
+			const mockServer = { addToolWithWriteAccess: mockTool } as unknown as CustomMcpServer;
 
 			DocumentTools.create(mockClient, mockServer);
 
@@ -98,7 +88,7 @@ describe("DocumentTools", () => {
 			});
 			const mockClient = createMockClient({ createDoc: createDocMock });
 			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
+			const mockServer = { addToolWithWriteAccess: mockTool } as unknown as CustomMcpServer;
 
 			DocumentTools.create(mockClient, mockServer);
 
@@ -112,7 +102,7 @@ describe("DocumentTools", () => {
 		test("should enforce title length constraint", async () => {
 			const mockClient = createMockClient();
 			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
+			const mockServer = { addToolWithWriteAccess: mockTool } as unknown as CustomMcpServer;
 
 			DocumentTools.create(mockClient, mockServer);
 
