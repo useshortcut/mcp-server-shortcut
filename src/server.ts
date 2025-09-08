@@ -1,9 +1,7 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { ShortcutClient } from "@shortcut/client";
 import { ShortcutClientWrapper } from "@/client/shortcut";
-import { name, version } from "../package.json";
-
+import { CustomMcpServer } from "./mcp/CustomMcpServer";
 import { DocumentTools } from "./tools/documents";
 import { EpicTools } from "./tools/epics";
 import { IterationTools } from "./tools/iterations";
@@ -15,9 +13,10 @@ import { WorkflowTools } from "./tools/workflows";
 
 let apiToken = process.env.SHORTCUT_API_TOKEN;
 let isReadonly = process.env.SHORTCUT_READONLY === "true";
-let enabledTools = process.env.SHORTCUT_TOOLS?.length
-	? process.env.SHORTCUT_TOOLS.split(",").map((tool) => tool.trim())
-	: null;
+let enabledTools = (process.env.SHORTCUT_TOOLS || "")
+	.split(",")
+	.map((tool) => tool.trim())
+	.filter(Boolean);
 
 // If a setting is provided as an argument, use it instead of the environment variable.
 if (process.argv.length >= 3) {
@@ -27,7 +26,11 @@ if (process.argv.length >= 3) {
 		.forEach(([name, value]) => {
 			if (name === "SHORTCUT_API_TOKEN") apiToken = value;
 			if (name === "SHORTCUT_READONLY") isReadonly = value === "true";
-			if (name === "SHORTCUT_TOOLS") enabledTools = value.split(",").map((tool) => tool.trim());
+			if (name === "SHORTCUT_TOOLS")
+				enabledTools = value
+					.split(",")
+					.map((tool) => tool.trim())
+					.filter(Boolean);
 		});
 }
 
@@ -36,23 +39,18 @@ if (!apiToken) {
 	process.exit(1);
 }
 
-const server = new McpServer({ name, version });
+const server = new CustomMcpServer({ readonly: isReadonly, tools: enabledTools });
 const client = new ShortcutClientWrapper(new ShortcutClient(apiToken));
 
-// Helper function to check if a tool should be enabled. All tools are enabled by default unless specified otherwise.
-const areToolsEnabled = (toolName: string) => {
-	return !enabledTools || enabledTools.includes(toolName);
-};
-
 // The order these are created impacts the order they are listed to the LLM. Most important tools should be at the top.
-if (areToolsEnabled("users")) UserTools.create(client, server, isReadonly);
-if (areToolsEnabled("stories")) StoryTools.create(client, server, isReadonly);
-if (areToolsEnabled("iterations")) IterationTools.create(client, server, isReadonly);
-if (areToolsEnabled("epics")) EpicTools.create(client, server, isReadonly);
-if (areToolsEnabled("objectives")) ObjectiveTools.create(client, server, isReadonly);
-if (areToolsEnabled("teams")) TeamTools.create(client, server, isReadonly);
-if (areToolsEnabled("workflows")) WorkflowTools.create(client, server, isReadonly);
-if (areToolsEnabled("documents")) DocumentTools.create(client, server, isReadonly);
+UserTools.create(client, server);
+StoryTools.create(client, server);
+IterationTools.create(client, server);
+EpicTools.create(client, server);
+ObjectiveTools.create(client, server);
+TeamTools.create(client, server);
+WorkflowTools.create(client, server);
+DocumentTools.create(client, server);
 
 async function startServer() {
 	try {

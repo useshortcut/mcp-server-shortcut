@@ -1,6 +1,6 @@
 import { describe, expect, mock, spyOn, test } from "bun:test";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
+import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { UserTools } from "./user";
 
 describe("UserTools", () => {
@@ -14,33 +14,20 @@ describe("UserTools", () => {
 		test("should register the correct tools with the server", () => {
 			const mockClient = {} as ShortcutClientWrapper;
 			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
+			const mockServer = { addToolWithReadAccess: mockTool } as unknown as CustomMcpServer;
 
 			UserTools.create(mockClient, mockServer);
 
 			expect(mockTool).toHaveBeenCalledTimes(3);
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-current-user");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-current-user-teams");
-			expect(mockTool.mock.calls?.[2]?.[0]).toBe("list-users");
-		});
-
-		test("should register the same tools when readonly is true", () => {
-			const mockClient = {} as ShortcutClientWrapper;
-			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
-
-			UserTools.create(mockClient, mockServer, true);
-
-			expect(mockTool).toHaveBeenCalledTimes(3);
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-current-user");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-current-user-teams");
-			expect(mockTool.mock.calls?.[2]?.[0]).toBe("list-users");
+			expect(mockTool.mock.calls?.[0]?.[0]).toBe("users-get-current");
+			expect(mockTool.mock.calls?.[1]?.[0]).toBe("users-get-current-teams");
+			expect(mockTool.mock.calls?.[2]?.[0]).toBe("users-list");
 		});
 
 		test("should call correct function from tool", async () => {
 			const mockClient = {} as ShortcutClientWrapper;
 			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
+			const mockServer = { addToolWithReadAccess: mockTool } as unknown as CustomMcpServer;
 
 			const tools = UserTools.create(mockClient, mockServer);
 

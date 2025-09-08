@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type {
 	Branch,
 	CreateStoryCommentParams,
@@ -14,6 +13,7 @@ import type {
 	Workflow,
 } from "@shortcut/client";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
+import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { StoryTools } from "./stories";
 
 describe("StoryTools", () => {
@@ -144,57 +144,34 @@ describe("StoryTools", () => {
 	describe("create method", () => {
 		test("should register the correct tools with the server", () => {
 			const mockClient = createMockClient();
-			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
+			const mockToolRead = mock();
+			const mockToolWrite = mock();
+			const mockServer = {
+				addToolWithReadAccess: mockToolRead,
+				addToolWithWriteAccess: mockToolWrite,
+			} as unknown as CustomMcpServer;
 
 			StoryTools.create(mockClient, mockServer);
 
-			expect(mockTool).toHaveBeenCalledTimes(16);
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-story");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-stories");
-			expect(mockTool.mock.calls?.[2]?.[0]).toBe("get-story-branch-name");
-			expect(mockTool.mock.calls?.[3]?.[0]).toBe("create-story");
-			expect(mockTool.mock.calls?.[4]?.[0]).toBe("update-story");
-			expect(mockTool.mock.calls?.[5]?.[0]).toBe("upload-file-to-story");
-			expect(mockTool.mock.calls?.[6]?.[0]).toBe("assign-current-user-as-owner");
-			expect(mockTool.mock.calls?.[7]?.[0]).toBe("unassign-current-user-as-owner");
-			expect(mockTool.mock.calls?.[8]?.[0]).toBe("create-story-comment");
-			expect(mockTool.mock.calls?.[9]?.[0]).toBe("add-task-to-story");
-			expect(mockTool.mock.calls?.[10]?.[0]).toBe("update-task");
-			expect(mockTool.mock.calls?.[11]?.[0]).toBe("add-relation-to-story");
-			expect(mockTool.mock.calls?.[12]?.[0]).toBe("add-external-link-to-story");
-			expect(mockTool.mock.calls?.[13]?.[0]).toBe("remove-external-link-from-story");
-			expect(mockTool.mock.calls?.[14]?.[0]).toBe("set-story-external-links");
-			expect(mockTool.mock.calls?.[15]?.[0]).toBe("get-stories-by-external-link");
-		});
+			expect(mockToolRead).toHaveBeenCalledTimes(4);
+			expect(mockToolRead.mock.calls?.[0]?.[0]).toBe("stories-get-by-id");
+			expect(mockToolRead.mock.calls?.[1]?.[0]).toBe("stories-search");
+			expect(mockToolRead.mock.calls?.[2]?.[0]).toBe("stories-get-branch-name");
+			expect(mockToolRead.mock.calls?.[3]?.[0]).toBe("stories-get-by-external-link");
 
-		test("should register only read-only tools when readonly is true", () => {
-			const mockClient = createMockClient();
-			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
-
-			StoryTools.create(mockClient, mockServer, true);
-
-			expect(mockTool).toHaveBeenCalledTimes(4);
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-story");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-stories");
-			expect(mockTool.mock.calls?.[2]?.[0]).toBe("get-story-branch-name");
-			expect(mockTool.mock.calls?.[3]?.[0]).toBe("get-stories-by-external-link");
-
-			// Verify write operations are not registered
-			const registeredTools = mockTool.mock.calls?.map((call) => call[0]) || [];
-			expect(registeredTools).not.toContain("create-story");
-			expect(registeredTools).not.toContain("update-story");
-			expect(registeredTools).not.toContain("upload-file-to-story");
-			expect(registeredTools).not.toContain("assign-current-user-as-owner");
-			expect(registeredTools).not.toContain("unassign-current-user-as-owner");
-			expect(registeredTools).not.toContain("create-story-comment");
-			expect(registeredTools).not.toContain("add-task-to-story");
-			expect(registeredTools).not.toContain("update-task");
-			expect(registeredTools).not.toContain("add-relation-to-story");
-			expect(registeredTools).not.toContain("add-external-link-to-story");
-			expect(registeredTools).not.toContain("remove-external-link-from-story");
-			expect(registeredTools).not.toContain("set-story-external-links");
+			expect(mockToolWrite).toHaveBeenCalledTimes(12);
+			expect(mockToolWrite.mock.calls?.[0]?.[0]).toBe("stories-create");
+			expect(mockToolWrite.mock.calls?.[1]?.[0]).toBe("stories-update");
+			expect(mockToolWrite.mock.calls?.[2]?.[0]).toBe("stories-upload-file");
+			expect(mockToolWrite.mock.calls?.[3]?.[0]).toBe("stories-assign-current-user");
+			expect(mockToolWrite.mock.calls?.[4]?.[0]).toBe("stories-unassign-current-user");
+			expect(mockToolWrite.mock.calls?.[5]?.[0]).toBe("stories-create-comment");
+			expect(mockToolWrite.mock.calls?.[6]?.[0]).toBe("stories-add-task");
+			expect(mockToolWrite.mock.calls?.[7]?.[0]).toBe("stories-update-task");
+			expect(mockToolWrite.mock.calls?.[8]?.[0]).toBe("stories-add-relation");
+			expect(mockToolWrite.mock.calls?.[9]?.[0]).toBe("stories-add-external-link");
+			expect(mockToolWrite.mock.calls?.[10]?.[0]).toBe("stories-remove-external-link");
+			expect(mockToolWrite.mock.calls?.[11]?.[0]).toBe("stories-set-external-links");
 		});
 	});
 

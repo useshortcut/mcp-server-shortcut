@@ -1,7 +1,7 @@
 import { describe, expect, mock, spyOn, test } from "bun:test";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Workflow } from "@shortcut/client";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
+import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { WorkflowTools } from "./workflows";
 
 describe("WorkflowTools", () => {
@@ -36,35 +36,21 @@ describe("WorkflowTools", () => {
 		test("should register the correct tools with the server", () => {
 			const mockClient = {} as ShortcutClientWrapper;
 			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
+			const mockServer = { addToolWithReadAccess: mockTool } as unknown as CustomMcpServer;
 
 			WorkflowTools.create(mockClient, mockServer);
 
 			expect(mockTool).toHaveBeenCalledTimes(3);
 
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-default-workflow");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-workflow");
-			expect(mockTool.mock.calls?.[2]?.[0]).toBe("list-workflows");
-		});
-
-		test("should register the same tools when readonly is true", () => {
-			const mockClient = {} as ShortcutClientWrapper;
-			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
-
-			WorkflowTools.create(mockClient, mockServer, true);
-
-			expect(mockTool).toHaveBeenCalledTimes(3);
-
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-default-workflow");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("get-workflow");
-			expect(mockTool.mock.calls?.[2]?.[0]).toBe("list-workflows");
+			expect(mockTool.mock.calls?.[0]?.[0]).toBe("workflows-get-default");
+			expect(mockTool.mock.calls?.[1]?.[0]).toBe("workflows-get-by-id");
+			expect(mockTool.mock.calls?.[2]?.[0]).toBe("workflows-list");
 		});
 
 		test("should call correct function from tool", async () => {
 			const mockClient = {} as ShortcutClientWrapper;
 			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
+			const mockServer = { addToolWithReadAccess: mockTool } as unknown as CustomMcpServer;
 
 			const tools = WorkflowTools.create(mockClient, mockServer);
 

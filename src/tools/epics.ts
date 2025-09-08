@@ -1,17 +1,17 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
+import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { BaseTools } from "./base";
 import { buildSearchQuery, type QueryParams } from "./utils/search";
 import { date, has, is, user } from "./utils/validation";
 
 export class EpicTools extends BaseTools {
-	static create(client: ShortcutClientWrapper, server: McpServer, isReadonly = false) {
-		const tools = new EpicTools(client, isReadonly);
+	static create(client: ShortcutClientWrapper, server: CustomMcpServer) {
+		const tools = new EpicTools(client);
 
-		server.tool(
-			"get-epic",
+		server.addToolWithReadAccess(
+			"epics-get-by-id",
 			"Get a Shortcut epic by public ID",
 			{
 				epicPublicId: z.number().positive().describe("The public ID of the epic to get"),
@@ -26,8 +26,8 @@ export class EpicTools extends BaseTools {
 			async ({ epicPublicId, full }) => await tools.getEpic(epicPublicId, full),
 		);
 
-		server.tool(
-			"search-epics",
+		server.addToolWithReadAccess(
+			"epics-search",
 			"Find Shortcut epics.",
 			{
 				nextPageToken: z
@@ -76,19 +76,17 @@ export class EpicTools extends BaseTools {
 			async ({ nextPageToken, ...params }) => await tools.searchEpics(params, nextPageToken),
 		);
 
-		if (!isReadonly) {
-			server.tool(
-				"create-epic",
-				"Create a new Shortcut epic.",
-				{
-					name: z.string().describe("The name of the epic"),
-					owner: z.string().optional().describe("The user ID of the owner of the epic"),
-					description: z.string().optional().describe("A description of the epic"),
-					teamId: z.string().optional().describe("The ID of a team to assign the epic to"),
-				},
-				async (params) => await tools.createEpic(params),
-			);
-		}
+		server.addToolWithWriteAccess(
+			"epics-create",
+			"Create a new Shortcut epic.",
+			{
+				name: z.string().describe("The name of the epic"),
+				owner: z.string().optional().describe("The user ID of the owner of the epic"),
+				description: z.string().optional().describe("A description of the epic"),
+				teamId: z.string().optional().describe("The ID of a team to assign the epic to"),
+			},
+			async (params) => await tools.createEpic(params),
+		);
 
 		return tools;
 	}

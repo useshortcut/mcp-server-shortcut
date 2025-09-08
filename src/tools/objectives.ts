@@ -1,16 +1,16 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
+import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { BaseTools } from "./base";
 import { buildSearchQuery, type QueryParams } from "./utils/search";
 import { date, has, is, user } from "./utils/validation";
 
 export class ObjectiveTools extends BaseTools {
-	static create(client: ShortcutClientWrapper, server: McpServer, isReadonly = false) {
-		const tools = new ObjectiveTools(client, isReadonly);
+	static create(client: ShortcutClientWrapper, server: CustomMcpServer) {
+		const tools = new ObjectiveTools(client);
 
-		server.tool(
-			"get-objective",
+		server.addToolWithReadAccess(
+			"objectives-get-by-id",
 			"Get a Shortcut objective by public ID",
 			{
 				objectivePublicId: z.number().positive().describe("The public ID of the objective to get"),
@@ -25,8 +25,8 @@ export class ObjectiveTools extends BaseTools {
 			async ({ objectivePublicId, full }) => await tools.getObjective(objectivePublicId, full),
 		);
 
-		server.tool(
-			"search-objectives",
+		server.addToolWithReadAccess(
+			"objectives-search",
 			"Find Shortcut objectives.",
 			{
 				nextPageToken: z

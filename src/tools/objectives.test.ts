@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Milestone } from "@shortcut/client";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
+import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { ObjectiveTools } from "./objectives";
 
 describe("ObjectiveTools", () => {
@@ -42,25 +42,13 @@ describe("ObjectiveTools", () => {
 		test("should register the correct tools with the server", () => {
 			const mockClient = {} as unknown as ShortcutClientWrapper;
 			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
+			const mockServer = { addToolWithReadAccess: mockTool } as unknown as CustomMcpServer;
 
 			ObjectiveTools.create(mockClient, mockServer);
 
 			expect(mockTool).toHaveBeenCalledTimes(2);
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-objective");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-objectives");
-		});
-
-		test("should register the same tools when readonly is true", () => {
-			const mockClient = {} as unknown as ShortcutClientWrapper;
-			const mockTool = mock();
-			const mockServer = { tool: mockTool } as unknown as McpServer;
-
-			ObjectiveTools.create(mockClient, mockServer, true);
-
-			expect(mockTool).toHaveBeenCalledTimes(2);
-			expect(mockTool.mock.calls?.[0]?.[0]).toBe("get-objective");
-			expect(mockTool.mock.calls?.[1]?.[0]).toBe("search-objectives");
+			expect(mockTool.mock.calls?.[0]?.[0]).toBe("objectives-get-by-id");
+			expect(mockTool.mock.calls?.[1]?.[0]).toBe("objectives-search");
 		});
 	});
 

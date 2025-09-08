@@ -1,17 +1,17 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
+import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { BaseTools } from "./base";
 import { buildSearchQuery, type QueryParams } from "./utils/search";
 import { date } from "./utils/validation";
 
 export class IterationTools extends BaseTools {
-	static create(client: ShortcutClientWrapper, server: McpServer, isReadonly = false) {
-		const tools = new IterationTools(client, isReadonly);
+	static create(client: ShortcutClientWrapper, server: CustomMcpServer) {
+		const tools = new IterationTools(client);
 
-		server.tool(
-			"get-iteration-stories",
+		server.addToolWithReadAccess(
+			"iterations-get-stories",
 			"Get stories in a specific iteration by iteration public ID",
 			{
 				iterationPublicId: z.number().positive().describe("The public ID of the iteration"),
@@ -27,8 +27,8 @@ export class IterationTools extends BaseTools {
 				await tools.getIterationStories(iterationPublicId, includeStoryDescriptions),
 		);
 
-		server.tool(
-			"get-iteration",
+		server.addToolWithReadAccess(
+			"iterations-get-by-id",
 			"Get a Shortcut iteration by public ID",
 			{
 				iterationPublicId: z.number().positive().describe("The public ID of the iteration to get"),
@@ -43,8 +43,8 @@ export class IterationTools extends BaseTools {
 			async ({ iterationPublicId, full }) => await tools.getIteration(iterationPublicId, full),
 		);
 
-		server.tool(
-			"search-iterations",
+		server.addToolWithReadAccess(
+			"iterations-search",
 			"Find Shortcut iterations.",
 			{
 				nextPageToken: z
@@ -77,23 +77,21 @@ export class IterationTools extends BaseTools {
 			async ({ nextPageToken, ...params }) => await tools.searchIterations(params, nextPageToken),
 		);
 
-		if (!isReadonly) {
-			server.tool(
-				"create-iteration",
-				"Create a new Shortcut iteration",
-				{
-					name: z.string().describe("The name of the iteration"),
-					startDate: z.string().describe("The start date of the iteration in YYYY-MM-DD format"),
-					endDate: z.string().describe("The end date of the iteration in YYYY-MM-DD format"),
-					teamId: z.string().optional().describe("The ID of a team to assign the iteration to"),
-					description: z.string().optional().describe("A description of the iteration"),
-				},
-				async (params) => await tools.createIteration(params),
-			);
-		}
+		server.addToolWithWriteAccess(
+			"iterations-create",
+			"Create a new Shortcut iteration",
+			{
+				name: z.string().describe("The name of the iteration"),
+				startDate: z.string().describe("The start date of the iteration in YYYY-MM-DD format"),
+				endDate: z.string().describe("The end date of the iteration in YYYY-MM-DD format"),
+				teamId: z.string().optional().describe("The ID of a team to assign the iteration to"),
+				description: z.string().optional().describe("A description of the iteration"),
+			},
+			async (params) => await tools.createIteration(params),
+		);
 
-		server.tool(
-			"get-active-iterations",
+		server.addToolWithReadAccess(
+			"iterations-get-active",
 			"Get the active Shortcut iterations for the current user based on their team memberships",
 			{
 				teamId: z.string().optional().describe("The ID of a team to filter iterations by"),
@@ -101,8 +99,8 @@ export class IterationTools extends BaseTools {
 			async ({ teamId }) => await tools.getActiveIterations(teamId),
 		);
 
-		server.tool(
-			"get-upcoming-iterations",
+		server.addToolWithReadAccess(
+			"iterations-get-upcoming",
 			"Get the upcoming Shortcut iterations for the current user based on their team memberships",
 			{
 				teamId: z.string().optional().describe("The ID of a team to filter iterations by"),

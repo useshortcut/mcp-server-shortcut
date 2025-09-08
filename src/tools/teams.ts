@@ -1,14 +1,14 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
+import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { BaseTools } from "./base";
 
 export class TeamTools extends BaseTools {
-	static create(client: ShortcutClientWrapper, server: McpServer, isReadonly = false) {
-		const tools = new TeamTools(client, isReadonly);
+	static create(client: ShortcutClientWrapper, server: CustomMcpServer) {
+		const tools = new TeamTools(client);
 
-		server.tool(
-			"get-team",
+		server.addToolWithReadAccess(
+			"teams-get-by-id",
 			"Get a Shortcut team by public ID",
 			{
 				teamPublicId: z.string().describe("The public ID of the team to get"),
@@ -23,7 +23,11 @@ export class TeamTools extends BaseTools {
 			async ({ teamPublicId, full }) => await tools.getTeam(teamPublicId, full),
 		);
 
-		server.tool("list-teams", "List all Shortcut teams", async () => await tools.getTeams());
+		server.addToolWithReadAccess(
+			"teams-list",
+			"List all Shortcut teams",
+			async () => await tools.getTeams(),
+		);
 
 		return tools;
 	}
