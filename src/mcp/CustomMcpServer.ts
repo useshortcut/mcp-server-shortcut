@@ -18,7 +18,6 @@ export class CustomMcpServer extends McpServer {
 	}
 
 	shouldAddTool(name: string) {
-		console.log("Checking tool:", name, this.tools.size);
 		if (!this.tools.size) return true;
 		const [entityType] = name.split("-");
 		if (this.tools.has(entityType) || this.tools.has(name)) return true;
