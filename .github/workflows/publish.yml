@@ -1,4 +1,4 @@
-name: Publish Package to npmjs
+name: Publish Package to npmjs and MCP Registry
 env:
   HUSKY: 0
 
@@ -23,4 +23,28 @@ jobs:
         run: npm install -g npm@latest
       - name: Install dependencies
         run: npm ci
-      - run: npm publish --access public
+      - name: Run tests
+        run: npm test
+      - name: Run linting
+        run: npm run lint
+      - name: Build package
+        run: npm run build
+      - name: Publish to NPM
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Install MCP Publisher CLI
+        run: |
+          curl -L -o mcp-publisher https://github.com/modelcontextprotocol/mcp-publisher/releases/latest/download/mcp-publisher-linux-amd64
+          chmod +x mcp-publisher
+          sudo mv mcp-publisher /usr/local/bin/
+      - name: Login to MCP Registry with GitHub OIDC
+        run: mcp-publisher login github-oidc
+      - name: Publish to MCP Registry
+        run: mcp-publisher publish
+      - name: Verify publication
+        run: |
+          # Wait a moment for the registry to update
+          sleep 10
+          # Check if the server is available in the registry
+          curl -f "https://registry.modelcontextprotocol.io/v0/servers?search=shortcut" || echo "Warning: Could not verify publication"

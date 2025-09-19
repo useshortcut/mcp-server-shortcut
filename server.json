@@ -1,0 +1,215 @@
+{
+  "$schema": "https://registry.modelcontextprotocol.io/v1/server-config.schema.json",
+  "name": "shortcut",
+  "description": "MCP server for Shortcut - Connect to Shortcut's API to manage stories, epics, iterations, teams, and more from your AI assistant.",
+  "version": "0.15.2",
+  "author": {
+    "name": "Shortcut",
+    "url": "https://www.shortcut.com"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/useshortcut/mcp-server-shortcut",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/useshortcut/mcp-server-shortcut.git"
+  },
+  "keywords": [
+    "shortcut",
+    "project-management",
+    "api",
+    "stories",
+    "epics",
+    "iterations",
+    "teams",
+    "productivity"
+  ],
+  "categories": [
+    "productivity",
+    "project-management"
+  ],
+  "deployment": {
+    "type": "package",
+    "package": {
+      "type": "npm",
+      "name": "@shortcut/mcp",
+      "mcpName": "shortcut"
+    }
+  },
+  "configuration": {
+    "required": [
+      "SHORTCUT_API_TOKEN"
+    ],
+    "optional": [
+      "SHORTCUT_TOOLS",
+      "SHORTCUT_READONLY"
+    ],
+    "properties": {
+      "SHORTCUT_API_TOKEN": {
+        "type": "string",
+        "description": "Your Shortcut API token for authentication",
+        "sensitive": true
+      },
+      "SHORTCUT_TOOLS": {
+        "type": "string",
+        "description": "Comma-separated list of tools to enable (optional, defaults to all tools)",
+        "examples": [
+          "stories,epics",
+          "stories-get-by-id,epics-search"
+        ]
+      },
+      "SHORTCUT_READONLY": {
+        "type": "string",
+        "description": "Set to 'true' to disable all write operations",
+        "enum": ["true", "false"]
+      }
+    }
+  },
+  "capabilities": {
+    "tools": [
+      {
+        "name": "stories-get-by-id",
+        "description": "Get a single Shortcut story by ID"
+      },
+      {
+        "name": "stories-search",
+        "description": "Find Shortcut stories with filtering and search options"
+      },
+      {
+        "name": "stories-get-branch-name",
+        "description": "Get the recommended branch name for a specific story"
+      },
+      {
+        "name": "stories-create",
+        "description": "Create a new Shortcut story"
+      },
+      {
+        "name": "stories-update",
+        "description": "Update an existing Shortcut story"
+      },
+      {
+        "name": "stories-upload-file",
+        "description": "Upload a file and link it to a story"
+      },
+      {
+        "name": "stories-assign-current-user",
+        "description": "Assign the current user as the owner of a story"
+      },
+      {
+        "name": "stories-unassign-current-user",
+        "description": "Unassign the current user as the owner of a story"
+      },
+      {
+        "name": "stories-create-comment",
+        "description": "Create a comment on a story"
+      },
+      {
+        "name": "stories-add-task",
+        "description": "Add a task to a story"
+      },
+      {
+        "name": "stories-update-task",
+        "description": "Update a task in a story"
+      },
+      {
+        "name": "stories-add-relation",
+        "description": "Add a story relationship (relates to, blocks, duplicates, etc.)"
+      },
+      {
+        "name": "stories-add-external-link",
+        "description": "Add an external link to a Shortcut story"
+      },
+      {
+        "name": "stories-remove-external-link",
+        "description": "Remove an external link from a Shortcut story"
+      },
+      {
+        "name": "stories-set-external-links",
+        "description": "Replace all external links on a story with a new set of links"
+      },
+      {
+        "name": "stories-get-by-external-link",
+        "description": "Find all stories that contain a specific external link"
+      },
+      {
+        "name": "epics-get-by-id",
+        "description": "Get a Shortcut epic by ID"
+      },
+      {
+        "name": "epics-search",
+        "description": "Find Shortcut epics with filtering and search options"
+      },
+      {
+        "name": "epics-create",
+        "description": "Create a new Shortcut epic"
+      },
+      {
+        "name": "iterations-get-stories",
+        "description": "Get stories in a specific iteration by iteration ID"
+      },
+      {
+        "name": "iterations-get-by-id",
+        "description": "Get a Shortcut iteration by ID"
+      },
+      {
+        "name": "iterations-search",
+        "description": "Find Shortcut iterations with filtering and search options"
+      },
+      {
+        "name": "iterations-create",
+        "description": "Create a new Shortcut iteration with start/end dates"
+      },
+      {
+        "name": "iterations-get-active",
+        "description": "Get active iterations for the current user based on team memberships"
+      },
+      {
+        "name": "iterations-get-upcoming",
+        "description": "Get upcoming iterations for the current user based on team memberships"
+      },
+      {
+        "name": "objectives-get-by-id",
+        "description": "Get a Shortcut objective by ID"
+      },
+      {
+        "name": "objectives-search",
+        "description": "Find Shortcut objectives with filtering and search options"
+      },
+      {
+        "name": "teams-get-by-id",
+        "description": "Get a Shortcut team by ID"
+      },
+      {
+        "name": "teams-list",
+        "description": "List all Shortcut teams"
+      },
+      {
+        "name": "workflows-get-default",
+        "description": "Get the default workflow for a specific team or the workspace default"
+      },
+      {
+        "name": "workflows-get-by-id",
+        "description": "Get a Shortcut workflow by ID"
+      },
+      {
+        "name": "workflows-list",
+        "description": "List all Shortcut workflows"
+      },
+      {
+        "name": "users-get-current",
+        "description": "Get the current user information"
+      },
+      {
+        "name": "users-get-current-teams",
+        "description": "Get a list of teams where the current user is a member"
+      },
+      {
+        "name": "users-list",
+        "description": "Get all workspace users"
+      },
+      {
+        "name": "documents-create",
+        "description": "Create a new document in Shortcut with HTML content"
+      }
+    ]
+  }
+}
