@@ -1,8 +1,8 @@
-import express, { type Request, type Response, type NextFunction } from "express";
 import { randomUUID } from "node:crypto";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { ShortcutClient } from "@shortcut/client";
+import express, { type NextFunction, type Request, type Response } from "express";
 import { ShortcutClientWrapper } from "@/client/shortcut";
 import { CustomMcpServer } from "./mcp/CustomMcpServer";
 import { DocumentTools } from "./tools/documents";
@@ -118,7 +118,7 @@ async function startServer() {
 	// MCP POST endpoint for initialization and JSON-RPC messages
 	app.post("/mcp", async (req: Request, res: Response) => {
 		const sessionId = req.headers["mcp-session-id"] as string | undefined;
-		
+
 		// Always extract API token from current request
 		const apiToken = extractApiToken(req);
 
@@ -185,7 +185,9 @@ async function startServer() {
 				await server.connect(transport);
 			} else if (sessionId && !transports[sessionId]) {
 				// Session ID provided but doesn't exist (stale/invalid)
-				console.log(`Session ${sessionId} not found - session may have expired or server restarted`);
+				console.log(
+					`Session ${sessionId} not found - session may have expired or server restarted`,
+				);
 				res.status(404).json({
 					jsonrpc: "2.0",
 					error: {
