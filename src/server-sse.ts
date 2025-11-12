@@ -266,7 +266,11 @@ async function handleMcpPost(
 	const sessionId = req.headers[HEADERS.MCP_SESSION_ID] as string | undefined;
 	const apiToken = extractApiToken(req);
 
-	console.log(sessionId ? `Received MCP request for session: ${sessionId}` : "Received MCP request (new session)");
+	console.log(
+		sessionId
+			? `Received MCP request for session: ${sessionId}`
+			: "Received MCP request (new session)",
+	);
 
 	try {
 		// Scenario 1: Existing session
@@ -433,4 +437,3 @@ startServer().catch((error) => {
 	console.error("Fatal error starting server:", error);
 	process.exit(1);
 });
-
