@@ -40,7 +40,7 @@ See the [official Windsurf docs](https://docs.windsurf.com/windsurf/cascade/mcp)
 ```
 
 ### Cursor
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en-US/install-mcp?name=postgres&config=eyJjb21tYW5kIjoibnB4IC15IEBtb2RlbGNvbnRleHRwcm90b2NvbC9zZXJ2ZXItcG9zdGdyZXMgcG9zdGdyZXNxbDovL2xvY2FsaG9zdC9teWRiIn0%3D)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en-US/install-mcp?name=shortcut&config=eyJlbnYiOnsiU0hPUlRDVVRfQVBJX1RPS0VOIjoiWU9VUl9UT0tFTiJ9LCJjb21tYW5kIjoibnB4IC15IEBzaG9ydGN1dC9tY3AifQ%3D%3D)
 
 See the [official Cursor docs](https://docs.cursor.com/context/model-context-protocol) for more information.
 
