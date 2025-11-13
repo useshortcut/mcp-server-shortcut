@@ -694,7 +694,7 @@ describe("Server-HTTP Security Tests", () => {
 		});
 
 		test("should load config with defaults", () => {
-			const DEFAULT_PORT = 9191;
+			const DEFAULT_PORT = 9292;
 			const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
 			const config = {
@@ -704,7 +704,7 @@ describe("Server-HTTP Security Tests", () => {
 				sessionTimeoutMs: SESSION_TIMEOUT_MS,
 			};
 
-			expect(config.port).toBe(9191);
+			expect(config.port).toBe(9292);
 			expect(config.isReadonly).toBe(true);
 			expect(config.sessionTimeoutMs).toBe(1800000); // 30 minutes
 		});
