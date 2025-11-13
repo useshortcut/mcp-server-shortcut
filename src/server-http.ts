@@ -153,7 +153,7 @@ class SessionManager {
 		if (!session) {
 			return false;
 		}
-		// In production, compare hashed tokens
+		// Compare hashed tokens
 		return session.apiToken === providedToken;
 	}
 
