@@ -84,7 +84,7 @@ function createMockResponse(): MockResponse {
 	return res;
 }
 
-describe("Server-SHTTPT Security Tests", () => {
+describe("Server-HTTP Security Tests", () => {
 	describe("extractApiToken", () => {
 		test("should extract token from Authorization Bearer header", () => {
 			const extractApiToken = (req: Request): string | null => {
