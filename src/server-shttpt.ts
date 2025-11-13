@@ -641,4 +641,3 @@ startServer().catch((error) => {
 	logger.fatal({ error }, "Fatal error starting server");
 	process.exit(1);
 });
-

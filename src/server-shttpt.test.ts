@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import type { Request, Response } from "express";
 import { ShortcutClient } from "@shortcut/client";
+import type { Request, Response } from "express";
 
 // Mock the ShortcutClient module
 const mockGetCurrentMemberInfo = mock(async () => ({
@@ -176,15 +176,15 @@ describe("Server-SHTTPT Security Tests", () => {
 			mockGetCurrentMemberInfo.mockClear();
 		});
 
-	test("should return true for valid token", async () => {
-		mockGetCurrentMemberInfo.mockResolvedValueOnce({
-			data: {
-				id: "user-1",
-				mention_name: "testuser",
-				name: "Test User",
-				email_address: "testuser@example.com",
-			},
-		});
+		test("should return true for valid token", async () => {
+			mockGetCurrentMemberInfo.mockResolvedValueOnce({
+				data: {
+					id: "user-1",
+					mention_name: "testuser",
+					name: "Test User",
+					email_address: "testuser@example.com",
+				},
+			});
 
 			const validateApiToken = async (token: string): Promise<boolean> => {
 				try {
@@ -518,10 +518,10 @@ describe("Server-SHTTPT Security Tests", () => {
 		}
 
 		test("POST - should reject request without API token", () => {
-		const res = createMockResponse();
+			const res = createMockResponse();
 
-		const extractApiToken = (): string | null => null;
-		const apiToken = extractApiToken();
+			const extractApiToken = (): string | null => null;
+			const apiToken = extractApiToken();
 
 			if (!apiToken) {
 				(res.status as any)(401).json({
@@ -536,13 +536,13 @@ describe("Server-SHTTPT Security Tests", () => {
 		});
 
 		test("POST - should reject existing session with wrong token", () => {
-		const manager = new TestSessionManager();
-		manager.add("session-123", "correct-token");
+			const manager = new TestSessionManager();
+			manager.add("session-123", "correct-token");
 
-		const res = createMockResponse();
+			const res = createMockResponse();
 
-		const sessionId = "session-123";
-		const apiToken = "wrong-token";
+			const sessionId = "session-123";
+			const apiToken = "wrong-token";
 
 			if (sessionId && manager.has(sessionId)) {
 				if (!manager.validateToken(sessionId, apiToken)) {
@@ -710,4 +710,3 @@ describe("Server-SHTTPT Security Tests", () => {
 		});
 	});
 });
-
