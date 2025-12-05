@@ -342,6 +342,31 @@ The story will be added to the default state for the workflow.
 			async ({ externalLink }) => await tools.getStoriesByExternalLink(externalLink),
 		);
 
+		server.addToolWithReadAccess(
+			"stories-list-sub-tasks",
+			"List all sub-tasks for a story with full details",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the parent story"),
+			},
+			async ({ storyPublicId }) => await tools.listSubTasks(storyPublicId),
+		);
+
+		server.addToolWithWriteAccess(
+			"stories-create-sub-task",
+			"Create a new sub-task under a parent story. The sub-task inherits the team and workflow from the parent story.",
+			{
+				parentStoryPublicId: z.number().positive().describe("The public ID of the parent story"),
+				name: z.string().min(1).max(512).describe("The name of the sub-task"),
+				description: z.string().max(10_000).optional().describe("The description of the sub-task"),
+				ownerIds: z
+					.array(z.string())
+					.optional()
+					.describe("Array of user UUIDs to assign as owners of the sub-task"),
+				estimate: z.number().optional().describe("The point estimate of the sub-task"),
+			},
+			async (params) => await tools.createSubTask(params),
+		);
+
 		return tools;
 	}
 
@@ -713,5 +738,68 @@ The story will be added to the default state for the workflow.
 				: `Set ${linkCount} external link${linkCount === 1 ? "" : "s"} on story sc-${storyPublicId}`;
 
 		return this.toResult(`${message}. Story URL: ${updatedStory.app_url}`);
+	}
+
+	async listSubTasks(storyPublicId: number) {
+		const parentStory = await this.client.getStory(storyPublicId);
+
+		if (!parentStory)
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
+
+		const subTaskIds =
+			(parentStory as Story & { sub_task_story_ids?: number[] }).sub_task_story_ids || [];
+
+		if (!subTaskIds.length) {
+			return this.toResult(`Story sc-${storyPublicId} has no sub-tasks.`);
+		}
+
+		const subTasks = await Promise.all(subTaskIds.map((id) => this.client.getStory(id)));
+		const validSubTasks = subTasks.filter((s): s is Story => s !== null);
+
+		return this.toResult(
+			`Found ${validSubTasks.length} sub-task(s) for story sc-${storyPublicId}:`,
+			await this.entitiesWithRelatedEntities(validSubTasks, "sub_tasks"),
+		);
+	}
+
+	async createSubTask({
+		parentStoryPublicId,
+		name,
+		description,
+		ownerIds,
+		estimate,
+	}: {
+		parentStoryPublicId: number;
+		name: string;
+		description?: string;
+		ownerIds?: string[];
+		estimate?: number;
+	}) {
+		const parentStory = await this.client.getStory(parentStoryPublicId);
+
+		if (!parentStory)
+			throw new Error(`Failed to retrieve parent story with public ID: ${parentStoryPublicId}`);
+
+		if (!parentStory.workflow_id)
+			throw new Error(`Parent story sc-${parentStoryPublicId} has no workflow`);
+
+		const workflow = await this.client.getWorkflow(parentStory.workflow_id);
+
+		if (!workflow)
+			throw new Error(`Failed to retrieve workflow for parent story sc-${parentStoryPublicId}`);
+
+		const subTask = await this.client.createStory({
+			name,
+			description,
+			owner_ids: ownerIds,
+			estimate,
+			workflow_state_id: workflow.default_state_id,
+			group_id: parentStory.group_id,
+			parent_story_id: parentStoryPublicId,
+		});
+
+		return this.toResult(
+			`Created sub-task sc-${subTask.id} under parent story sc-${parentStoryPublicId}. Sub-task URL: ${subTask.app_url}`,
+		);
 	}
 }
