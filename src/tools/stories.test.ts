@@ -153,13 +153,14 @@ describe("StoryTools", () => {
 
 			StoryTools.create(mockClient, mockServer);
 
-			expect(mockToolRead).toHaveBeenCalledTimes(4);
+			expect(mockToolRead).toHaveBeenCalledTimes(5);
 			expect(mockToolRead.mock.calls?.[0]?.[0]).toBe("stories-get-by-id");
 			expect(mockToolRead.mock.calls?.[1]?.[0]).toBe("stories-search");
 			expect(mockToolRead.mock.calls?.[2]?.[0]).toBe("stories-get-branch-name");
 			expect(mockToolRead.mock.calls?.[3]?.[0]).toBe("stories-get-by-external-link");
+			expect(mockToolRead.mock.calls?.[4]?.[0]).toBe("stories-list-sub-tasks");
 
-			expect(mockToolWrite).toHaveBeenCalledTimes(12);
+			expect(mockToolWrite).toHaveBeenCalledTimes(13);
 			expect(mockToolWrite.mock.calls?.[0]?.[0]).toBe("stories-create");
 			expect(mockToolWrite.mock.calls?.[1]?.[0]).toBe("stories-update");
 			expect(mockToolWrite.mock.calls?.[2]?.[0]).toBe("stories-upload-file");
@@ -172,6 +173,7 @@ describe("StoryTools", () => {
 			expect(mockToolWrite.mock.calls?.[9]?.[0]).toBe("stories-add-external-link");
 			expect(mockToolWrite.mock.calls?.[10]?.[0]).toBe("stories-remove-external-link");
 			expect(mockToolWrite.mock.calls?.[11]?.[0]).toBe("stories-set-external-links");
+			expect(mockToolWrite.mock.calls?.[12]?.[0]).toBe("stories-create-sub-task");
 		});
 	});
 
@@ -1108,6 +1110,256 @@ describe("StoryTools", () => {
 			const result = await storyTools.setStoryExternalLinks(123, []);
 
 			expect(result.content[0].text).toContain("Removed all external links from story sc-123");
+		});
+	});
+
+	describe("listSubTasks method", () => {
+		const mockSubTasks: Story[] = [
+			{
+				entity_type: "story",
+				id: 124,
+				name: "Sub-task 1",
+				story_type: "chore",
+				app_url: "https://app.shortcut.com/test/story/124",
+				description: "Sub-task 1 description",
+				archived: false,
+				completed: false,
+				started: false,
+				blocked: false,
+				blocker: false,
+				owner_ids: [],
+				branches: [],
+				comments: [],
+				external_links: [],
+				parent_story_id: 123,
+			} as unknown as Story,
+			{
+				entity_type: "story",
+				id: 125,
+				name: "Sub-task 2",
+				story_type: "chore",
+				app_url: "https://app.shortcut.com/test/story/125",
+				description: "Sub-task 2 description",
+				archived: false,
+				completed: true,
+				started: true,
+				blocked: false,
+				blocker: false,
+				owner_ids: ["user1"],
+				branches: [],
+				comments: [],
+				external_links: [],
+				parent_story_id: 123,
+			} as unknown as Story,
+		];
+
+		test("should list sub-tasks for a story", async () => {
+			const parentStory = {
+				...mockStories[0],
+				sub_task_story_ids: [124, 125],
+			};
+
+			const getStoryMock = mock(async (id: number) => {
+				if (id === 123) return parentStory;
+				return mockSubTasks.find((s) => s.id === id) || null;
+			});
+
+			const mockClient = createMockClient({
+				getStory: getStoryMock,
+			});
+
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.listSubTasks(123);
+
+			expect(getStoryMock).toHaveBeenCalledTimes(3);
+			expect(result.content[0].text).toContain("Found 2 sub-task(s) for story sc-123");
+		});
+
+		test("should return message when story has no sub-tasks", async () => {
+			const parentStory = {
+				...mockStories[0],
+				sub_task_story_ids: [],
+			};
+
+			const getStoryMock = mock(async () => parentStory);
+
+			const mockClient = createMockClient({
+				getStory: getStoryMock,
+			});
+
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.listSubTasks(123);
+
+			expect(getStoryMock).toHaveBeenCalledTimes(1);
+			expect(result.content[0].text).toBe("Story sc-123 has no sub-tasks.");
+		});
+
+		test("should throw error when parent story is not found", async () => {
+			const getStoryMock = mock(async () => null);
+
+			const mockClient = createMockClient({
+				getStory: getStoryMock,
+			});
+
+			const storyTools = new StoryTools(mockClient);
+
+			expect(storyTools.listSubTasks(999)).rejects.toThrow(
+				"Failed to retrieve Shortcut story with public ID: 999",
+			);
+		});
+	});
+
+	describe("createSubTask method", () => {
+		test("should create a sub-task under a parent story", async () => {
+			const parentStory = {
+				...mockStories[0],
+				workflow_id: 1,
+				group_id: "team1",
+			};
+
+			const createdSubTask = {
+				id: 126,
+				name: "New Sub-task",
+				app_url: "https://app.shortcut.com/test/story/126",
+				parent_story_id: 123,
+			};
+
+			const getStoryMock = mock(async () => parentStory);
+			const getWorkflowMock = mock(async () => mockWorkflow);
+			const createStoryMock = mock(async () => createdSubTask);
+
+			const mockClient = createMockClient({
+				getStory: getStoryMock,
+				getWorkflow: getWorkflowMock,
+				createStory: createStoryMock,
+			});
+
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.createSubTask({
+				parentStoryPublicId: 123,
+				name: "New Sub-task",
+				description: "Sub-task description",
+				ownerIds: ["user1"],
+				estimate: 2,
+			});
+
+			expect(getStoryMock).toHaveBeenCalledWith(123);
+			expect(getWorkflowMock).toHaveBeenCalledWith(1);
+			expect(createStoryMock).toHaveBeenCalledWith({
+				name: "New Sub-task",
+				description: "Sub-task description",
+				owner_ids: ["user1"],
+				estimate: 2,
+				workflow_state_id: 101,
+				group_id: "team1",
+				parent_story_id: 123,
+			});
+			expect(result.content[0].text).toContain("Created sub-task sc-126 under parent story sc-123");
+		});
+
+		test("should create a sub-task with minimal parameters", async () => {
+			const parentStory = {
+				...mockStories[0],
+				workflow_id: 1,
+				group_id: "team1",
+			};
+
+			const createdSubTask = {
+				id: 127,
+				name: "Minimal Sub-task",
+				app_url: "https://app.shortcut.com/test/story/127",
+				parent_story_id: 123,
+			};
+
+			const getStoryMock = mock(async () => parentStory);
+			const getWorkflowMock = mock(async () => mockWorkflow);
+			const createStoryMock = mock(async () => createdSubTask);
+
+			const mockClient = createMockClient({
+				getStory: getStoryMock,
+				getWorkflow: getWorkflowMock,
+				createStory: createStoryMock,
+			});
+
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.createSubTask({
+				parentStoryPublicId: 123,
+				name: "Minimal Sub-task",
+			});
+
+			expect(createStoryMock).toHaveBeenCalledWith({
+				name: "Minimal Sub-task",
+				description: undefined,
+				owner_ids: undefined,
+				estimate: undefined,
+				workflow_state_id: 101,
+				group_id: "team1",
+				parent_story_id: 123,
+			});
+			expect(result.content[0].text).toContain("Created sub-task sc-127");
+		});
+
+		test("should throw error when parent story is not found", async () => {
+			const getStoryMock = mock(async () => null);
+
+			const mockClient = createMockClient({
+				getStory: getStoryMock,
+			});
+
+			const storyTools = new StoryTools(mockClient);
+
+			expect(
+				storyTools.createSubTask({
+					parentStoryPublicId: 999,
+					name: "Test Sub-task",
+				}),
+			).rejects.toThrow("Failed to retrieve parent story with public ID: 999");
+		});
+
+		test("should throw error when parent story has no workflow", async () => {
+			const parentStory = {
+				...mockStories[0],
+				workflow_id: null,
+			};
+
+			const getStoryMock = mock(async () => parentStory);
+
+			const mockClient = createMockClient({
+				getStory: getStoryMock,
+			});
+
+			const storyTools = new StoryTools(mockClient);
+
+			expect(
+				storyTools.createSubTask({
+					parentStoryPublicId: 123,
+					name: "Test Sub-task",
+				}),
+			).rejects.toThrow("Parent story sc-123 has no workflow");
+		});
+
+		test("should throw error when workflow is not found", async () => {
+			const parentStory = {
+				...mockStories[0],
+				workflow_id: 999,
+			};
+
+			const getStoryMock = mock(async () => parentStory);
+			const getWorkflowMock = mock(async () => null);
+
+			const mockClient = createMockClient({
+				getStory: getStoryMock,
+				getWorkflow: getWorkflowMock,
+			});
+
+			const storyTools = new StoryTools(mockClient);
+
+			expect(
+				storyTools.createSubTask({
+					parentStoryPublicId: 123,
+					name: "Test Sub-task",
+				}),
+			).rejects.toThrow("Failed to retrieve workflow for parent story sc-123");
 		});
 	});
 });

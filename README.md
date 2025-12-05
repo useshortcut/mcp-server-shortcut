@@ -144,6 +144,8 @@ Or you can edit the local JSON file directly:
 - **stories-remove-external-link** - Remove an external link from a Shortcut story
 - **stories-set-external-links** - Replace all external links on a story with a new set of links
 - **stories-get-by-external-link** - Find all stories that contain a specific external link
+- **stories-list-sub-tasks** - List all sub-tasks for a story with full details
+- **stories-create-sub-task** - Create a new sub-task under a parent story (inherits team/workflow from parent)
 
 ### Epics
 
