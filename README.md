@@ -137,6 +137,9 @@ Or you can edit the local JSON file directly:
 - **stories-assign-current-user** - Assign the current user as the owner of a story
 - **stories-unassign-current-user** - Unassign the current user as the owner of a story
 - **stories-create-comment** - Create a comment on a story
+- **stories-create-subtask** - Add a new sub-task to a story
+- **stories-add-subtask** - Add an existing story as a sub-task
+- **stories-remove-subtask** - Remove a sub-task from a story.
 - **stories-add-task** - Add a task to a story
 - **stories-update-task** - Update a task in a story
 - **stories-add-relation** - Add a story relationship (relates to, blocks, duplicates, etc.)

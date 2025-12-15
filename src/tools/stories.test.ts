@@ -159,19 +159,22 @@ describe("StoryTools", () => {
 			expect(mockToolRead.mock.calls?.[2]?.[0]).toBe("stories-get-branch-name");
 			expect(mockToolRead.mock.calls?.[3]?.[0]).toBe("stories-get-by-external-link");
 
-			expect(mockToolWrite).toHaveBeenCalledTimes(12);
+			expect(mockToolWrite).toHaveBeenCalledTimes(15);
 			expect(mockToolWrite.mock.calls?.[0]?.[0]).toBe("stories-create");
 			expect(mockToolWrite.mock.calls?.[1]?.[0]).toBe("stories-update");
 			expect(mockToolWrite.mock.calls?.[2]?.[0]).toBe("stories-upload-file");
 			expect(mockToolWrite.mock.calls?.[3]?.[0]).toBe("stories-assign-current-user");
 			expect(mockToolWrite.mock.calls?.[4]?.[0]).toBe("stories-unassign-current-user");
 			expect(mockToolWrite.mock.calls?.[5]?.[0]).toBe("stories-create-comment");
-			expect(mockToolWrite.mock.calls?.[6]?.[0]).toBe("stories-add-task");
-			expect(mockToolWrite.mock.calls?.[7]?.[0]).toBe("stories-update-task");
-			expect(mockToolWrite.mock.calls?.[8]?.[0]).toBe("stories-add-relation");
-			expect(mockToolWrite.mock.calls?.[9]?.[0]).toBe("stories-add-external-link");
-			expect(mockToolWrite.mock.calls?.[10]?.[0]).toBe("stories-remove-external-link");
-			expect(mockToolWrite.mock.calls?.[11]?.[0]).toBe("stories-set-external-links");
+			expect(mockToolWrite.mock.calls?.[6]?.[0]).toBe("stories-create-subtask");
+			expect(mockToolWrite.mock.calls?.[7]?.[0]).toBe("stories-add-subtask");
+			expect(mockToolWrite.mock.calls?.[8]?.[0]).toBe("stories-remove-subtask");
+			expect(mockToolWrite.mock.calls?.[9]?.[0]).toBe("stories-add-task");
+			expect(mockToolWrite.mock.calls?.[10]?.[0]).toBe("stories-update-task");
+			expect(mockToolWrite.mock.calls?.[11]?.[0]).toBe("stories-add-relation");
+			expect(mockToolWrite.mock.calls?.[12]?.[0]).toBe("stories-add-external-link");
+			expect(mockToolWrite.mock.calls?.[13]?.[0]).toBe("stories-remove-external-link");
+			expect(mockToolWrite.mock.calls?.[14]?.[0]).toBe("stories-set-external-links");
 		});
 	});
 
@@ -364,7 +367,7 @@ describe("StoryTools", () => {
 			});
 
 			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Created story: 789");
+			expect(result.content[0].text).toBe("Created story: sc-789");
 			expect(createStoryMock).toHaveBeenCalledTimes(1);
 			expect(createStoryMock.mock.calls?.[0]?.[0]).toMatchObject({
 				name: "New Story",
@@ -384,7 +387,7 @@ describe("StoryTools", () => {
 			});
 
 			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Created story: 789");
+			expect(result.content[0].text).toBe("Created story: sc-789");
 			expect(createStoryMock).toHaveBeenCalledTimes(1);
 			expect(createStoryMock.mock.calls?.[0]?.[0]).toMatchObject({
 				name: "New Story",
@@ -1108,6 +1111,270 @@ describe("StoryTools", () => {
 			const result = await storyTools.setStoryExternalLinks(123, []);
 
 			expect(result.content[0].text).toContain("Removed all external links from story sc-123");
+		});
+	});
+
+	describe("createSubTask method", () => {
+		const createStoryMock = mock(async (_: CreateStoryParams) => ({ id: 789 }));
+		const getStoryMock = mock(async (id: number) => mockStories.find((story) => story.id === id));
+		const getWorkflowMock = mock(async () => mockWorkflow);
+
+		const mockClient = createMockClient({
+			createStory: createStoryMock,
+			getStory: getStoryMock,
+			getWorkflow: getWorkflowMock,
+		});
+
+		beforeEach(() => {
+			createStoryMock.mockClear();
+		});
+
+		test("should create a sub-task with required fields", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.createSubTask({
+				parentStoryPublicId: 123,
+				name: "New Sub-task",
+				description: "Description for sub-task",
+			});
+
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe("Created sub-task: sc-789");
+			expect(createStoryMock).toHaveBeenCalledTimes(1);
+			expect(createStoryMock.mock.calls?.[0]?.[0]).toMatchObject({
+				name: "New Sub-task",
+				description: "Description for sub-task",
+				story_type: "feature",
+				parent_story_id: 123,
+				workflow_state_id: mockWorkflow.states[0].id,
+			});
+		});
+
+		test("should create a sub-task without description", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.createSubTask({
+				parentStoryPublicId: 123,
+				name: "New Sub-task",
+			});
+
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe("Created sub-task: sc-789");
+			expect(createStoryMock).toHaveBeenCalledTimes(1);
+			expect(createStoryMock.mock.calls?.[0]?.[0]).toMatchObject({
+				name: "New Sub-task",
+				parent_story_id: 123,
+			});
+		});
+
+		test("should throw error when parent story ID is not provided", async () => {
+			const storyTools = new StoryTools(mockClient);
+
+			await expect(() =>
+				storyTools.createSubTask({
+					parentStoryPublicId: 0,
+					name: "New Sub-task",
+				}),
+			).toThrow("ID of parent story is required");
+		});
+
+		test("should throw error when name is not provided", async () => {
+			const storyTools = new StoryTools(mockClient);
+
+			await expect(() =>
+				storyTools.createSubTask({
+					parentStoryPublicId: 123,
+					name: "",
+				}),
+			).toThrow("Sub-task name is required");
+		});
+
+		test("should throw error when parent story is not found", async () => {
+			const storyTools = new StoryTools(
+				createMockClient({
+					...mockClient,
+					getStory: mock(async () => null),
+				}),
+			);
+
+			await expect(() =>
+				storyTools.createSubTask({
+					parentStoryPublicId: 999,
+					name: "New Sub-task",
+				}),
+			).toThrow("Failed to retrieve parent story with public ID: 999");
+		});
+
+		test("should throw error when workflow is not found", async () => {
+			const storyTools = new StoryTools(
+				createMockClient({
+					...mockClient,
+					getWorkflow: mock(async () => null),
+				}),
+			);
+
+			await expect(() =>
+				storyTools.createSubTask({
+					parentStoryPublicId: 123,
+					name: "New Sub-task",
+				}),
+			).toThrow("Failed to retrieve workflow of parent story");
+		});
+
+		test("should throw error when workflow has no states", async () => {
+			const storyTools = new StoryTools(
+				createMockClient({
+					...mockClient,
+					getWorkflow: mock(async () => ({ ...mockWorkflow, states: [] })),
+				}),
+			);
+
+			await expect(() =>
+				storyTools.createSubTask({
+					parentStoryPublicId: 123,
+					name: "New Sub-task",
+				}),
+			).toThrow("Failed to determine default state for sub-task");
+		});
+	});
+
+	describe("addStoryAsSubTask method", () => {
+		const getStoryMock = mock(async (id: number) => mockStories.find((story) => story.id === id));
+		const updateStoryMock = mock(async (_id: number, _args: UpdateStory) => ({
+			id: 456,
+		}));
+
+		const mockClient = createMockClient({
+			getStory: getStoryMock,
+			updateStory: updateStoryMock,
+		});
+
+		beforeEach(() => {
+			updateStoryMock.mockClear();
+		});
+
+		test("should add existing story as sub-task", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.addStoryAsSubTask({
+				parentStoryPublicId: 123,
+				subTaskPublicId: 456,
+			});
+
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe("Added story sc-456 as a sub-task of sc-123");
+			expect(updateStoryMock).toHaveBeenCalledTimes(1);
+			expect(updateStoryMock.mock.calls?.[0]?.[0]).toBe(456);
+			expect(updateStoryMock.mock.calls?.[0]?.[1]).toMatchObject({
+				parent_story_id: 123,
+			});
+		});
+
+		test("should throw error when parent story ID is not provided", async () => {
+			const storyTools = new StoryTools(mockClient);
+
+			await expect(() =>
+				storyTools.addStoryAsSubTask({
+					parentStoryPublicId: 0,
+					subTaskPublicId: 456,
+				}),
+			).toThrow("ID of parent story is required");
+		});
+
+		test("should throw error when sub-task ID is not provided", async () => {
+			const storyTools = new StoryTools(mockClient);
+
+			await expect(() =>
+				storyTools.addStoryAsSubTask({
+					parentStoryPublicId: 123,
+					subTaskPublicId: 0,
+				}),
+			).toThrow("ID of sub-task story is required");
+		});
+
+		test("should throw error when sub-task story is not found", async () => {
+			const storyTools = new StoryTools(
+				createMockClient({
+					...mockClient,
+					getStory: mock(async (id: number) => (id === 123 ? mockStories[0] : null)),
+				}),
+			);
+
+			await expect(() =>
+				storyTools.addStoryAsSubTask({
+					parentStoryPublicId: 123,
+					subTaskPublicId: 999,
+				}),
+			).toThrow("Failed to retrieve story with public ID: 999");
+		});
+
+		test("should throw error when parent story is not found", async () => {
+			const storyTools = new StoryTools(
+				createMockClient({
+					...mockClient,
+					getStory: mock(async (id: number) => (id === 456 ? mockStories[1] : null)),
+				}),
+			);
+
+			await expect(() =>
+				storyTools.addStoryAsSubTask({
+					parentStoryPublicId: 999,
+					subTaskPublicId: 456,
+				}),
+			).toThrow("Failed to retrieve parent story with public ID: 999");
+		});
+	});
+
+	describe("removeSubTaskFromParent method", () => {
+		const getStoryMock = mock(async (id: number) => mockStories.find((story) => story.id === id));
+		const updateStoryMock = mock(async (_id: number, _args: UpdateStory) => ({
+			id: 456,
+		}));
+
+		const mockClient = createMockClient({
+			getStory: getStoryMock,
+			updateStory: updateStoryMock,
+		});
+
+		beforeEach(() => {
+			updateStoryMock.mockClear();
+		});
+
+		test("should remove sub-task from parent", async () => {
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.removeSubTaskFromParent({
+				subTaskPublicId: 456,
+			});
+
+			expect(result.content[0].type).toBe("text");
+			expect(result.content[0].text).toBe("Removed story sc-456 from its parent story");
+			expect(updateStoryMock).toHaveBeenCalledTimes(1);
+			expect(updateStoryMock.mock.calls?.[0]?.[0]).toBe(456);
+			expect(updateStoryMock.mock.calls?.[0]?.[1]).toMatchObject({
+				parent_story_id: null,
+			});
+		});
+
+		test("should throw error when sub-task ID is not provided", async () => {
+			const storyTools = new StoryTools(mockClient);
+
+			await expect(() =>
+				storyTools.removeSubTaskFromParent({
+					subTaskPublicId: 0,
+				}),
+			).toThrow("ID of sub-task story is required");
+		});
+
+		test("should throw error when sub-task story is not found", async () => {
+			const storyTools = new StoryTools(
+				createMockClient({
+					...mockClient,
+					getStory: mock(async () => null),
+				}),
+			);
+
+			await expect(() =>
+				storyTools.removeSubTaskFromParent({
+					subTaskPublicId: 999,
+				}),
+			).toThrow("Failed to retrieve story with public ID: 999");
 		});
 	});
 });
