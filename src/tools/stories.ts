@@ -1,4 +1,4 @@
-import type { MemberInfo, Story } from "@shortcut/client";
+import type { CreateStoryParams, MemberInfo, Story } from "@shortcut/client";
 import { z } from "zod";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
@@ -254,6 +254,36 @@ The story will be added to the default state for the workflow.
 		);
 
 		server.addToolWithWriteAccess(
+			"stories-create-subtask",
+			"Create a new story as a sub-task",
+			{
+				parentStoryPublicId: z.number().positive().describe("The public ID of the parent story"),
+				name: z.string().min(1).max(512).describe("The name of the sub-task. Required."),
+				description: z.string().max(10_000).optional().describe("The description of the sub-task"),
+			},
+			async (params) => await tools.createSubTask(params),
+		);
+
+		server.addToolWithWriteAccess(
+			"stories-add-subtask",
+			"Add an existing story as a sub-task",
+			{
+				parentStoryPublicId: z.number().positive().describe("The public ID of the parent story"),
+				subTaskPublicId: z.number().positive().describe("The public ID of the sub-task story"),
+			},
+			async (params) => await tools.addStoryAsSubTask(params),
+		);
+
+		server.addToolWithWriteAccess(
+			"stories-remove-subtask",
+			"Remove a story from its parent. The sub-task will become a regular story.",
+			{
+				subTaskPublicId: z.number().positive().describe("The public ID of the sub-task story"),
+			},
+			async (params) => await tools.removeSubTaskFromParent(params),
+		);
+
+		server.addToolWithWriteAccess(
 			"stories-add-task",
 			"Add a task to a story",
 			{
@@ -449,7 +479,80 @@ The story will be added to the default state for the workflow.
 			workflow_state_id: fullWorkflow.default_state_id,
 		});
 
-		return this.toResult(`Created story: ${story.id}`);
+		return this.toResult(`Created story: sc-${story.id}`);
+	}
+
+	async createSubTask({
+		parentStoryPublicId,
+		name,
+		description,
+	}: {
+		parentStoryPublicId: number;
+		name: string;
+		description?: string;
+	}) {
+		if (!parentStoryPublicId) throw new Error("ID of parent story is required");
+		if (!name) throw new Error("Sub-task name is required");
+
+		const parentStory = await this.client.getStory(parentStoryPublicId);
+		if (!parentStory)
+			throw new Error(`Failed to retrieve parent story with public ID: ${parentStoryPublicId}`);
+
+		const workflow = await this.client.getWorkflow(parentStory.workflow_id);
+		if (!workflow) throw new Error("Failed to retrieve workflow of parent story");
+
+		const workflowState = workflow.states[0];
+		if (!workflowState) throw new Error("Failed to determine default state for sub-task");
+
+		const subTask = await this.client.createStory({
+			name,
+			description,
+			story_type: parentStory.story_type as CreateStoryParams["story_type"],
+			epic_id: parentStory.epic_id,
+			group_id: parentStory.group_id,
+			workflow_state_id: workflowState.id,
+			parent_story_id: parentStoryPublicId,
+		});
+
+		return this.toResult(`Created sub-task: sc-${subTask.id}`);
+	}
+
+	async addStoryAsSubTask({
+		parentStoryPublicId,
+		subTaskPublicId,
+	}: {
+		parentStoryPublicId: number;
+		subTaskPublicId: number;
+	}) {
+		if (!parentStoryPublicId) throw new Error("ID of parent story is required");
+		if (!subTaskPublicId) throw new Error("ID of sub-task story is required");
+
+		const subTask = await this.client.getStory(subTaskPublicId);
+		if (!subTask) throw new Error(`Failed to retrieve story with public ID: ${subTaskPublicId}`);
+		const parentStory = await this.client.getStory(parentStoryPublicId);
+		if (!parentStory)
+			throw new Error(`Failed to retrieve parent story with public ID: ${parentStoryPublicId}`);
+
+		await this.client.updateStory(subTaskPublicId, {
+			parent_story_id: parentStoryPublicId,
+		});
+
+		return this.toResult(
+			`Added story sc-${subTaskPublicId} as a sub-task of sc-${parentStoryPublicId}`,
+		);
+	}
+
+	async removeSubTaskFromParent({ subTaskPublicId }: { subTaskPublicId: number }) {
+		if (!subTaskPublicId) throw new Error("ID of sub-task story is required");
+
+		const subTask = await this.client.getStory(subTaskPublicId);
+		if (!subTask) throw new Error(`Failed to retrieve story with public ID: ${subTaskPublicId}`);
+
+		await this.client.updateStory(subTaskPublicId, {
+			parent_story_id: null,
+		});
+
+		return this.toResult(`Removed story sc-${subTaskPublicId} from its parent story`);
 	}
 
 	async searchStories(params: QueryParams, nextToken?: string) {
