@@ -1,11 +1,25 @@
-import {
-	McpServer,
-	type RegisteredTool,
-	type ToolCallback,
-} from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
-import type { ZodRawShape } from "zod";
+import { McpServer, type RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import type {
+	CallToolResult,
+	ServerNotification,
+	ServerRequest,
+	ToolAnnotations,
+} from "@modelcontextprotocol/sdk/types.js";
+import type { infer as ZodInfer, ZodObject, ZodRawShape } from "zod";
 import { name, version } from "../../package.json";
+
+// The extra context provided to tool callbacks
+type ToolExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+// Simplified callback types that avoid the SDK's complex AnySchema union type
+// which includes both Zod v3 and v4 types. Using these simpler types prevents
+// TypeScript from doing excessively deep type instantiation that causes OOM.
+type NoArgsCallback = (extra: ToolExtra) => CallToolResult | Promise<CallToolResult>;
+type WithArgsCallback<Args extends ZodRawShape> = (
+	args: ZodInfer<ZodObject<Args>>,
+	extra: ToolExtra,
+) => CallToolResult | Promise<CallToolResult>;
 
 export class CustomMcpServer extends McpServer {
 	private readonly: boolean;
@@ -25,71 +39,79 @@ export class CustomMcpServer extends McpServer {
 	}
 
 	// Overloads for addToolWithWriteAccess to match all variants of the base tool() method
-	addToolWithWriteAccess(name: string, cb: ToolCallback): RegisteredTool | null;
+	addToolWithWriteAccess(name: string, cb: NoArgsCallback): RegisteredTool | null;
 	addToolWithWriteAccess(
 		name: string,
 		description: string,
-		cb: ToolCallback,
+		cb: NoArgsCallback,
 	): RegisteredTool | null;
 	addToolWithWriteAccess<Args extends ZodRawShape>(
 		name: string,
 		paramsSchemaOrAnnotations: Args | ToolAnnotations,
-		cb: ToolCallback<Args>,
+		cb: WithArgsCallback<Args>,
 	): RegisteredTool | null;
 	addToolWithWriteAccess<Args extends ZodRawShape>(
 		name: string,
 		description: string,
 		paramsSchemaOrAnnotations: Args | ToolAnnotations,
-		cb: ToolCallback<Args>,
+		cb: WithArgsCallback<Args>,
 	): RegisteredTool | null;
 	addToolWithWriteAccess<Args extends ZodRawShape>(
 		name: string,
 		paramsSchema: Args,
 		annotations: ToolAnnotations,
-		cb: ToolCallback<Args>,
+		cb: WithArgsCallback<Args>,
 	): RegisteredTool | null;
 	addToolWithWriteAccess<Args extends ZodRawShape>(
 		name: string,
 		description: string,
 		paramsSchema: Args,
 		annotations: ToolAnnotations,
-		cb: ToolCallback<Args>,
+		cb: WithArgsCallback<Args>,
 	): RegisteredTool | null;
+	// biome-ignore lint/suspicious/noExplicitAny: Implementation signature uses any to allow all overload variants
 	addToolWithWriteAccess(...args: any[]): RegisteredTool | null {
 		if (this.readonly) return null;
 		if (!this.shouldAddTool(args[0])) return null;
+		// biome-ignore lint/suspicious/noExplicitAny: Delegate to parent with proper type casting
 		return (super.tool as any)(...args);
 	}
 
 	// Overloads for addToolWithReadAccess to match all variants of the base tool() method
-	addToolWithReadAccess(name: string, cb: ToolCallback): RegisteredTool | null;
-	addToolWithReadAccess(name: string, description: string, cb: ToolCallback): RegisteredTool | null;
+	addToolWithReadAccess(name: string, cb: NoArgsCallback): RegisteredTool | null;
+	addToolWithReadAccess(
+		name: string,
+		description: string,
+		cb: NoArgsCallback,
+	): RegisteredTool | null;
 	addToolWithReadAccess<Args extends ZodRawShape>(
 		name: string,
 		paramsSchemaOrAnnotations: Args | ToolAnnotations,
-		cb: ToolCallback<Args>,
+		cb: WithArgsCallback<Args>,
 	): RegisteredTool | null;
 	addToolWithReadAccess<Args extends ZodRawShape>(
 		name: string,
 		description: string,
 		paramsSchemaOrAnnotations: Args | ToolAnnotations,
-		cb: ToolCallback<Args>,
+		cb: WithArgsCallback<Args>,
 	): RegisteredTool | null;
 	addToolWithReadAccess<Args extends ZodRawShape>(
 		name: string,
 		paramsSchema: Args,
 		annotations: ToolAnnotations,
-		cb: ToolCallback<Args>,
+		cb: WithArgsCallback<Args>,
 	): RegisteredTool | null;
 	addToolWithReadAccess<Args extends ZodRawShape>(
 		name: string,
 		description: string,
 		paramsSchema: Args,
 		annotations: ToolAnnotations,
-		cb: ToolCallback<Args>,
+		cb: WithArgsCallback<Args>,
 	): RegisteredTool | null;
+	// biome-ignore lint/suspicious/noExplicitAny: Implementation signature uses any to allow all overload variants
 	addToolWithReadAccess(...args: any[]): RegisteredTool | null {
 		if (!this.shouldAddTool(args[0])) return null;
+		// biome-ignore lint/suspicious/noExplicitAny: Delegate to parent with proper type casting
 		return (super.tool as any)(...args);
 	}
 

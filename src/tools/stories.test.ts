@@ -15,6 +15,7 @@ import type {
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { StoryTools } from "./stories";
+import { getTextContent } from "./utils/test-helpers";
 
 describe("StoryTools", () => {
 	const mockCurrentUser = {
@@ -203,8 +204,7 @@ describe("StoryTools", () => {
 			const storyTools = new StoryTools(mockClient);
 			const result = await storyTools.getStory(123, true);
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Story: sc-123");
 			expect(textContent).toContain('"id": 123');
 			expect(textContent).toContain('"name": "Test Story 1"');
@@ -221,8 +221,7 @@ describe("StoryTools", () => {
 			const storyTools = new StoryTools(mockClient);
 			const result = await storyTools.getStory(123, false);
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Story: sc-123");
 			expect(textContent).toContain('"id": 123');
 			expect(textContent).toContain('"name": "Test Story 1"');
@@ -262,8 +261,7 @@ describe("StoryTools", () => {
 
 			const result = await storyTools.getStory(456, true);
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toContain('"deadline": null');
+			expect(getTextContent(result)).toContain('"deadline": null');
 		});
 	});
 
@@ -297,8 +295,7 @@ describe("StoryTools", () => {
 			const storyTools = new StoryTools(mockClient);
 			const result = await storyTools.searchStories({});
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Result (2 shown of 2 total stories found):");
 			expect(textContent).toContain('"id": 123');
 			expect(textContent).toContain('"name": "Test Story 1"');
@@ -320,8 +317,7 @@ describe("StoryTools", () => {
 
 			const result = await storyTools.searchStories({});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Result: No stories found.");
+			expect(getTextContent(result)).toBe("Result: No stories found.");
 		});
 
 		test("should throw error when stories search fails", async () => {
@@ -366,8 +362,7 @@ describe("StoryTools", () => {
 				workflow: 1,
 			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Created story: sc-789");
+			expect(getTextContent(result)).toBe("Created story: sc-789");
 			expect(createStoryMock).toHaveBeenCalledTimes(1);
 			expect(createStoryMock.mock.calls?.[0]?.[0]).toMatchObject({
 				name: "New Story",
@@ -386,8 +381,7 @@ describe("StoryTools", () => {
 				team: "team1",
 			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Created story: sc-789");
+			expect(getTextContent(result)).toBe("Created story: sc-789");
 			expect(createStoryMock).toHaveBeenCalledTimes(1);
 			expect(createStoryMock.mock.calls?.[0]?.[0]).toMatchObject({
 				name: "New Story",
@@ -452,8 +446,7 @@ describe("StoryTools", () => {
 				type: "bug",
 			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe(
+			expect(getTextContent(result)).toBe(
 				"Updated story sc-123. Story URL: https://app.shortcut.com/test/story/123",
 			);
 			expect(updateStoryMock).toHaveBeenCalledTimes(1);
@@ -544,8 +537,7 @@ describe("StoryTools", () => {
 			}));
 			const result = await storyTools.assignCurrentUserAsOwner(123);
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Assigned current user as owner of story sc-123");
+			expect(getTextContent(result)).toBe("Assigned current user as owner of story sc-123");
 			expect(updateStoryMock).toHaveBeenCalledTimes(1);
 			expect(updateStoryMock.mock.calls?.[0]?.[0]).toBe(123);
 			expect(updateStoryMock.mock.calls?.[0]?.[1]).toMatchObject({
@@ -564,8 +556,7 @@ describe("StoryTools", () => {
 
 			const result = await storyTools.assignCurrentUserAsOwner(123);
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Current user is already an owner of story sc-123");
+			expect(getTextContent(result)).toBe("Current user is already an owner of story sc-123");
 			expect(updateStoryMock).not.toHaveBeenCalled();
 		});
 
@@ -605,8 +596,7 @@ describe("StoryTools", () => {
 			const storyTools = new StoryTools(mockClient);
 			const result = await storyTools.unassignCurrentUserAsOwner(123);
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Unassigned current user as owner of story sc-123");
+			expect(getTextContent(result)).toBe("Unassigned current user as owner of story sc-123");
 			expect(updateStoryMock).toHaveBeenCalledTimes(1);
 			expect(updateStoryMock.mock.calls?.[0]?.[0]).toBe(123);
 			expect(updateStoryMock.mock.calls?.[0]?.[1]).toMatchObject({
@@ -625,8 +615,7 @@ describe("StoryTools", () => {
 
 			const result = await storyTools.unassignCurrentUserAsOwner(123);
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Current user is not an owner of story sc-123");
+			expect(getTextContent(result)).toBe("Current user is not an owner of story sc-123");
 			expect(updateStoryMock).not.toHaveBeenCalled();
 		});
 	});
@@ -644,8 +633,7 @@ describe("StoryTools", () => {
 			const storyTools = new StoryTools(mockClient);
 			const result = await storyTools.getStoryBranchName(123);
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe(
+			expect(getTextContent(result)).toBe(
 				"Branch name for story sc-123: user1/sc-123/test-story-1",
 			);
 		});
@@ -662,8 +650,7 @@ describe("StoryTools", () => {
 
 			const result = await storyTools.getStoryBranchName(123);
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Branch name for story sc-123: testuser/sc-123/story-1");
+			expect(getTextContent(result)).toBe("Branch name for story sc-123: testuser/sc-123/story-1");
 		});
 
 		test("should truncate long branch names when building custom branch name", async () => {
@@ -678,8 +665,7 @@ describe("StoryTools", () => {
 
 			const result = await storyTools.getStoryBranchName(123);
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe(
+			expect(getTextContent(result)).toBe(
 				"Branch name for story sc-123: testuser/sc-123/this-is-a-very-long-story-name-tha",
 			);
 		});
@@ -696,8 +682,7 @@ describe("StoryTools", () => {
 
 			const result = await storyTools.getStoryBranchName(123);
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe(
+			expect(getTextContent(result)).toBe(
 				"Branch name for story sc-123: testuser/sc-123/special-characters-_",
 			);
 		});
@@ -726,7 +711,7 @@ describe("StoryTools", () => {
 				text: "Added comment to story sc-123.",
 			});
 
-			expect(result.content[0].text).toBe(
+			expect(getTextContent(result)).toBe(
 				`Created comment on story sc-123. Comment URL: ${mockStories[0].comments[0].app_url}.`,
 			);
 			expect(createStoryCommentMock).toHaveBeenCalledTimes(1);
@@ -781,8 +766,7 @@ describe("StoryTools", () => {
 				taskDescription: "New task",
 			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Created task for story sc-123. Task ID: 123.");
+			expect(getTextContent(result)).toBe("Created task for story sc-123. Task ID: 123.");
 			expect(addTaskMock).toHaveBeenCalledTimes(1);
 			expect(addTaskMock.mock.calls?.[0]?.[0]).toBe(123);
 			expect(addTaskMock.mock.calls?.[0]?.[1]).toMatchObject({
@@ -847,8 +831,7 @@ describe("StoryTools", () => {
 				taskOwnerIds: ["user1", "user2"],
 			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Updated task for story sc-123. Task ID: 1.");
+			expect(getTextContent(result)).toBe("Updated task for story sc-123. Task ID: 1.");
 			expect(updateTaskMock).toHaveBeenCalledTimes(1);
 			expect(updateTaskMock.mock.calls?.[0]?.[0]).toBe(123);
 		});
@@ -888,8 +871,7 @@ describe("StoryTools", () => {
 				isCompleted: true,
 			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Completed task for story sc-123. Task ID: 1.");
+			expect(getTextContent(result)).toBe("Completed task for story sc-123. Task ID: 1.");
 			expect(updateTaskMock).toHaveBeenCalledTimes(1);
 		});
 	});
@@ -918,8 +900,7 @@ describe("StoryTools", () => {
 				relationshipType: "relates to",
 			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Added a relationship between sc-123 and sc-456.");
+			expect(getTextContent(result)).toBe("Added a relationship between sc-123 and sc-456.");
 			expect(addStoryRelationMock).toHaveBeenCalledTimes(1);
 			expect(addStoryRelationMock.mock.calls?.[0]?.[0]).toBe(123);
 		});
@@ -959,8 +940,7 @@ describe("StoryTools", () => {
 				relationshipType: "duplicates",
 			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Marked sc-123 as a duplicate of sc-456.");
+			expect(getTextContent(result)).toBe("Marked sc-123 as a duplicate of sc-456.");
 			expect(addStoryRelationMock).toHaveBeenCalledTimes(1);
 			expect(addStoryRelationMock.mock.calls?.[0]?.[0]).toBe(123);
 		});
@@ -973,8 +953,7 @@ describe("StoryTools", () => {
 				relationshipType: "duplicated by",
 			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Marked sc-456 as a duplicate of sc-123.");
+			expect(getTextContent(result)).toBe("Marked sc-456 as a duplicate of sc-123.");
 			expect(addStoryRelationMock).toHaveBeenCalledTimes(1);
 			expect(addStoryRelationMock.mock.calls?.[0]?.[0]).toBe(456);
 		});
@@ -987,8 +966,7 @@ describe("StoryTools", () => {
 				relationshipType: "blocks",
 			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Marked sc-123 as a blocker to sc-456.");
+			expect(getTextContent(result)).toBe("Marked sc-123 as a blocker to sc-456.");
 			expect(addStoryRelationMock).toHaveBeenCalledTimes(1);
 			expect(addStoryRelationMock.mock.calls?.[0]?.[0]).toBe(123);
 		});
@@ -1001,8 +979,7 @@ describe("StoryTools", () => {
 				relationshipType: "blocked by",
 			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Marked sc-456 as a blocker to sc-123.");
+			expect(getTextContent(result)).toBe("Marked sc-456 as a blocker to sc-123.");
 			expect(addStoryRelationMock).toHaveBeenCalledTimes(1);
 			expect(addStoryRelationMock.mock.calls?.[0]?.[0]).toBe(456);
 		});
@@ -1027,7 +1004,7 @@ describe("StoryTools", () => {
 			const result = await storyTools.addExternalLinkToStory(123, "https://newlink.com");
 
 			expect(addExternalLinkToStoryMock).toHaveBeenCalledWith(123, "https://newlink.com");
-			expect(result.content[0].text).toContain("Added external link to story sc-123");
+			expect(getTextContent(result)).toContain("Added external link to story sc-123");
 		});
 	});
 
@@ -1050,7 +1027,7 @@ describe("StoryTools", () => {
 			const result = await storyTools.removeExternalLinkFromStory(123, "https://example2.com");
 
 			expect(removeExternalLinkFromStoryMock).toHaveBeenCalledWith(123, "https://example2.com");
-			expect(result.content[0].text).toContain("Removed external link from story sc-123");
+			expect(getTextContent(result)).toContain("Removed external link from story sc-123");
 		});
 	});
 
@@ -1073,7 +1050,7 @@ describe("StoryTools", () => {
 			const result = await storyTools.getStoriesByExternalLink("https://example.com");
 
 			expect(getStoriesByExternalLinkMock).toHaveBeenCalledWith("https://example.com");
-			expect(result.content[0].text).toContain("Found 1 stories with external link");
+			expect(getTextContent(result)).toContain("Found 1 stories with external link");
 		});
 	});
 
@@ -1097,7 +1074,7 @@ describe("StoryTools", () => {
 			const result = await storyTools.setStoryExternalLinks(123, newLinks);
 
 			expect(setStoryExternalLinksMock).toHaveBeenCalledWith(123, newLinks);
-			expect(result.content[0].text).toContain("Set 2 external links on story sc-123");
+			expect(getTextContent(result)).toContain("Set 2 external links on story sc-123");
 		});
 
 		test("should remove all external links when empty array provided", async () => {
@@ -1110,7 +1087,7 @@ describe("StoryTools", () => {
 			const storyTools = new StoryTools(mockClientForEmpty);
 			const result = await storyTools.setStoryExternalLinks(123, []);
 
-			expect(result.content[0].text).toContain("Removed all external links from story sc-123");
+			expect(getTextContent(result)).toContain("Removed all external links from story sc-123");
 		});
 	});
 
@@ -1137,8 +1114,7 @@ describe("StoryTools", () => {
 				description: "Description for sub-task",
 			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Created sub-task: sc-789");
+			expect(getTextContent(result)).toBe("Created sub-task: sc-789");
 			expect(createStoryMock).toHaveBeenCalledTimes(1);
 			expect(createStoryMock.mock.calls?.[0]?.[0]).toMatchObject({
 				name: "New Sub-task",
@@ -1156,8 +1132,7 @@ describe("StoryTools", () => {
 				name: "New Sub-task",
 			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Created sub-task: sc-789");
+			expect(getTextContent(result)).toBe("Created sub-task: sc-789");
 			expect(createStoryMock).toHaveBeenCalledTimes(1);
 			expect(createStoryMock.mock.calls?.[0]?.[0]).toMatchObject({
 				name: "New Sub-task",
@@ -1258,8 +1233,7 @@ describe("StoryTools", () => {
 				subTaskPublicId: 456,
 			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Added story sc-456 as a sub-task of sc-123");
+			expect(getTextContent(result)).toBe("Added story sc-456 as a sub-task of sc-123");
 			expect(updateStoryMock).toHaveBeenCalledTimes(1);
 			expect(updateStoryMock.mock.calls?.[0]?.[0]).toBe(456);
 			expect(updateStoryMock.mock.calls?.[0]?.[1]).toMatchObject({
@@ -1343,8 +1317,7 @@ describe("StoryTools", () => {
 				subTaskPublicId: 456,
 			});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Removed story sc-456 from its parent story");
+			expect(getTextContent(result)).toBe("Removed story sc-456 from its parent story");
 			expect(updateStoryMock).toHaveBeenCalledTimes(1);
 			expect(updateStoryMock.mock.calls?.[0]?.[0]).toBe(456);
 			expect(updateStoryMock.mock.calls?.[0]?.[1]).toMatchObject({

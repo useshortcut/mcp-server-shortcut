@@ -3,6 +3,7 @@ import type { CreateIteration, Iteration, Member, MemberInfo, Story } from "@sho
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { IterationTools } from "./iterations";
+import { getTextContent } from "./utils/test-helpers";
 
 describe("IterationTools", () => {
 	const mockCurrentUser = {
@@ -176,8 +177,7 @@ describe("IterationTools", () => {
 			const iterationTools = new IterationTools(mockClient);
 			const result = await iterationTools.getIterationStories(1, false);
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Result (2 stories found):");
 			// Since search details might not be enabled, just check basic content
 			expect(textContent).toContain('"name": "Test Story 1"');
@@ -211,8 +211,7 @@ describe("IterationTools", () => {
 			);
 			const result = await iterationTools.searchIterations({});
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Result (2 shown of 2 total iterations found):");
 			expect(textContent).toContain('"id": 1');
 			expect(textContent).toContain('"name": "Iteration 1"');
@@ -229,8 +228,7 @@ describe("IterationTools", () => {
 
 			const result = await iterationTools.searchIterations({});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Result: No iterations found.");
+			expect(getTextContent(result)).toBe("Result: No iterations found.");
 		});
 
 		test("should throw error when iterations search fails", async () => {
@@ -259,8 +257,7 @@ describe("IterationTools", () => {
 			);
 			const result = await iterationTools.getIteration(1, true);
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Iteration: 1");
 			expect(textContent).toContain('"id": 1');
 			expect(textContent).toContain('"name": "Iteration 1"');
@@ -279,8 +276,7 @@ describe("IterationTools", () => {
 			);
 			const result = await iterationTools.getIteration(1, false);
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Iteration: 1");
 			expect(textContent).toContain('"id": 1');
 			expect(textContent).toContain('"name": "Iteration 1"');
@@ -314,8 +310,7 @@ describe("IterationTools", () => {
 
 			const result = await iterationTools.getIteration(1);
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toContain('"status": "completed"');
+			expect(getTextContent(result)).toContain('"status": "completed"');
 		});
 	});
 
@@ -342,7 +337,7 @@ describe("IterationTools", () => {
 				description: "Test Iteration created by the Shortcut MCP server",
 			});
 
-			expect(result.content[0].text).toBe("Iteration created with ID: 1.");
+			expect(getTextContent(result)).toBe("Iteration created with ID: 1.");
 		});
 	});
 
@@ -358,8 +353,7 @@ describe("IterationTools", () => {
 
 			const result = await iterationTools.getActiveIterations("team1");
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("The active iteration for the team is:");
 			expect(textContent).toContain('"name": "Iteration 1"');
 		});
@@ -374,8 +368,7 @@ describe("IterationTools", () => {
 
 			const result = await iterationTools.getActiveIterations("team1");
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Result: No active iterations found for team.");
+			expect(getTextContent(result)).toBe("Result: No active iterations found for team.");
 		});
 
 		test("should throw error when team not found", async () => {
@@ -407,8 +400,7 @@ describe("IterationTools", () => {
 
 			const result = await iterationTools.getActiveIterations();
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("You have 2 active iterations for your teams:");
 			expect(textContent).toContain('"name": "Iteration 1"');
 			expect(textContent).toContain('"name": "Iteration 2"');
@@ -424,8 +416,7 @@ describe("IterationTools", () => {
 
 			const result = await iterationTools.getActiveIterations();
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe(
+			expect(getTextContent(result)).toBe(
 				"Result: No active iterations found for any of your teams.",
 			);
 		});
@@ -467,8 +458,7 @@ describe("IterationTools", () => {
 
 			const result = await iterationTools.getUpcomingIterations("team1");
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("The next upcoming iteration for the team is:");
 			expect(textContent).toContain('"name": "Iteration 2"');
 		});
@@ -483,8 +473,7 @@ describe("IterationTools", () => {
 
 			const result = await iterationTools.getUpcomingIterations("team1");
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Result: No upcoming iterations found for team.");
+			expect(getTextContent(result)).toBe("Result: No upcoming iterations found for team.");
 		});
 
 		test("should return upcoming iterations for current user's teams", async () => {
@@ -504,8 +493,7 @@ describe("IterationTools", () => {
 
 			const result = await iterationTools.getUpcomingIterations();
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("The upcoming iterations for all your teams are:");
 			expect(textContent).toContain('"name": "Iteration 1"');
 			expect(textContent).toContain('"name": "Iteration 2"');
@@ -521,8 +509,7 @@ describe("IterationTools", () => {
 
 			const result = await iterationTools.getUpcomingIterations();
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe(
+			expect(getTextContent(result)).toBe(
 				"Result: No upcoming iterations found for any of your teams.",
 			);
 		});

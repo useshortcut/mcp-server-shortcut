@@ -2,6 +2,7 @@ import { describe, expect, mock, spyOn, test } from "bun:test";
 import type { Workflow } from "@shortcut/client";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
+import { getTextContent } from "./utils/test-helpers";
 import { WorkflowTools } from "./workflows";
 
 describe("WorkflowTools", () => {
@@ -126,7 +127,7 @@ describe("WorkflowTools", () => {
 			const result = await workflowTools.getDefaultWorkflow("team1");
 
 			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain('Default workflow for team "team1" has id 200.');
 			expect(textContent).toContain('"id": 200');
 			expect(textContent).toContain('"name": "Team Workflow"');
@@ -143,7 +144,7 @@ describe("WorkflowTools", () => {
 			const result = await workflowTools.getDefaultWorkflow("team1");
 
 			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain(
 				'No default workflow found for team with public ID "team1". The general default workflow has id 100.',
 			);
@@ -161,7 +162,7 @@ describe("WorkflowTools", () => {
 			const result = await workflowTools.getDefaultWorkflow("nonexistent-team");
 
 			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain(
 				'No default workflow found for team with public ID "nonexistent-team". The general default workflow has id 100.',
 			);
@@ -177,7 +178,7 @@ describe("WorkflowTools", () => {
 			const result = await workflowTools.getDefaultWorkflow();
 
 			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Default workflow has id 100.");
 			expect(textContent).toContain('"id": 100');
 			expect(textContent).toContain('"name": "Default Workflow"');
@@ -195,7 +196,7 @@ describe("WorkflowTools", () => {
 			const result = await workflowTools.getDefaultWorkflow("team1");
 
 			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain(
 				'No default workflow found for team with public ID "team1". The general default workflow has id 100.',
 			);
@@ -210,7 +211,7 @@ describe("WorkflowTools", () => {
 			const result = await workflowTools.getDefaultWorkflow();
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text)).toBe("No default workflow found.");
+			expect(getTextContent(result)).toBe("No default workflow found.");
 		});
 
 		test("should throw error when current user is not found", async () => {
@@ -233,7 +234,7 @@ describe("WorkflowTools", () => {
 			const result = await workflowTools.getDefaultWorkflow("team1");
 
 			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain(
 				'No default workflow found for team with public ID "team1". The general default workflow has id 100.',
 			);
@@ -251,7 +252,7 @@ describe("WorkflowTools", () => {
 			const result = await workflowTools.getWorkflow(1, true);
 
 			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Workflow: 1");
 			expect(textContent).toContain('"id": 1');
 			expect(textContent).toContain('"name": "Workflow 1"');
@@ -265,7 +266,7 @@ describe("WorkflowTools", () => {
 			const result = await workflowTools.getWorkflow(1, false);
 
 			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Workflow: 1");
 			expect(textContent).toContain('"id": 1');
 			expect(textContent).toContain('"name": "Workflow 1"');
@@ -283,7 +284,7 @@ describe("WorkflowTools", () => {
 			const result = await workflowTools.getWorkflow(999);
 
 			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Workflow with public ID: 999 not found.");
+			expect(getTextContent(result)).toBe("Workflow with public ID: 999 not found.");
 		});
 	});
 
@@ -296,7 +297,7 @@ describe("WorkflowTools", () => {
 			const result = await workflowTools.listWorkflows();
 
 			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Result (first 2 shown of 2 total workflows found):");
 			expect(textContent).toContain('"id": 1');
 			expect(textContent).toContain('"name": "Workflow 1"');
@@ -313,7 +314,7 @@ describe("WorkflowTools", () => {
 		const result = await workflowTools.listWorkflows();
 
 		expect(result.content[0].type).toBe("text");
-		expect(result.content[0].text).toBe("No workflows found.");
+		expect(getTextContent(result)).toBe("No workflows found.");
 	});
 
 	test("should handle workflow with unknown default state", async () => {
@@ -335,7 +336,7 @@ describe("WorkflowTools", () => {
 		const result = await workflowTools.listWorkflows();
 
 		expect(result.content[0].type).toBe("text");
-		const textContent = String(result.content[0].text);
+		const textContent = getTextContent(result);
 		expect(textContent).toContain("Result (first 1 shown of 1 total workflows found):");
 		expect(textContent).toContain('"id": 3');
 		expect(textContent).toContain('"name": "Workflow 3"');

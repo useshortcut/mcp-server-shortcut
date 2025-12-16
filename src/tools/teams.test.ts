@@ -3,6 +3,7 @@ import type { Group, Member, Workflow } from "@shortcut/client";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { TeamTools } from "./teams";
+import { getTextContent } from "./utils/test-helpers";
 
 describe("TeamTools", () => {
 	const mockMembers: Member[] = [
@@ -131,7 +132,7 @@ describe("TeamTools", () => {
 			const result = await teamTools.getTeam("team1", true);
 
 			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Team: team1");
 			expect(textContent).toContain('"id": "team1"');
 			expect(textContent).toContain('"name": "Team 1"');
@@ -148,7 +149,7 @@ describe("TeamTools", () => {
 			const result = await teamTools.getTeam("nonexistent");
 
 			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Team with public ID: nonexistent not found.");
+			expect(getTextContent(result)).toBe("Team with public ID: nonexistent not found.");
 		});
 
 		test("should handle team with no members", async () => {
@@ -168,7 +169,7 @@ describe("TeamTools", () => {
 			const result = await teamTools.getTeam("team1", true);
 
 			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Team: team1");
 			expect(textContent).toContain('"id": "team1"');
 			expect(textContent).toContain('"name": "Team 1"');
@@ -201,7 +202,7 @@ describe("TeamTools", () => {
 			const result = await teamTools.getTeams();
 
 			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Result (first 2 shown of 2 total teams found):");
 			expect(textContent).toContain('"id": "team1"');
 			expect(textContent).toContain('"name": "Team 1"');
@@ -217,7 +218,7 @@ describe("TeamTools", () => {
 			const result = await teamTools.getTeams();
 
 			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("No teams found.");
+			expect(getTextContent(result)).toBe("No teams found.");
 		});
 
 		test("should handle team with no workflows", async () => {
@@ -236,7 +237,7 @@ describe("TeamTools", () => {
 			const result = await teamTools.getTeams();
 
 			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Result (first 1 shown of 1 total teams found):");
 			expect(textContent).toContain('"id": "team1"');
 			expect(textContent).toContain('"name": "Team 1"');

@@ -3,6 +3,7 @@ import type { Milestone } from "@shortcut/client";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { ObjectiveTools } from "./objectives";
+import { getTextContent } from "./utils/test-helpers";
 
 describe("ObjectiveTools", () => {
 	const mockCurrentUser = {
@@ -73,8 +74,7 @@ describe("ObjectiveTools", () => {
 			const objectiveTools = new ObjectiveTools(mockClient);
 			const result = await objectiveTools.searchObjectives({});
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Result (2 shown of 2 total milestones found):");
 			expect(textContent).toContain('"id": 1');
 			expect(textContent).toContain('"name": "Objective 1"');
@@ -90,8 +90,7 @@ describe("ObjectiveTools", () => {
 
 			const result = await objectiveTools.searchObjectives({});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Result: No milestones found.");
+			expect(getTextContent(result)).toBe("Result: No milestones found.");
 		});
 
 		test("should throw error when objectives search fails", async () => {
@@ -123,8 +122,7 @@ describe("ObjectiveTools", () => {
 			const objectiveTools = new ObjectiveTools(mockClient);
 			const result = await objectiveTools.getObjective(1, true);
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Objective: 1");
 			expect(textContent).toContain('"id": 1');
 			expect(textContent).toContain('"name": "Objective 1"');
@@ -139,8 +137,7 @@ describe("ObjectiveTools", () => {
 			const objectiveTools = new ObjectiveTools(mockClient);
 			const result = await objectiveTools.getObjective(1, false);
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Objective: 1");
 			expect(textContent).toContain('"id": 1');
 			expect(textContent).toContain('"name": "Objective 1"');
@@ -179,8 +176,7 @@ describe("ObjectiveTools", () => {
 
 			const result = await objectiveTools.getObjective(2, true);
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toContain('"completed": true');
+			expect(getTextContent(result)).toContain('"completed": true');
 		});
 	});
 });
