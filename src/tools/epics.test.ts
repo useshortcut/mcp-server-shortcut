@@ -3,6 +3,7 @@ import type { CreateEpic, Epic, Member, MemberInfo } from "@shortcut/client";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { EpicTools } from "./epics";
+import { getTextContent } from "./utils/test-helpers";
 
 describe("EpicTools", () => {
 	const mockEpics: Epic[] = [
@@ -125,8 +126,7 @@ describe("EpicTools", () => {
 			const epicTools = new EpicTools(mockClient);
 			const result = await epicTools.getEpic(1);
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Epic: 1");
 			expect(textContent).toContain('"id": 1');
 			expect(textContent).toContain('"name": "Epic 1"');
@@ -140,8 +140,7 @@ describe("EpicTools", () => {
 			const epicTools = new EpicTools(mockClient);
 			const result = await epicTools.getEpic(1, false);
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Epic: 1");
 			expect(textContent).toContain('"id": 1');
 			expect(textContent).toContain('"name": "Epic 1"');
@@ -156,8 +155,7 @@ describe("EpicTools", () => {
 			const epicTools = new EpicTools(mockClient);
 			const result = await epicTools.getEpic(3, true);
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Epic: 3");
 			expect(textContent).toContain('"id": 3');
 			expect(textContent).toContain('"name": "Epic 3"');
@@ -172,8 +170,7 @@ describe("EpicTools", () => {
 			const epicTools = new EpicTools(mockClient);
 			const result = await epicTools.getEpic(2, true);
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Epic: 2");
 			expect(textContent).toContain('"id": 2');
 			expect(textContent).toContain('"name": "Epic 2"');
@@ -211,8 +208,7 @@ describe("EpicTools", () => {
 			expect(mockClient.getCurrentUser).toHaveBeenCalled();
 			expect(mockClient.searchEpics).toHaveBeenCalled();
 
-			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Result (3 shown of 3 total epics found):");
 			expect(textContent).toContain('"id": 1');
 			expect(textContent).toContain('"name": "Epic 1"');
@@ -230,8 +226,7 @@ describe("EpicTools", () => {
 			);
 			const result = await epicTools.searchEpics({});
 
-			expect(result.content[0].type).toBe("text");
-			expect(result.content[0].text).toBe("Result: No epics found.");
+			expect(getTextContent(result)).toBe("Result: No epics found.");
 		});
 
 		test("should throw error when epics is null", async () => {
@@ -322,7 +317,7 @@ describe("EpicTools", () => {
 				description: "Description for Epic 1",
 			});
 
-			expect(result.content[0].text).toBe("Epic created with ID: 1.");
+			expect(getTextContent(result)).toBe("Epic created with ID: 1.");
 		});
 	});
 });

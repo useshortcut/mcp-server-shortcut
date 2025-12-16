@@ -2,6 +2,7 @@ import { describe, expect, mock, spyOn, test } from "bun:test";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { UserTools } from "./user";
+import { getTextContent } from "./utils/test-helpers";
 
 describe("UserTools", () => {
 	const mockCurrentUser = {
@@ -48,7 +49,7 @@ describe("UserTools", () => {
 			const result = await userTools.getCurrentUser();
 
 			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Current user:");
 			expect(textContent).toContain('"id": "user1"');
 			expect(textContent).toContain('"mention_name": "testuser"');
@@ -117,7 +118,7 @@ describe("UserTools", () => {
 			const result = await userTools.getCurrentUserTeams();
 
 			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain('Current user is a member of team "Engineering":');
 			expect(textContent).toContain('"id": "team1"');
 			expect(textContent).toContain('"name": "Engineering"');
@@ -135,7 +136,7 @@ describe("UserTools", () => {
 			const result = await userTools.getCurrentUserTeams();
 
 			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain("Current user is a member of 2 teams:");
 			expect(textContent).toContain('"id": "team1"');
 			expect(textContent).toContain('"name": "Engineering"');
@@ -152,7 +153,7 @@ describe("UserTools", () => {
 			const result = await userTools.getCurrentUserTeams();
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text)).toBe("Current user is not a member of any teams.");
+			expect(getTextContent(result)).toBe("Current user is not a member of any teams.");
 		});
 
 		test("should throw error when current user is not found", async () => {
@@ -211,7 +212,7 @@ describe("UserTools", () => {
 			const result = await userTools.getCurrentUserTeams();
 
 			expect(result.content[0].type).toBe("text");
-			const textContent = String(result.content[0].text);
+			const textContent = getTextContent(result);
 			expect(textContent).toContain('Current user is a member of team "Engineering":');
 			expect(textContent).toContain('"id": "team1"');
 			expect(textContent).toContain('"name": "Engineering"');
@@ -234,9 +235,9 @@ describe("UserTools", () => {
 			const result = await userTools.listMembers();
 
 			expect(result.content[0].type).toBe("text");
-			expect(String(result.content[0].text)).toContain("Found 2 members:");
-			expect(String(result.content[0].text)).toContain('"mention_name": "user1"');
-			expect(String(result.content[0].text)).toContain('"mention_name": "user2"');
+			expect(getTextContent(result)).toContain("Found 2 members:");
+			expect(getTextContent(result)).toContain('"mention_name": "user1"');
+			expect(getTextContent(result)).toContain('"mention_name": "user2"');
 		});
 
 		test("should propagate errors from client", async () => {

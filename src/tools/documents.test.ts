@@ -3,6 +3,7 @@ import type { DocSlim } from "@shortcut/client";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { DocumentTools } from "./documents";
+import { getTextContent } from "./utils/test-helpers";
 
 describe("DocumentTools", () => {
 	const mockDoc = {
@@ -51,10 +52,10 @@ describe("DocumentTools", () => {
 				content: "Test content",
 			});
 
-			expect(result.content[0].text).toContain("Document created successfully");
-			expect(result.content[0].text).toContain('"id": "doc-123"');
-			expect(result.content[0].text).toContain('"title": "Test Document"');
-			expect(result.content[0].text).toContain(
+			expect(getTextContent(result)).toContain("Document created successfully");
+			expect(getTextContent(result)).toContain('"id": "doc-123"');
+			expect(getTextContent(result)).toContain('"title": "Test Document"');
+			expect(getTextContent(result)).toContain(
 				'"app_url": "https://app.shortcut.com/workspace/write/doc-123"',
 			);
 		});
@@ -79,7 +80,7 @@ describe("DocumentTools", () => {
 				content: "Test content",
 			});
 
-			expect(result.content[0].text).toBe(`Failed to create document: ${errorMessage}`);
+			expect(getTextContent(result)).toBe(`Failed to create document: ${errorMessage}`);
 		});
 
 		test("should handle non-Error exceptions", async () => {
@@ -96,7 +97,7 @@ describe("DocumentTools", () => {
 			const handler = mockTool.mock.calls?.[0]?.[3];
 			const result = await handler({ title: "Test Document", content: "Test content" });
 
-			expect(result.content[0].text).toBe("Failed to create document: Unknown error");
+			expect(getTextContent(result)).toBe("Failed to create document: Unknown error");
 		});
 
 		test("should enforce title length constraint", async () => {
