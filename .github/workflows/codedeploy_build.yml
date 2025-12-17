@@ -18,14 +18,10 @@ on:
     - master
 
 jobs:
-  prepare:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-
   build-package:
     # IMPORTANT: Build packages are only created for staging deployments
     # Production deployments reuse packages built during staging deployment
     # This ensures consistency between staging and production environments
-    needs: prepare
     runs-on: blacksmith-4vcpu-ubuntu-2404
 
     strategy:
