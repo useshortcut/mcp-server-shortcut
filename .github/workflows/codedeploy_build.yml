@@ -3,7 +3,7 @@ name: Build - Codedeploy Package
 # Each service (replication manager, view syncer) has separate roles for staging and production
 env:
   # Replication Manager roles
-  SHORTCUT_MCP_STAGING_ROLE: arn:aws:iam::048776562964:role/shortcut/shortcut-mcp/shortcut-mcp-staging-builds
+  SHORTCUT_MCP_STAGING_ROLE: arn:aws:iam::048776562964:role/shortcut/shortuct_mcp/shortcut-mcp-staging-builds
   SERVICE_NAME: shortcut-mcp
   SHORT_SHA: ${{ github.sha != '' && github.sha || 'local' }}
   S3_BUCKET: shortcut-mcp-builds
