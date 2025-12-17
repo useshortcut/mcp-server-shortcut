@@ -3,19 +3,17 @@ name: Build - Codedeploy Package
 # Each service (replication manager, view syncer) has separate roles for staging and production
 env:
   # Replication Manager roles
-  SHORTCUT_MCP_STAGING_ROLE: arn:aws:iam::048776562964:role/shortcut/shortuct_mcp/shortcut-mcp-staging-builds
+  SHORTCUT_MCP_STAGING_ROLE: arn:aws:iam::048776562964:role/shortcut/shortcut_mcp/shortcut-mcp-staging-builds
   SERVICE_NAME: shortcut-mcp
-  SHORT_SHA: ${{ github.sha != '' && github.sha || 'local' }}
   S3_BUCKET: shortcut-mcp-builds
   AWS_REGION: us-east-1
 
 on:
   workflow_dispatch:
-  pull_request:
-    types:
-    - closed
+  push:
     branches:
-    - master
+    - main
+    
 
 jobs:
   build-package:
@@ -55,10 +53,10 @@ jobs:
 
       - name: Make package file
         run: |
-          tar zcvf ${{ env.SERVICE_NAME }}-${{ env.SHORT_SHA }}.tgz dist/
+          tar zcvf ${{ env.SERVICE_NAME }}-${{ github.sha}}.tgz dist/
           
       - name: Upload Package to S3
         run: |
           # Upload the zip file to S3
-          aws s3 cp ${{env.SERVICE_NAME}}-${{env.SHORT_SHA}}.tgz \
-            s3://${{env.S3_BUCKET}}/${{env.SERVICE_NAME}}-${{env.SHORT_SHA}}.tgz
+          aws s3 cp ${{env.SERVICE_NAME}}-${{ github.sha }}.tgz \
+            s3://${{env.S3_BUCKET}}/${{env.SERVICE_NAME}}-${{ github.sha }}.tgz
