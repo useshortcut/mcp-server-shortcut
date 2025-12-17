@@ -60,5 +60,5 @@ jobs:
       - name: Upload Package to S3
         run: |
           # Upload the zip file to S3
-          aws s3 cp ${{env.SERVICE_NAME}}-${{env.SHORT_SHA}}.zip \
-            s3://${{env.S3_BUCKET}}/${{env.SERVICE_NAME}}-${{env.SHORT_SHA}}.zip
+          aws s3 cp ${{env.SERVICE_NAME}}-${{env.SHORT_SHA}}.tgz \
+            s3://${{env.S3_BUCKET}}/${{env.SERVICE_NAME}}-${{env.SHORT_SHA}}.tgz
