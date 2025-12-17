@@ -1,0 +1,68 @@
+name: Build - Codedeploy Package
+# Environment variables define AWS IAM roles for different services and environments
+# Each service (replication manager, view syncer) has separate roles for staging and production
+env:
+  # Replication Manager roles
+  SHORTCUT_MCP_STAGING_ROLE: arn:aws:iam::048776562964:role/shortcut/shortcut-mcp/shortcut-mcp-staging-builds
+  SERVICE_NAME: shortcut-mcp
+  SHORT_SHA: ${{ github.sha != '' && github.sha || 'local' }}
+  S3_BUCKET: shortcut-mcp-builds
+  AWS_REGION: us-east-1
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types:
+    - closed
+    branches:
+    - master
+
+jobs:
+  prepare:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+
+  build-package:
+    # IMPORTANT: Build packages are only created for staging deployments
+    # Production deployments reuse packages built during staging deployment
+    # This ensures consistency between staging and production environments
+    needs: prepare
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+
+    strategy:
+      fail-fast: false
+
+    permissions:
+      contents: read
+      id-token: write # Required for AWS OIDC authentication
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@00943011d9042930efac3dcd3a170e4273319bc8 # v5.1.0
+        with:
+          role-to-assume: ${{ env.SHORTCUT_MCP_STAGING_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Install dependencies
+        run: npm ci
+   
+      - name: Run tests
+        run: npm test
+        continue-on-error: false
+  
+      - name: Run linting
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Make package file
+        run: |
+          tar zcvf ${{ env.SERVICE_NAME }}-${{ env.SHORT_SHA }}.tgz dist/
+          
+      - name: Upload Package to S3
+        run: |
+          # Upload the zip file to S3
+          aws s3 cp /tmp/${{env.SERVICE_NAME}}-${{env.SHORT_SHA}}.zip \
+            s3://${{env.S3_BUCKET}}/${{env.SERVICE_NAME}}-${{env.SHORT_SHA}}.zip
