@@ -21,6 +21,52 @@ export class DocumentTools extends BaseTools {
 			async ({ title, content }) => await tools.createDocument(title, content),
 		);
 
+		server.addToolWithReadAccess(
+			"documents-list",
+			"List all documents in Shortcut.",
+			async () => await tools.listDocuments(),
+		);
+
+		server.addToolWithReadAccess(
+			"documents-search",
+			"Find documents.",
+			{
+				nextPageToken: z
+					.string()
+					.optional()
+					.describe(
+						"If a next_page_token was returned from the search result, pass it in to get the next page of results. Should be combined with the original search parameters.",
+					),
+				title: z.string().describe("Find documents matching the specified name"),
+				archived: z
+					.boolean()
+					.optional()
+					.describe("Find only documents matching the specified archived status"),
+				createdByCurrentUser: z
+					.boolean()
+					.optional()
+					.describe("Find only documents created by current user"),
+				followedByCurrentUser: z
+					.boolean()
+					.optional()
+					.describe("Find only documents followed by current user"),
+			},
+			async ({ nextPageToken, title, archived, createdByCurrentUser, followedByCurrentUser }) =>
+				await tools.searchDocuments(
+					{ title, archived, createdByCurrentUser, followedByCurrentUser },
+					nextPageToken,
+				),
+		);
+
+		server.addToolWithReadAccess(
+			"documents-get-by-id",
+			"Get a document as markdown by its ID",
+			{
+				docId: z.string().describe("The ID of the document to retrieve"),
+			},
+			async ({ docId }: { docId: string }) => await tools.getDocumentById(docId),
+		);
+
 		return tools;
 	}
 
@@ -39,6 +85,57 @@ export class DocumentTools extends BaseTools {
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : "Unknown error";
 			return this.toResult(`Failed to create document: ${errorMessage}`);
+		}
+	}
+
+	private async listDocuments() {
+		try {
+			const docs = await this.client.listDocs();
+			if (!docs?.length) return this.toResult("No documents were found.");
+			return this.toResult(`Found ${docs.length} documents.`, docs);
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : "Unknown error";
+			return this.toResult(`Failed to list documents: ${errorMessage}`);
+		}
+	}
+
+	private async searchDocuments(
+		params: {
+			title: string;
+			archived?: boolean;
+			createdByCurrentUser?: boolean;
+			followedByCurrentUser?: boolean;
+		},
+		nextPageToken?: string,
+	) {
+		try {
+			const { documents, total, next_page_token } = await this.client.searchDocuments({
+				...params,
+				nextPageToken,
+			});
+
+			if (!documents) throw new Error(`Failed to search for document matching your query.`);
+			if (!documents.length) return this.toResult(`Result: No documents found.`);
+
+			return this.toResult(
+				`Result (${documents.length} shown of ${total} total documents found):`,
+				documents,
+				next_page_token,
+			);
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : "Unknown error";
+			return this.toResult(`Failed to search documents: ${errorMessage}`);
+		}
+	}
+
+	private async getDocumentById(docId: string) {
+		try {
+			const doc = await this.client.getDocById(docId);
+			if (!doc) return this.toResult(`Document with ID ${docId} not found.`);
+			return this.toResult(`Document with ID ${docId}`, doc);
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : "Unknown error";
+			return this.toResult(`Failed to get document: ${errorMessage}`);
 		}
 	}
 }

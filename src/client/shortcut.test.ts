@@ -398,5 +398,67 @@ describe("ShortcutClientWrapper", () => {
 				).rejects.toThrow("Failed to create the document: 400");
 			});
 		});
+
+		describe("listDocs", () => {
+			test("should list documents", async () => {
+				const mockClient = {
+					listDocs: mock(async () => ({ data: [mockDoc] })),
+				} as unknown as ShortcutClient;
+				const client = new ShortcutClientWrapper(mockClient);
+
+				const docs = await client.listDocs();
+
+				expect(docs).toEqual([mockDoc]);
+				expect(mockClient.listDocs).toHaveBeenCalled();
+			});
+
+			test("should throw when docs feature is disabled", async () => {
+				const mockClient = {
+					listDocs: mock(async () => ({ data: null, status: 403 })),
+				} as unknown as ShortcutClient;
+				const client = new ShortcutClientWrapper(mockClient);
+
+				await expect(client.listDocs()).rejects.toThrow(
+					"Docs feature disabled for this workspace.",
+				);
+			});
+		});
+
+		describe("getDocById", () => {
+			test("should get document by ID", async () => {
+				const mockClient = {
+					getDoc: mock(async () => ({ data: mockDoc })),
+				} as unknown as ShortcutClient & { getDoc: Mock<() => Promise<unknown>> };
+				const client = new ShortcutClientWrapper(mockClient);
+
+				const doc = await client.getDocById("doc-123");
+
+				expect(doc).toEqual(mockDoc);
+				expect(mockClient.getDoc).toHaveBeenCalledWith("doc-123");
+			});
+
+			test("should return null when document is not found", async () => {
+				const mockClient = {
+					getDoc: mock(async () => ({ data: null })),
+				} as unknown as ShortcutClient & { getDoc: Mock<() => Promise<unknown>> };
+				const client = new ShortcutClientWrapper(mockClient);
+
+				const doc = await client.getDocById("missing");
+
+				expect(doc).toBeNull();
+				expect(mockClient.getDoc).toHaveBeenCalledWith("missing");
+			});
+
+			test("should throw when docs feature is disabled", async () => {
+				const mockClient = {
+					getDoc: mock(async () => ({ data: null, status: 403 })),
+				} as unknown as ShortcutClient & { getDoc: Mock<() => Promise<unknown>> };
+				const client = new ShortcutClientWrapper(mockClient);
+
+				await expect(client.getDocById("doc-123")).rejects.toThrow(
+					"Docs feature disabled for this workspace.",
+				);
+			});
+		});
 	});
 });
