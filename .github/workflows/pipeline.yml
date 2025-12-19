@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - mdthorpe/sc-305049/setup-basic-ec2-app-environment-for-shortcut-3
   workflow_dispatch:
 
 jobs:
