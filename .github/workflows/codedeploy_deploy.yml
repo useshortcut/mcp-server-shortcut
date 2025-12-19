@@ -1,0 +1,92 @@
+name: Deploy - MCP Server
+
+env:
+  SHORTCUT_MCP_STAGING_ROLE: arn:aws:iam::048776562964:role/shortcut_mcp/shortcut-mcp-staging-builds
+  SHORTCUT_MCP_PROD_ROLE: arn:aws:iam::048776562964:role/shortcut_mcp/shortcut-mcp-production-builds
+  SERVICE_NAME: shortcut-mcp
+  S3_BUCKET: shortcut-mcp-builds
+  AWS_REGION: us-east-1
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      sha:
+        description: 'Git SHA to deploy (defaults to current SHA)'
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: string
+      sha:
+        description: 'Git SHA to deploy'
+        required: false
+        type: string
+
+jobs:
+  deploy:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+
+    permissions:
+      contents: read
+      id-token: write
+
+    env:
+      CODEDEPLOY_APP_NAME: mcp-server
+      DEPLOYMENT_GROUP: ${{ inputs.environment }}
+      DEPLOY_SHA: ${{ inputs.sha || github.sha }}
+
+    steps:
+      - name: Check Production Deployment
+        if: inputs.environment == 'production'
+        run: |
+          echo "⚠️ Production deployment detected"
+          echo "✅ Deploying to production"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ inputs.environment == 'production' && env.SHORTCUT_MCP_PROD_ROLE || env.SHORTCUT_MCP_STAGING_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Check deployment package exists in S3
+        run: |
+          if ! aws s3 ls "s3://${{ env.S3_BUCKET }}/${{ env.SERVICE_NAME }}-${{ env.DEPLOY_SHA }}.tgz" &> /dev/null; then
+            echo "::error::Deployment package ${{ env.SERVICE_NAME }}-${{ env.DEPLOY_SHA }}.tgz does not exist in S3 bucket ${{ env.S3_BUCKET }}."
+            echo "::error::Please ensure the build completed successfully."
+            exit 1
+          fi
+          echo "✅ Found deployment package ${{ env.SERVICE_NAME }}-${{ env.DEPLOY_SHA }}.tgz"
+
+      - name: Create CodeDeploy Deployment
+        run: |
+          aws deploy create-deployment \
+            --application-name "${{ env.CODEDEPLOY_APP_NAME }}" \
+            --deployment-group-name "${{ env.DEPLOYMENT_GROUP }}" \
+            --description "sha=${{ env.DEPLOY_SHA }} branch=${{ github.ref }} env=${{ inputs.environment }}" \
+            --s3-location "bucket=${{ env.S3_BUCKET }},bundleType=tgz,key=${{ env.SERVICE_NAME }}-${{ env.DEPLOY_SHA }}.tgz" \
+            --query "deploymentId" \
+            --output text > deployment_id.txt
+
+      - name: Add deployment info to GitHub Summary
+        run: |
+          deployment_id=$(cat deployment_id.txt)
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**SHA:** ${{ env.DEPLOY_SHA }}" >> $GITHUB_STEP_SUMMARY
+          echo "**CodeDeploy Deployment ID:** $deployment_id" >> $GITHUB_STEP_SUMMARY
+
+      - name: Wait for CodeDeploy Deployment
+        run: |
+          deployment_id=$(cat deployment_id.txt)
+          aws deploy wait deployment-successful --deployment-id $deployment_id
