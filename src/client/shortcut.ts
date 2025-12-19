@@ -539,6 +539,55 @@ export class ShortcutClientWrapper {
 		return doc;
 	}
 
+	async listDocs(): Promise<DocSlim[]> {
+		const response = await this.client.listDocs();
+		if (response.status === 403) throw new Error("Docs feature disabled for this workspace.");
+		return response?.data ?? null;
+	}
+
+	async searchDocuments({
+		title,
+		archived,
+		createdByCurrentUser,
+		followedByCurrentUser,
+		pageSize = 25,
+		nextPageToken,
+	}: {
+		title: string;
+		archived?: boolean;
+		createdByCurrentUser?: boolean;
+		followedByCurrentUser?: boolean;
+		pageSize?: number;
+		nextPageToken?: string;
+	}) {
+		const response = await this.client.searchDocuments({
+			title,
+			archived,
+			created_by_me: createdByCurrentUser,
+			followed_by_me: followedByCurrentUser,
+			page_size: pageSize,
+			next: nextPageToken,
+		});
+
+		if (response.status === 403) throw new Error("Docs feature disabled for this workspace.");
+
+		const documents = response?.data?.data;
+		const total = response?.data?.total;
+		const next = response?.data?.next;
+
+		if (!documents) return { documents: null, total: null, next_page_token: null };
+
+		return { documents, total, next_page_token: this.getNextPageToken(next) };
+	}
+
+	async getDocById(docId: string): Promise<DocSlim | null> {
+		const response = await this.client.getDoc(docId);
+
+		if (response.status === 403) throw new Error("Docs feature disabled for this workspace.");
+
+		return response?.data ?? null;
+	}
+
 	async uploadFile(storyId: number, filePath: string) {
 		const fileContent = readFileSync(filePath);
 		const fileName = basename(filePath);
