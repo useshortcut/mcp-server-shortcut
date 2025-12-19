@@ -1,8 +1,6 @@
-name: Build - Codedeploy Package
-# Environment variables define AWS IAM roles for different services and environments
-# Each service (replication manager, view syncer) has separate roles for staging and production
+name: Build - MCP Server
+
 env:
-  # Replication Manager roles
   SHORTCUT_MCP_STAGING_ROLE: arn:aws:iam::048776562964:role/shortcut_mcp/shortcut-mcp-staging-builds
   SERVICE_NAME: shortcut-mcp
   S3_BUCKET: shortcut-mcp-builds
@@ -10,53 +8,56 @@ env:
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-    - main
-    
+  workflow_call:
+    outputs:
+      s3_uri:
+        description: 'S3 URI of the uploaded package'
+        value: ${{ jobs.build-package.outputs.s3_uri }}
+      sha:
+        description: 'Git SHA of the build'
+        value: ${{ jobs.build-package.outputs.sha }}
 
 jobs:
   build-package:
-    # IMPORTANT: Build packages are only created for staging deployments
-    # Production deployments reuse packages built during staging deployment
-    # This ensures consistency between staging and production environments
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    outputs:
+      s3_uri: ${{ steps.upload.outputs.s3_uri }}
+      sha: ${{ github.sha }}
 
-    strategy:
-      fail-fast: false
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     permissions:
       contents: read
-      id-token: write # Required for AWS OIDC authentication
+      id-token: write
 
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
           node-version: 24
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ env.SHORTCUT_MCP_STAGING_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
-      
+
       - name: Install dependencies
         run: npm ci
-   
+
       - name: Run tests
         run: npm test
-        continue-on-error: false
-  
+
       - name: Run linting
         run: npm run lint
         continue-on-error: true
 
       - name: Make package file
         run: |
-          tar zcvf ${{ env.SERVICE_NAME }}-${{ github.sha}}.tgz dist/
-          
+          tar zcvf ${{ env.SERVICE_NAME }}-${{ github.sha }}.tgz dist/
+
       - name: Upload Package to S3
+        id: upload
         run: |
-          # Upload the zip file to S3
-          aws s3 cp ${{env.SERVICE_NAME}}-${{ github.sha }}.tgz \
-            s3://${{env.S3_BUCKET}}/${{env.SERVICE_NAME}}-${{ github.sha }}.tgz
+          s3_uri="s3://${{ env.S3_BUCKET }}/${{ env.SERVICE_NAME }}-${{ github.sha }}.tgz"
+          aws s3 cp "${{ env.SERVICE_NAME }}-${{ github.sha }}.tgz" "$s3_uri"
+          echo "s3_uri=$s3_uri" >> "$GITHUB_OUTPUT"

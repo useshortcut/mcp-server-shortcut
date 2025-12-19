@@ -1,0 +1,49 @@
+name: Pipeline - MCP Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    uses: ./.github/workflows/codedeploy_build.yml
+    permissions:
+      contents: read
+      id-token: write
+
+  deploy-staging:
+    needs: build
+    uses: ./.github/workflows/codedeploy_deploy.yml
+    with:
+      environment: staging
+      sha: ${{ needs.build.outputs.sha }}
+    permissions:
+      contents: read
+      id-token: write
+
+  test-staging:
+    needs: deploy-staging
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run integration tests against staging
+        run: |
+          echo "🧪 Running integration tests against staging..."
+          # TODO: Add your staging integration/smoke tests here
+          # Examples:
+          #   npm run test:integration
+          #   curl -f https://staging.your-service.com/health
+          echo "✅ Integration tests passed"
+
+  deploy-production:
+    needs: [build, test-staging]
+    uses: ./.github/workflows/codedeploy_deploy.yml
+    with:
+      environment: production
+      sha: ${{ needs.build.outputs.sha }}
+    permissions:
+      contents: read
+      id-token: write
+
