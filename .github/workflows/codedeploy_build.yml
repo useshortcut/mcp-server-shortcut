@@ -51,6 +51,12 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
+      - name: Copy CodeDeploy resources
+        run: cp -R codedeploy/* dist/
+
+      - name: Update script permissions
+        run: chmod +x dist/scripts/*.sh
+
       - name: Make package file
         run: |
           tar zcvf ${{ env.SERVICE_NAME }}-${{ github.sha }}.tgz dist/

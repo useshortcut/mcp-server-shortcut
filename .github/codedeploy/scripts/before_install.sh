@@ -1,0 +1,3 @@
+#!bash
+
+echo "Before Install"
