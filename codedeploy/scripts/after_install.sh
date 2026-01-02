@@ -1,3 +1,3 @@
-#!bash
+#!/bin/bash
 
 echo "After Install"
