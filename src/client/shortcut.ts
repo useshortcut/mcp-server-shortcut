@@ -6,6 +6,7 @@ import type {
 	CreateDoc,
 	CreateEpic,
 	CreateIteration,
+	CreateLabelParams,
 	CreateStoryComment,
 	CreateStoryParams,
 	CustomField,
@@ -14,6 +15,7 @@ import type {
 	Group,
 	Iteration,
 	IterationSlim,
+	Label,
 	Member,
 	MemberInfo,
 	Story,
@@ -613,5 +615,21 @@ export class ShortcutClientWrapper {
 	async getCustomFields() {
 		await this.loadCustomFields();
 		return Array.from(this.customFieldCache.values());
+	}
+
+	async listLabels(): Promise<Label[]> {
+		const response = await this.client.listLabels({
+			slim: false,
+		});
+		return response?.data ?? [];
+	}
+
+	async createLabel(params: CreateLabelParams): Promise<Label> {
+		const response = await this.client.createLabel(params);
+		const label = response?.data ?? null;
+
+		if (!label) throw new Error(`Failed to create the label: ${response.status}`);
+
+		return label;
 	}
 }
