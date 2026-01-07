@@ -43,7 +43,7 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPO }}:sha-${{ github.sha }}
-            ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPO }}:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}:sha-${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
