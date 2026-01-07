@@ -5,6 +5,7 @@ import { CustomMcpServer } from "./mcp/CustomMcpServer";
 import { DocumentTools } from "./tools/documents";
 import { EpicTools } from "./tools/epics";
 import { IterationTools } from "./tools/iterations";
+import { LabelTools } from "./tools/labels";
 import { ObjectiveTools } from "./tools/objectives";
 import { StoryTools } from "./tools/stories";
 import { TeamTools } from "./tools/teams";
@@ -51,6 +52,7 @@ ObjectiveTools.create(client, server);
 TeamTools.create(client, server);
 WorkflowTools.create(client, server);
 DocumentTools.create(client, server);
+LabelTools.create(client, server);
 
 async function startServer() {
 	try {
