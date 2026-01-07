@@ -17,11 +17,14 @@ permissions:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up QEMU (multi-arch)
+        uses: docker/setup-qemu-action@v3
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -42,6 +45,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}:sha-${{ github.sha }}
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}:latest
