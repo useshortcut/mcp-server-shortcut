@@ -1,6 +1,6 @@
 # use the official Bun image
 # see all versions at https://hub.docker.com/r/oven/bun/tags
-FROM oven/bun:1 AS base
+FROM oven/bun:1.2.5 AS base
 WORKDIR /usr/src/app
 
 # install dependencies into temp directory
@@ -8,12 +8,12 @@ WORKDIR /usr/src/app
 FROM base AS install
 RUN mkdir -p /temp/dev
 COPY package.json package-lock.json /temp/dev/
-RUN cd /temp/dev && bun install --no-save
+RUN cd /temp/dev && CI=false HUSKY=0 bun install --no-save --ignore-scripts
 
 # install with --production (exclude devDependencies)
 RUN mkdir -p /temp/prod
 COPY package.json package-lock.json /temp/prod/
-RUN cd /temp/prod && bun install --production --no-save
+RUN cd /temp/prod && CI=false HUSKY=0 bun install --production --no-save --ignore-scripts
 
 # copy node_modules from temp directory
 # then copy all (non-ignored) project files into the image
