@@ -1,36 +1,24 @@
-# use the official Bun image
-# see all versions at https://hub.docker.com/r/oven/bun/tags
-FROM oven/bun:1.2.5 AS base
+# Build with Node/npm (package-lock.json is canonical)
+FROM node:20-slim AS base
 WORKDIR /usr/src/app
 
-# install dependencies into temp directory
-# this will cache them and speed up future builds
-FROM base AS install
-RUN mkdir -p /temp/dev
-COPY package.json package-lock.json /temp/dev/
-RUN cd /temp/dev && CI=false HUSKY=0 bun install --no-save --ignore-scripts
-
-# install with --production (exclude devDependencies)
-RUN mkdir -p /temp/prod
-COPY package.json package-lock.json /temp/prod/
-RUN cd /temp/prod && CI=false HUSKY=0 bun install --production --no-save --ignore-scripts
-
-# copy node_modules from temp directory
-# then copy all (non-ignored) project files into the image
-FROM base AS prerelease
-COPY --from=install /temp/dev/node_modules node_modules
+# builder: install dev deps + build dist/
+FROM base AS build
+ENV HUSKY=0
+COPY package.json package-lock.json ./
+RUN npm ci --ignore-scripts
 COPY . .
+RUN npm run build
 
-# build
-RUN bun run build
+# runtime: prod deps + dist only
+FROM node:20-slim AS runtime
+WORKDIR /usr/src/app
+ENV NODE_ENV=production
+ENV HUSKY=0
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts
+COPY --from=build /usr/src/app/dist ./dist
 
-# copy production dependencies and source code into final image
-FROM base AS release
-COPY --from=install /temp/prod/node_modules node_modules
-COPY --from=prerelease /usr/src/app/dist dist
-COPY --from=prerelease /usr/src/app/package.json .
-
-# run the app
-USER bun
+USER node
 EXPOSE 9292/tcp
-ENTRYPOINT [ "bun", "run", "prod:http" ] 
+CMD ["node", "dist/server-http.js"]
