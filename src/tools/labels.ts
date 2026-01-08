@@ -15,8 +15,14 @@ export class LabelTools extends BaseTools {
 		server.addToolWithReadAccess(
 			"labels-list",
 			"List all labels in the Shortcut workspace.",
-			{},
-			async () => await tools.listLabels(),
+			{
+				includeArchived: z
+					.boolean()
+					.optional()
+					.describe("Whether to include archived labels in the list.")
+					.default(false),
+			},
+			async (params) => await tools.listLabels(params),
 		);
 
 		server.addToolWithWriteAccess(
@@ -37,26 +43,39 @@ export class LabelTools extends BaseTools {
 		return tools;
 	}
 
-	private formatLabel(label: Label): Partial<Label> {
+	private formatLabel(
+		label: Label,
+		{
+			includeDescription = false,
+			includeArchived = false,
+		}: { includeDescription?: boolean; includeArchived?: boolean } = {},
+	) {
 		return {
 			id: label.id,
 			name: label.name,
 			app_url: label.app_url,
-			color: label.color ?? null,
-			description: label.description ?? null,
-			archived: label.archived,
-			stats: label.stats,
+			...(includeDescription ? { description: label.description ?? null } : {}),
+			...(includeArchived ? { archived: label.archived } : {}),
+			stats: Object.fromEntries(
+				Object.entries(label.stats || {}).filter(
+					([key, value]) => !key.match(/(unestimated|total)$/) && !!value,
+				),
+			),
 		};
 	}
 
-	async listLabels(): Promise<CallToolResult> {
-		const labels = await this.client.listLabels();
+	async listLabels({
+		includeArchived = false,
+	}: {
+		includeArchived?: boolean;
+	}): Promise<CallToolResult> {
+		const labels = await this.client.listLabels({ includeArchived });
 
 		if (!labels.length) {
 			return this.toResult("Result: No labels found.");
 		}
 
-		const formattedLabels = labels.map((label) => this.formatLabel(label));
+		const formattedLabels = labels.map((label) => this.formatLabel(label, { includeArchived }));
 
 		return this.toResult(`Result (${labels.length} labels found):`, {
 			labels: formattedLabels,
@@ -79,7 +98,7 @@ export class LabelTools extends BaseTools {
 		});
 
 		return this.toResult(`Label created with ID: ${label.id}.`, {
-			label: this.formatLabel(label),
+			label: this.formatLabel(label, { includeDescription: true }),
 		});
 	}
 }

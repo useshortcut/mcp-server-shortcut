@@ -20,8 +20,11 @@ describe("LabelTools", () => {
 			updated_at: "2024-01-01T00:00:00Z",
 			external_id: null,
 			stats: {
-				num_stories: 5,
-				num_epics: 2,
+				num_stories_started: 5,
+				num_epics_started: 2,
+				num_stories_unestimated: 4,
+				num_stories_total: 5,
+				num_stories_completed: 0,
 			},
 		} as unknown as Label,
 		{
@@ -37,8 +40,11 @@ describe("LabelTools", () => {
 			updated_at: "2024-01-02T00:00:00Z",
 			external_id: null,
 			stats: {
-				num_stories: 10,
-				num_epics: 3,
+				num_stories_started: 10,
+				num_epics_started: 3,
+				num_stories_unestimated: 4,
+				num_stories_total: 5,
+				num_stories_completed: 0,
 			},
 		} as unknown as Label,
 		{
@@ -54,8 +60,11 @@ describe("LabelTools", () => {
 			updated_at: "2024-01-03T00:00:00Z",
 			external_id: null,
 			stats: {
-				num_stories: 0,
-				num_epics: 0,
+				num_stories_started: 0,
+				num_epics_started: 0,
+				num_stories_unestimated: 4,
+				num_stories_total: 5,
+				num_stories_completed: 0,
 			},
 		} as unknown as Label,
 	];
@@ -95,7 +104,7 @@ describe("LabelTools", () => {
 		test("should return formatted list of labels when labels exist", async () => {
 			const mockClient = createMockClient({ listLabels: listLabelsMock });
 			const labelTools = new LabelTools(mockClient);
-			const result = await labelTools.listLabels();
+			const result = await labelTools.listLabels({ includeArchived: true });
 
 			expect(listLabelsMock).toHaveBeenCalled();
 
@@ -103,7 +112,6 @@ describe("LabelTools", () => {
 			expect(textContent).toContain("Result (3 labels found):");
 			expect(textContent).toContain('"id": 1');
 			expect(textContent).toContain('"name": "bug"');
-			expect(textContent).toContain('"color": "#ff0000"');
 			expect(textContent).toContain('"id": 2');
 			expect(textContent).toContain('"name": "feature"');
 			expect(textContent).toContain('"id": 3');
@@ -111,11 +119,43 @@ describe("LabelTools", () => {
 			expect(textContent).toContain('"archived": true');
 		});
 
+		test("should not return empty stats", async () => {
+			const mockClient = createMockClient({ listLabels: listLabelsMock });
+			const labelTools = new LabelTools(mockClient);
+			const result = await labelTools.listLabels({ includeArchived: true });
+
+			expect(listLabelsMock).toHaveBeenCalled();
+
+			const textContent = getTextContent(result);
+			expect(textContent).toContain("Result (3 labels found):");
+			expect(textContent).toContain('"id": 1');
+			expect(textContent).toContain('"id": 2');
+			expect(textContent).toContain('"id": 3');
+			expect(textContent).not.toContain("num_stories_unestimated");
+			expect(textContent).not.toContain("num_stories_total");
+			expect(textContent).not.toContain("num_stories_completed");
+		});
+
+		test("should not return archived state if set to false", async () => {
+			const mockClient = createMockClient({ listLabels: listLabelsMock });
+			const labelTools = new LabelTools(mockClient);
+			const result = await labelTools.listLabels({ includeArchived: false });
+
+			expect(listLabelsMock).toHaveBeenCalled();
+
+			const textContent = getTextContent(result);
+			expect(textContent).toContain("Result (3 labels found):");
+			expect(textContent).toContain('"id": 1');
+			expect(textContent).toContain('"id": 2');
+			expect(textContent).toContain('"id": 3');
+			expect(textContent).not.toContain('"archived":');
+		});
+
 		test("should return no labels found message when no labels exist", async () => {
 			const emptyListMock = mock(async () => []);
 			const mockClient = createMockClient({ listLabels: emptyListMock });
 			const labelTools = new LabelTools(mockClient);
-			const result = await labelTools.listLabels();
+			const result = await labelTools.listLabels({ includeArchived: true });
 
 			expect(getTextContent(result)).toBe("Result: No labels found.");
 		});
@@ -123,7 +163,7 @@ describe("LabelTools", () => {
 		test("should return simplified label fields", async () => {
 			const mockClient = createMockClient({ listLabels: listLabelsMock });
 			const labelTools = new LabelTools(mockClient);
-			const result = await labelTools.listLabels();
+			const result = await labelTools.listLabels({ includeArchived: true });
 
 			const textContent = getTextContent(result);
 
@@ -131,8 +171,6 @@ describe("LabelTools", () => {
 			expect(textContent).toContain('"id"');
 			expect(textContent).toContain('"name"');
 			expect(textContent).toContain('"app_url"');
-			expect(textContent).toContain('"color"');
-			expect(textContent).toContain('"description"');
 			expect(textContent).toContain('"archived"');
 
 			// Should NOT contain raw API fields that are excluded
@@ -165,12 +203,10 @@ describe("LabelTools", () => {
 			const nullLabelsMock = mock(async () => labelsWithNulls);
 			const mockClient = createMockClient({ listLabels: nullLabelsMock });
 			const labelTools = new LabelTools(mockClient);
-			const result = await labelTools.listLabels();
+			const result = await labelTools.listLabels({ includeArchived: true });
 
 			const textContent = getTextContent(result);
 			expect(textContent).toContain('"name": "minimal-label"');
-			expect(textContent).toContain('"color": null');
-			expect(textContent).toContain('"description": null');
 		});
 	});
 
@@ -216,7 +252,6 @@ describe("LabelTools", () => {
 			expect(textContent).toContain("Label created with ID: 10.");
 			expect(textContent).toContain('"id": 10');
 			expect(textContent).toContain('"name": "new-label"');
-			expect(textContent).toContain('"color": "#ff5500"');
 			expect(textContent).toContain('"description": "A new label"');
 		});
 
