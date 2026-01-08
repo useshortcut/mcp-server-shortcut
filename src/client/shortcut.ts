@@ -617,11 +617,14 @@ export class ShortcutClientWrapper {
 		return Array.from(this.customFieldCache.values());
 	}
 
-	async listLabels(): Promise<Label[]> {
+	async listLabels({ includeArchived = false }: { includeArchived?: boolean }): Promise<Label[]> {
 		const response = await this.client.listLabels({
 			slim: false,
 		});
-		return response?.data ?? [];
+		const allLabels = response?.data ?? [];
+
+		if (includeArchived) return allLabels;
+		return allLabels.filter((label) => !label.archived);
 	}
 
 	async createLabel(params: CreateLabelParams): Promise<Label> {
