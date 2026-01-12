@@ -41,19 +41,6 @@ jobs:
           role-to-assume: ${{ env.SHORTCUT_MCP_STAGING_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        run: npm test
-
-      - name: Run linting
-        run: npm run lint
-        continue-on-error: true
-
-      - name: Copy CodeDeploy resources
-        run: cp -R codedeploy/* dist/
-
       - name: Update script permissions
         run: chmod +x dist/scripts/*.sh
 

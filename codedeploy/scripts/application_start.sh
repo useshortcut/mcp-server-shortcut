@@ -1,3 +1,3 @@
 #!/bin/bash
 
-echo "Application Start"
+echo "Application Start -----"
