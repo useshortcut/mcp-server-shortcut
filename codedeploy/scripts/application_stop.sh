@@ -1,4 +1,4 @@
 #!/bin/bash
 
 echo "Application Stop -----"
-docker stop shortcut-mcp
+docker stop shortcut-mcp || true
