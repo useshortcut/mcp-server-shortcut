@@ -41,6 +41,12 @@ jobs:
           role-to-assume: ${{ env.SHORTCUT_MCP_STAGING_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Create dist/
+        run: rm -rf dist && mkdir dist
+        
+      - name: Copy CodeDeploy resources
+        run: cp -R codedeploy/* dist/
+
       - name: Update script permissions
         run: chmod +x dist/scripts/*.sh
 
