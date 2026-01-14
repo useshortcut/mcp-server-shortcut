@@ -7,5 +7,4 @@ docker run \
  --log-driver=awslogs \
  --log-opt awslogs-region=us-east-1 \
  --log-opt awslogs-group="shortcut/${DEPLOYMENT_GROUP}/${APPLICATION_NAME}" \
- --log-opt awslogs-create-stream=true \
  048776562964.dkr.ecr.us-east-1.amazonaws.com/shortcut/mcp-server
