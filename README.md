@@ -148,6 +148,10 @@ Or you can edit the local JSON file directly:
 - **stories-set-external-links** - Replace all external links on a story with a new set of links
 - **stories-get-by-external-link** - Find all stories that contain a specific external link
 
+### Labels
+- **labels-list** - List all labels in the Shortcut workspace.
+- **labels-create** - Create a new label in Shortcut.
+
 ### Epics
 
 - **epics-get-by-id** - Get a Shortcut epic by ID
@@ -227,6 +231,7 @@ The following values are accepted in addition to the full tool names listed abov
 - `stories`
 - `epics`
 - `iterations`
+- `labels`
 - `objectives`
 - `teams`
 - `workflows`
