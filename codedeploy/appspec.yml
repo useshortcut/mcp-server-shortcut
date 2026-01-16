@@ -1,0 +1,23 @@
+version: 0.0
+file_exists_behavior: OVERWRITE
+os: linux
+files:
+  - source: /
+    destination: /opt/shortcut-mcp/
+hooks:
+  BeforeInstall:
+    - location: scripts/before_install.sh
+      timeout: 30
+      runas: root
+  AfterInstall:
+    - location: scripts/after_install.sh
+      timeout: 30
+      runas: root
+  ApplicationStart:
+    - location: scripts/application_start.sh
+      timeout: 30
+      runas: root
+  ApplicationStop:
+    - location: scripts/application_stop.sh
+      timeout: 30
+      runas: root
