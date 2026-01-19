@@ -241,6 +241,8 @@ The following values are accepted in addition to the full tool names listed abov
 
 You can run the MCP server in read-only mode by setting the `SHORTCUT_READONLY` environment variable to `true`. This will disable all tools that modify data in Shortcut.
 
+Additionally, Shortcut now supports **read-only API tokens**, which you can use to ensure that the MCP server is limited to read-only operations at the API level. This provides an additional layer of security since the restriction is enforced by the Shortcut API itself, not just the MCP server. You can create a read-only token from your [Shortcut API tokens settings](https://app.shortcut.com/settings/account/api-tokens).
+
 Example:
 
 ```json
