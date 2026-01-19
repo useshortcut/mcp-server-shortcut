@@ -66,11 +66,13 @@ interface ServerConfig {
 	isReadonly: boolean;
 	enabledTools: string[];
 	sessionTimeoutMs: number;
+	httpDebug: boolean;
 }
 
 function loadConfig(): ServerConfig {
 	let isReadonly = process.env.SHORTCUT_READONLY !== "false";
 	let enabledTools = parseToolsList(process.env.SHORTCUT_TOOLS || "");
+	let httpDebug = process.env.SHORTCUT_HTTP_DEBUG === "true";
 
 	// Parse command line arguments
 	if (process.argv.length >= 3) {
@@ -80,6 +82,7 @@ function loadConfig(): ServerConfig {
 			.forEach(([name, value]) => {
 				if (name === "SHORTCUT_READONLY") isReadonly = value !== "false";
 				if (name === "SHORTCUT_TOOLS") enabledTools = parseToolsList(value);
+				if (name === "SHORTCUT_HTTP_DEBUG") httpDebug = value === "true";
 			});
 	}
 
@@ -88,6 +91,7 @@ function loadConfig(): ServerConfig {
 		isReadonly,
 		enabledTools,
 		sessionTimeoutMs: SESSION_TIMEOUT_MS,
+		httpDebug,
 	};
 }
 
@@ -575,6 +579,27 @@ function loggingMiddleware(req: Request, _res: Response, next: NextFunction): vo
 	next();
 }
 
+function httpDebugRequestMiddleware(req: Request, _res: Response, next: NextFunction): void {
+	const headers = { ...req.headers };
+	delete headers[HEADERS.AUTHORIZATION];
+	delete headers[HEADERS.X_SHORTCUT_API_TOKEN];
+	delete headers.cookie;
+
+	logger.info(
+		JSON.stringify({
+			event: "http_request",
+			method: req.method,
+			path: req.path,
+			url: req.originalUrl,
+			query: req.query,
+			headers,
+			body: req.body,
+		}),
+	);
+
+	next();
+}
+
 // ============================================================================
 // Server Setup
 // ============================================================================
@@ -586,8 +611,27 @@ async function startServer() {
 
 	// Middleware
 	app.use(express.json());
+	if (config.httpDebug) app.use(httpDebugRequestMiddleware);
 	app.use(corsMiddleware);
 	app.use(loggingMiddleware);
+
+	app.use((req, res, next) => {
+		const start = Date.now();
+		res.on("finish", () => {
+			if (res.statusCode >= 400) {
+				logger.info(
+					JSON.stringify({
+						event: "http_request_failed",
+						method: req.method,
+						path: req.path,
+						status: res.statusCode,
+						ms: Date.now() - start,
+					}),
+				);
+			}
+		});
+		next();
+	});
 
 	// Routes
 	app.get("/health", (_req: Request, res: Response) => {

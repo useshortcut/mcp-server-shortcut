@@ -42,7 +42,7 @@ jobs:
       id-token: write
 
     env:
-      CODEDEPLOY_APP_NAME: mcp-server
+      CODEDEPLOY_APP_NAME: shortcut-mcp
       DEPLOYMENT_GROUP: ${{ inputs.environment }}
       DEPLOY_SHA: ${{ inputs.sha || github.sha }}
 
