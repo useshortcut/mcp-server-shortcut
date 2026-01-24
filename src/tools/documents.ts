@@ -75,7 +75,7 @@ export class DocumentTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"documents-get-by-id",
-			"Get a document as markdown by its ID",
+			"Get a document as markdown by its ID.",
 			{
 				docId: z.string().describe("The ID of the document to retrieve"),
 			},

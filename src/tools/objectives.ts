@@ -11,7 +11,7 @@ export class ObjectiveTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"objectives-get-by-id",
-			"Get a Shortcut objective by public ID",
+			"Get a Shortcut objective by public ID.",
 			{
 				objectivePublicId: z.number().positive().describe("The public ID of the objective to get"),
 				full: z
