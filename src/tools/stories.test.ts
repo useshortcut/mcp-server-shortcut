@@ -154,11 +154,12 @@ describe("StoryTools", () => {
 
 			StoryTools.create(mockClient, mockServer);
 
-			expect(mockToolRead).toHaveBeenCalledTimes(4);
+			expect(mockToolRead).toHaveBeenCalledTimes(5);
 			expect(mockToolRead.mock.calls?.[0]?.[0]).toBe("stories-get-by-id");
-			expect(mockToolRead.mock.calls?.[1]?.[0]).toBe("stories-search");
-			expect(mockToolRead.mock.calls?.[2]?.[0]).toBe("stories-get-branch-name");
-			expect(mockToolRead.mock.calls?.[3]?.[0]).toBe("stories-get-by-external-link");
+			expect(mockToolRead.mock.calls?.[1]?.[0]).toBe("stories-get-history");
+			expect(mockToolRead.mock.calls?.[2]?.[0]).toBe("stories-search");
+			expect(mockToolRead.mock.calls?.[3]?.[0]).toBe("stories-get-branch-name");
+			expect(mockToolRead.mock.calls?.[4]?.[0]).toBe("stories-get-by-external-link");
 
 			expect(mockToolWrite).toHaveBeenCalledTimes(15);
 			expect(mockToolWrite.mock.calls?.[0]?.[0]).toBe("stories-create");
@@ -244,7 +245,7 @@ describe("StoryTools", () => {
 			} as unknown as ShortcutClientWrapper);
 
 			await expect(() => storyTools.getStory(999)).toThrow(
-				"Failed to retrieve Shortcut story with public ID: 999.",
+				"Failed to retrieve Shortcut story with public ID: 999",
 			);
 		});
 
@@ -508,7 +509,101 @@ describe("StoryTools", () => {
 			const storyTools = new StoryTools(mockClient);
 
 			// @ts-ignore - Testing runtime check for missing ID
-			await expect(() => storyTools.updateStory({})).toThrow("Story public ID is required");
+			await expect(() => storyTools.updateStory({})).toThrow(
+				"Failed to retrieve Shortcut story with public ID: undefined",
+			);
+		});
+
+		test("should update custom_fields", async () => {
+			const storyTools = new StoryTools(mockClient);
+			await storyTools.updateStory({
+				storyPublicId: 123,
+				custom_fields: [
+					{ field_id: "field-uuid-1", value_id: "value-uuid-1" },
+					{ field_id: "field-uuid-2", value_id: "value-uuid-2" },
+				],
+			});
+
+			expect(updateStoryMock).toHaveBeenCalledTimes(1);
+			expect(updateStoryMock.mock.calls?.[0]?.[1]).toMatchObject({
+				custom_fields: [
+					{ field_id: "field-uuid-1", value_id: "value-uuid-1" },
+					{ field_id: "field-uuid-2", value_id: "value-uuid-2" },
+				],
+			});
+		});
+
+		test("should update team_id (mapped to group_id)", async () => {
+			const storyTools = new StoryTools(mockClient);
+			await storyTools.updateStory({
+				storyPublicId: 123,
+				team_id: "team-uuid",
+			});
+
+			expect(updateStoryMock).toHaveBeenCalledTimes(1);
+			expect(updateStoryMock.mock.calls?.[0]?.[1]).toMatchObject({
+				group_id: "team-uuid",
+			});
+		});
+
+		test("should update project_id and deadline", async () => {
+			const storyTools = new StoryTools(mockClient);
+			await storyTools.updateStory({
+				storyPublicId: 123,
+				project_id: 456,
+				deadline: "2025-01-31T00:00:00Z",
+			});
+
+			expect(updateStoryMock).toHaveBeenCalledTimes(1);
+			expect(updateStoryMock.mock.calls?.[0]?.[1]).toMatchObject({
+				project_id: 456,
+				deadline: "2025-01-31T00:00:00Z",
+			});
+		});
+
+		test("should update follower_ids and requested_by_id", async () => {
+			const storyTools = new StoryTools(mockClient);
+			await storyTools.updateStory({
+				storyPublicId: 123,
+				follower_ids: ["follower1", "follower2"],
+				requested_by_id: "requester-uuid",
+			});
+
+			expect(updateStoryMock).toHaveBeenCalledTimes(1);
+			expect(updateStoryMock.mock.calls?.[0]?.[1]).toMatchObject({
+				follower_ids: ["follower1", "follower2"],
+				requested_by_id: "requester-uuid",
+			});
+		});
+
+		test("should update archived status", async () => {
+			const storyTools = new StoryTools(mockClient);
+			await storyTools.updateStory({
+				storyPublicId: 123,
+				archived: true,
+			});
+
+			expect(updateStoryMock).toHaveBeenCalledTimes(1);
+			expect(updateStoryMock.mock.calls?.[0]?.[1]).toMatchObject({
+				archived: true,
+			});
+		});
+
+		test("should handle null values for team_id, project_id, and deadline", async () => {
+			const storyTools = new StoryTools(mockClient);
+			await storyTools.updateStory({
+				storyPublicId: 123,
+				team_id: null,
+				project_id: null,
+				deadline: null,
+			});
+
+			expect(updateStoryMock).toHaveBeenCalledTimes(1);
+			expect(updateStoryMock.mock.calls?.[0]?.[1]).toMatchObject({
+				group_id: null,
+				project_id: null,
+				deadline: null,
+			});
 		});
 	});
 
@@ -1348,6 +1443,120 @@ describe("StoryTools", () => {
 					subTaskPublicId: 999,
 				}),
 			).toThrow("Failed to retrieve story with public ID: 999");
+		});
+	});
+
+	describe("getStoryHistory method", () => {
+		const mockHistoryEntries = [
+			{
+				id: "history-1",
+				changed_at: "2024-01-01T10:00:00Z",
+				member_id: "user1",
+				actor_name: "Test User",
+				actions: [
+					{
+						action: "update",
+						changes: { name: { old: "Old Name", new: "New Name" } },
+					},
+				],
+				references: [],
+			},
+			{
+				id: "history-2",
+				changed_at: "2024-01-02T11:00:00Z",
+				member_id: "user2",
+				actor_name: "Jane Smith",
+				actions: [
+					{
+						action: "update",
+						changes: { workflow_state_id: { old: 1, new: 2 } },
+					},
+				],
+				references: [{ id: 2, entity_type: "workflow-state" }],
+			},
+		];
+
+		const getStoryMock = mock(async (id: number) => mockStories.find((story) => story.id === id));
+
+		test("should return formatted history when history exists", async () => {
+			const getStoryHistoryMock = mock(async () => mockHistoryEntries);
+			const mockClient = createMockClient({
+				getStory: getStoryMock,
+				getStoryHistory: getStoryHistoryMock,
+			});
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.getStoryHistory(123);
+
+			expect(getStoryHistoryMock).toHaveBeenCalledWith(123);
+
+			const textContent = getTextContent(result);
+			expect(textContent).toContain("Result (2 history entries for story sc-123):");
+			expect(textContent).toContain('"id": "history-1"');
+			expect(textContent).toContain('"id": "history-2"');
+			expect(textContent).toContain('"actor_name": "Test User"');
+			expect(textContent).toContain('"actor_name": "Jane Smith"');
+			expect(textContent).toContain('"changed_at": "2024-01-01T10:00:00Z"');
+		});
+
+		test("should return no history found message when history is empty", async () => {
+			const getStoryHistoryMock = mock(async () => []);
+			const mockClient = createMockClient({
+				getStory: getStoryMock,
+				getStoryHistory: getStoryHistoryMock,
+			});
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.getStoryHistory(123);
+
+			expect(getTextContent(result)).toBe("Result: No history found for story sc-123.");
+		});
+
+		test("should throw error when story is not found", async () => {
+			const mockClient = createMockClient({
+				getStory: mock(async () => null),
+				getStoryHistory: mock(async () => mockHistoryEntries),
+			});
+			const storyTools = new StoryTools(mockClient);
+
+			await expect(() => storyTools.getStoryHistory(999)).toThrow(
+				"Failed to retrieve Shortcut story with public ID: 999",
+			);
+		});
+
+		test("should include references when present", async () => {
+			const getStoryHistoryMock = mock(async () => mockHistoryEntries);
+			const mockClient = createMockClient({
+				getStory: getStoryMock,
+				getStoryHistory: getStoryHistoryMock,
+			});
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.getStoryHistory(123);
+
+			const textContent = getTextContent(result);
+			expect(textContent).toContain('"references"');
+			expect(textContent).toContain('"entity_type": "workflow-state"');
+		});
+
+		test("should handle history entry without actor_name", async () => {
+			const historyWithoutActorName = [
+				{
+					id: "history-3",
+					changed_at: "2024-01-03T12:00:00Z",
+					member_id: "user3",
+					actions: [{ action: "create" }],
+					references: [],
+				},
+			];
+			const getStoryHistoryMock = mock(async () => historyWithoutActorName);
+			const mockClient = createMockClient({
+				getStory: getStoryMock,
+				getStoryHistory: getStoryHistoryMock,
+			});
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.getStoryHistory(123);
+
+			const textContent = getTextContent(result);
+			expect(textContent).toContain('"id": "history-3"');
+			expect(textContent).not.toContain('"actor_name"');
 		});
 	});
 });

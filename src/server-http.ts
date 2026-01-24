@@ -6,10 +6,13 @@ import express, { type NextFunction, type Request, type Response } from "express
 import pino from "pino";
 import { ShortcutClientWrapper } from "@/client/shortcut";
 import { CustomMcpServer } from "./mcp/CustomMcpServer";
+import { CustomFieldTools } from "./tools/custom-fields";
 import { DocumentTools } from "./tools/documents";
 import { EpicTools } from "./tools/epics";
 import { IterationTools } from "./tools/iterations";
+import { LabelTools } from "./tools/labels";
 import { ObjectiveTools } from "./tools/objectives";
+import { ProjectTools } from "./tools/projects";
 import { StoryTools } from "./tools/stories";
 import { TeamTools } from "./tools/teams";
 import { UserTools } from "./tools/user";
@@ -338,6 +341,9 @@ function createServerInstance(apiToken: string, config: ServerConfig): CustomMcp
 	TeamTools.create(client, server);
 	WorkflowTools.create(client, server);
 	DocumentTools.create(client, server);
+	LabelTools.create(client, server);
+	ProjectTools.create(client, server);
+	CustomFieldTools.create(client, server);
 
 	return server;
 }

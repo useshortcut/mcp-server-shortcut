@@ -8,19 +8,19 @@ export class UserTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"users-get-current",
-			"Get the current user",
+			"Get the current user.",
 			async () => await tools.getCurrentUser(),
 		);
 
 		server.addToolWithReadAccess(
 			"users-get-current-teams",
-			"Get a list of teams where the current user is a member",
+			"Get a list of teams where the current user is a member.",
 			async () => await tools.getCurrentUserTeams(),
 		);
 
 		server.addToolWithReadAccess(
 			"users-list",
-			"Get all users",
+			"Get all users.",
 			async () => await tools.listMembers(),
 		);
 

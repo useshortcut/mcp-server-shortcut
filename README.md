@@ -129,6 +129,7 @@ Or you can edit the local JSON file directly:
 ### Stories
 
 - **stories-get-by-id** - Get a single Shortcut story by ID
+- **stories-get-history** - Get the change history for a story
 - **stories-search** - Find Shortcut stories with filtering and search options
 - **stories-get-branch-name** - Get the recommended branch name (based on workspace settings) for a specific story.
 - **stories-create** - Create a new Shortcut story
@@ -152,11 +153,17 @@ Or you can edit the local JSON file directly:
 - **labels-list** - List all labels in the Shortcut workspace.
 - **labels-create** - Create a new label in Shortcut.
 
+### Custom Fields
+
+- **custom-fields-list** - List all custom fields in the workspace with their possible values
+
 ### Epics
 
 - **epics-get-by-id** - Get a Shortcut epic by ID
 - **epics-search** - Find Shortcut epics with filtering and search options
 - **epics-create** - Create a new Shortcut epic
+- **epics-update** - Update an existing Shortcut epic
+- **epics-delete** - Delete a Shortcut epic
 
 ### Iterations
 
@@ -164,6 +171,8 @@ Or you can edit the local JSON file directly:
 - **iterations-get-by-id** - Get a Shortcut iteration by ID
 - **iterations-search** - Find Shortcut iterations with filtering and search options
 - **iterations-create** - Create a new Shortcut iteration with start/end dates
+- **iterations-update** - Update an existing Shortcut iteration
+- **iterations-delete** - Delete a Shortcut iteration
 - **iterations-get-active** - Get active iterations for the current user based on team memberships
 - **iterations-get-upcoming** - Get upcoming iterations for the current user based on team memberships
 
@@ -176,6 +185,12 @@ Or you can edit the local JSON file directly:
 
 - **teams-get-by-id** - Get a Shortcut team by ID
 - **teams-list** - List all Shortcut teams
+
+### Projects
+
+- **projects-list** - List all projects in the Shortcut workspace
+- **projects-get-by-id** - Get a Shortcut project by public ID
+- **projects-get-stories** - Get all stories in a specific project
 
 ### Workflows
 
@@ -233,8 +248,10 @@ The following values are accepted in addition to the full tool names listed abov
 - `epics`
 - `iterations`
 - `labels`
+- `custom-fields`
 - `objectives`
 - `teams`
+- `projects`
 - `workflows`
 - `documents`
 

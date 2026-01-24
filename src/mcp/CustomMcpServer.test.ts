@@ -47,4 +47,23 @@ describe("CustomMcpServer", () => {
 			}),
 		).toBeNull();
 	});
+
+	test("should handle hyphenated entity types like custom-fields", () => {
+		const server = new CustomMcpServer({ readonly: false, tools: ["custom-fields"] });
+		expect(
+			server.addToolWithReadAccess("custom-fields-list", "test", async () => {
+				return { content: [] };
+			}),
+		).not.toBeNull();
+		expect(
+			server.addToolWithReadAccess("custom-other", "test", async () => {
+				return { content: [] };
+			}),
+		).toBeNull();
+		expect(
+			server.addToolWithReadAccess("stories-get-by-id", "test", async () => {
+				return { content: [] };
+			}),
+		).toBeNull();
+	});
 });

@@ -152,8 +152,10 @@ describe("IterationTools", () => {
 			expect(mockToolRead.mock.calls?.[3]?.[0]).toBe("iterations-get-active");
 			expect(mockToolRead.mock.calls?.[4]?.[0]).toBe("iterations-get-upcoming");
 
-			expect(mockToolWrite).toHaveBeenCalledTimes(1);
+			expect(mockToolWrite).toHaveBeenCalledTimes(3);
 			expect(mockToolWrite.mock.calls?.[0]?.[0]).toBe("iterations-create");
+			expect(mockToolWrite.mock.calls?.[1]?.[0]).toBe("iterations-update");
+			expect(mockToolWrite.mock.calls?.[2]?.[0]).toBe("iterations-delete");
 		});
 	});
 
@@ -192,7 +194,7 @@ describe("IterationTools", () => {
 			);
 
 			await expect(() => iterationTools.getIterationStories(1, false)).toThrow(
-				"Failed to retrieve Shortcut stories in iteration with public ID: 1.",
+				"Failed to retrieve Shortcut stories in iteration with public ID: 1",
 			);
 		});
 	});
@@ -294,7 +296,7 @@ describe("IterationTools", () => {
 			);
 
 			await expect(() => iterationTools.getIteration(999)).toThrow(
-				"Failed to retrieve Shortcut iteration with public ID: 999.",
+				"Failed to retrieve Shortcut iteration with public ID: 999",
 			);
 		});
 
@@ -511,6 +513,156 @@ describe("IterationTools", () => {
 
 			expect(getTextContent(result)).toBe(
 				"Result: No upcoming iterations found for any of your teams.",
+			);
+		});
+	});
+
+	describe("updateIteration method", () => {
+		const getIterationMock = mock(async (id: number) =>
+			mockIterations.find((iteration) => iteration.id === id),
+		);
+
+		test("should update iteration with provided fields", async () => {
+			const updateIterationMock = mock(async (_id: number, _params: Record<string, unknown>) => ({
+				id: 1,
+				name: "Updated Iteration 1",
+				app_url: "https://app.shortcut.com/test/iteration/1",
+			}));
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getIteration: getIterationMock,
+					updateIteration: updateIterationMock,
+				}),
+			);
+			const result = await iterationTools.updateIteration({
+				iterationPublicId: 1,
+				name: "Updated Iteration 1",
+				description: "Updated description",
+				startDate: "2023-02-01",
+				endDate: "2023-02-14",
+			});
+
+			expect(getTextContent(result)).toBe(
+				"Updated iteration 1. Iteration URL: https://app.shortcut.com/test/iteration/1",
+			);
+			expect(updateIterationMock).toHaveBeenCalledTimes(1);
+			expect(updateIterationMock.mock.calls?.[0]?.[0]).toBe(1);
+			expect(updateIterationMock.mock.calls?.[0]?.[1]).toMatchObject({
+				name: "Updated Iteration 1",
+				description: "Updated description",
+				start_date: "2023-02-01",
+				end_date: "2023-02-14",
+			});
+		});
+
+		test("should throw error when iteration public ID is not provided", async () => {
+			const updateIterationMock = mock(async (_id: number, _params: Record<string, unknown>) => ({
+				id: 1,
+				name: "Updated Iteration 1",
+				app_url: "https://app.shortcut.com/test/iteration/1",
+			}));
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getIteration: getIterationMock,
+					updateIteration: updateIterationMock,
+				}),
+			);
+
+			// @ts-ignore - Testing runtime check for missing ID
+			await expect(() => iterationTools.updateIteration({})).toThrow(
+				"Failed to retrieve Shortcut iteration with public ID: undefined",
+			);
+		});
+
+		test("should throw error when iteration is not found", async () => {
+			const updateIterationMock = mock(async (_id: number, _params: Record<string, unknown>) => ({
+				id: 1,
+				name: "Updated Iteration 1",
+				app_url: "https://app.shortcut.com/test/iteration/1",
+			}));
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getIteration: mock(async () => null),
+					updateIteration: updateIterationMock,
+				}),
+			);
+
+			await expect(() =>
+				iterationTools.updateIteration({
+					iterationPublicId: 999,
+					name: "Updated Iteration",
+				}),
+			).toThrow("Failed to retrieve Shortcut iteration with public ID: 999");
+		});
+
+		test("should handle team_ids update", async () => {
+			const updateIterationMock = mock(async (_id: number, _params: Record<string, unknown>) => ({
+				id: 1,
+				name: "Updated Iteration 1",
+				app_url: "https://app.shortcut.com/test/iteration/1",
+			}));
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getIteration: getIterationMock,
+					updateIteration: updateIterationMock,
+				}),
+			);
+			await iterationTools.updateIteration({
+				iterationPublicId: 1,
+				team_ids: ["team1", "team2"],
+			});
+
+			expect(updateIterationMock).toHaveBeenCalledTimes(1);
+			expect(updateIterationMock.mock.calls?.[0]?.[1]).toMatchObject({
+				group_ids: ["team1", "team2"],
+			});
+		});
+	});
+
+	describe("deleteIteration method", () => {
+		const getIterationMock = mock(async (id: number) =>
+			mockIterations.find((iteration) => iteration.id === id),
+		);
+		const deleteIterationMock = mock(async (_id: number) => undefined);
+
+		test("should delete iteration successfully", async () => {
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getIteration: getIterationMock,
+					deleteIteration: deleteIterationMock,
+				}),
+			);
+			const result = await iterationTools.deleteIteration(1);
+
+			expect(getTextContent(result)).toBe("Deleted iteration 1.");
+			expect(deleteIterationMock).toHaveBeenCalledTimes(1);
+			expect(deleteIterationMock.mock.calls?.[0]?.[0]).toBe(1);
+		});
+
+		test("should throw error when iteration public ID is not provided", async () => {
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getIteration: getIterationMock,
+					deleteIteration: deleteIterationMock,
+				}),
+			);
+
+			// @ts-ignore - Testing runtime check for missing ID
+			await expect(() => iterationTools.deleteIteration(0)).toThrow(
+				"Failed to retrieve Shortcut iteration with public ID: 0",
+			);
+		});
+
+		test("should throw error when iteration is not found", async () => {
+			const iterationTools = new IterationTools(
+				createMockClient({
+					getIteration: mock(async () => null),
+					deleteIteration: deleteIterationMock,
+				}),
+			);
+
+			await expect(() => iterationTools.deleteIteration(999)).toThrow(
+				"Failed to retrieve Shortcut iteration with public ID: 999",
 			);
 		});
 	});

@@ -12,7 +12,7 @@ export class EpicTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"epics-get-by-id",
-			"Get a Shortcut epic by public ID",
+			"Get a Shortcut epic by public ID.",
 			{
 				epicPublicId: z.number().positive().describe("The public ID of the epic to get"),
 				full: z
@@ -88,6 +88,76 @@ export class EpicTools extends BaseTools {
 			async (params) => await tools.createEpic(params),
 		);
 
+		server.addToolWithWriteAccess(
+			"epics-update",
+			"Update an existing Shortcut epic. Only provide fields you want to update.",
+			{
+				epicPublicId: z.number().positive().describe("The public ID of the epic to update"),
+				name: z.string().max(256).optional().describe("The name of the epic"),
+				description: z.string().max(100000).optional().describe("The description of the epic"),
+				state: z
+					.enum(["to do", "in progress", "done"])
+					.optional()
+					.describe("The state of the epic (deprecated, use epic_state_id if possible)"),
+				epic_state_id: z.number().optional().describe("The ID of the epic state"),
+				team_id: z
+					.string()
+					.nullable()
+					.optional()
+					.describe("The team (group) UUID to assign the epic to, or null to unset"),
+				owner_ids: z
+					.array(z.string())
+					.optional()
+					.describe("Array of user UUIDs to assign as owners of the epic"),
+				follower_ids: z
+					.array(z.string())
+					.optional()
+					.describe("Array of user UUIDs to add as followers of the epic"),
+				deadline: z
+					.string()
+					.nullable()
+					.optional()
+					.describe(
+						"The due date in ISO 8601 datetime format (e.g., 2025-01-31T00:00:00Z), or null to unset",
+					),
+				planned_start_date: z
+					.string()
+					.nullable()
+					.optional()
+					.describe("The planned start date in ISO 8601 format, or null to unset"),
+				archived: z.boolean().optional().describe("Whether to archive the epic"),
+				labels: z
+					.array(
+						z.object({
+							name: z.string().describe("The name of the label"),
+							color: z.string().optional().describe("The color of the label"),
+						}),
+					)
+					.optional()
+					.describe("Labels to assign to the epic"),
+				objective_ids: z
+					.array(z.number())
+					.optional()
+					.describe("Array of objective IDs to associate with the epic"),
+				external_id: z
+					.string()
+					.optional()
+					.describe(
+						"An external identifier for the epic (for integrations). Use empty string to clear.",
+					),
+			},
+			async (params) => await tools.updateEpic(params),
+		);
+
+		server.addToolWithWriteAccess(
+			"epics-delete",
+			"Delete a Shortcut epic. This action cannot be undone.",
+			{
+				epicPublicId: z.number().positive().describe("The public ID of the epic to delete"),
+			},
+			async ({ epicPublicId }) => await tools.deleteEpic(epicPublicId),
+		);
+
 		return tools;
 	}
 
@@ -136,5 +206,58 @@ export class EpicTools extends BaseTools {
 		});
 
 		return this.toResult(`Epic created with ID: ${epic.id}.`);
+	}
+
+	async updateEpic({
+		epicPublicId,
+		...updates
+	}: {
+		epicPublicId: number;
+		name?: string;
+		description?: string;
+		state?: "to do" | "in progress" | "done";
+		epic_state_id?: number;
+		team_id?: string | null;
+		owner_ids?: string[];
+		follower_ids?: string[];
+		deadline?: string | null;
+		planned_start_date?: string | null;
+		archived?: boolean;
+		labels?: Array<{ name: string; color?: string }>;
+		objective_ids?: number[];
+		external_id?: string;
+	}): Promise<CallToolResult> {
+		const epic = await this.client.getEpic(epicPublicId);
+		if (!epic) throw new Error(`Failed to retrieve Shortcut epic with public ID: ${epicPublicId}`);
+
+		// Build update params, mapping API field names where they differ
+		const updateParams: Record<string, unknown> = {};
+		if (updates.name !== undefined) updateParams.name = updates.name;
+		if (updates.description !== undefined) updateParams.description = updates.description;
+		if (updates.state !== undefined) updateParams.state = updates.state;
+		if (updates.epic_state_id !== undefined) updateParams.epic_state_id = updates.epic_state_id;
+		if (updates.team_id !== undefined) updateParams.group_id = updates.team_id;
+		if (updates.owner_ids !== undefined) updateParams.owner_ids = updates.owner_ids;
+		if (updates.follower_ids !== undefined) updateParams.follower_ids = updates.follower_ids;
+		if (updates.deadline !== undefined) updateParams.deadline = updates.deadline;
+		if (updates.planned_start_date !== undefined)
+			updateParams.planned_start_date = updates.planned_start_date;
+		if (updates.archived !== undefined) updateParams.archived = updates.archived;
+		if (updates.labels !== undefined) updateParams.labels = updates.labels;
+		if (updates.objective_ids !== undefined) updateParams.objective_ids = updates.objective_ids;
+		if (updates.external_id !== undefined) updateParams.external_id = updates.external_id;
+
+		const updatedEpic = await this.client.updateEpic(epicPublicId, updateParams);
+
+		return this.toResult(`Updated epic ${epicPublicId}. Epic URL: ${updatedEpic.app_url}`);
+	}
+
+	async deleteEpic(epicPublicId: number): Promise<CallToolResult> {
+		const epic = await this.client.getEpic(epicPublicId);
+		if (!epic) throw new Error(`Failed to retrieve Shortcut epic with public ID: ${epicPublicId}`);
+
+		await this.client.deleteEpic(epicPublicId);
+
+		return this.toResult(`Deleted epic ${epicPublicId}.`);
 	}
 }
