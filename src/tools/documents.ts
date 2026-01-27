@@ -105,10 +105,26 @@ export class DocumentTools extends BaseTools {
 	}
 
 	private async updateDocument(docId: string, title?: string, content?: string) {
-		const doc = await this.client.getDocById(docId);
-		if (!doc) return this.toResult(`Document with ID ${docId} not found.`);
+		try {
+			const doc = await this.client.getDocById(docId);
+			if (!doc) return this.toResult(`Document with ID ${docId} not found.`);
 
-		return this.toResult("");
+			const result = await this.client.updateDoc(docId, {
+				title: title ?? doc.title ?? "",
+				content: content ?? doc.content_markdown ?? "",
+				content_format: "markdown",
+			});
+
+			return this.toResult("Document updated successfully", {
+				id: result.id,
+				title: result.title,
+				content: result.content_markdown,
+				app_url: result.app_url,
+			});
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : "Unknown error";
+			return this.toResult(`Failed to update document: ${errorMessage}`);
+		}
 	}
 
 	private async listDocuments() {

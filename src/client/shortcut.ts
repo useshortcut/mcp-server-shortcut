@@ -10,6 +10,7 @@ import type {
 	CreateStoryComment,
 	CreateStoryParams,
 	CustomField,
+	Doc,
 	DocSlim,
 	Epic,
 	Group,
@@ -22,6 +23,7 @@ import type {
 	StoryComment,
 	StoryLink,
 	Task,
+	UpdateDoc,
 	UpdateStory,
 	Workflow,
 } from "@shortcut/client";
@@ -541,6 +543,15 @@ export class ShortcutClientWrapper {
 		return doc;
 	}
 
+	async updateDoc(docPublicId: string, params: UpdateDoc): Promise<Doc> {
+		const response = await this.client.updateDoc(docPublicId, params);
+		const doc = response?.data ?? null;
+
+		if (!doc) throw new Error(`Failed to update the document: ${response.status}`);
+
+		return doc;
+	}
+
 	async listDocs(): Promise<DocSlim[]> {
 		const response = await this.client.listDocs();
 		if (response.status === 403) throw new Error("Docs feature disabled for this workspace.");
@@ -582,7 +593,7 @@ export class ShortcutClientWrapper {
 		return { documents, total, next_page_token: this.getNextPageToken(next) };
 	}
 
-	async getDocById(docId: string): Promise<DocSlim | null> {
+	async getDocById(docId: string): Promise<Doc | null> {
 		const response = await this.client.getDoc(docId);
 
 		if (response.status === 403) throw new Error("Docs feature disabled for this workspace.");
