@@ -192,6 +192,7 @@ Or you can edit the local JSON file directly:
 ### Documents
 
 - **documents-create** - Create a new document in Shortcut with HTML content
+- **documents-update** - Update content of an existing document by its ID
 - **documents-list** - List all documents in Shortcut
 - **documents-search** - Search for documents
 - **documents-get-by-id** - Retrieve a specific document in markdown format by its ID
