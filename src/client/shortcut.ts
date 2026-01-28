@@ -14,16 +14,21 @@ import type {
 	DocSlim,
 	Epic,
 	Group,
+	History,
 	Iteration,
 	IterationSlim,
 	Label,
 	Member,
 	MemberInfo,
+	Project,
 	Story,
 	StoryComment,
 	StoryLink,
+	StorySlim,
 	Task,
 	UpdateDoc,
+	UpdateEpic,
+	UpdateIteration,
 	UpdateStory,
 	Workflow,
 } from "@shortcut/client";
@@ -230,6 +235,11 @@ export class ShortcutClientWrapper {
 		return story;
 	}
 
+	async getStoryHistory(storyPublicId: number): Promise<History[]> {
+		const response = await this.client.storyHistory(storyPublicId);
+		return response?.data ?? [];
+	}
+
 	async getEpic(epicPublicId: number) {
 		const response = await this.client.getEpic(epicPublicId);
 		const epic = response?.data ?? null;
@@ -413,6 +423,19 @@ export class ShortcutClientWrapper {
 		return iteration;
 	}
 
+	async updateIteration(iterationPublicId: number, params: UpdateIteration): Promise<Iteration> {
+		const response = await this.client.updateIteration(iterationPublicId, params);
+		const iteration = response?.data ?? null;
+
+		if (!iteration) throw new Error(`Failed to update the iteration: ${response.status}`);
+
+		return iteration;
+	}
+
+	async deleteIteration(iterationPublicId: number): Promise<void> {
+		await this.client.deleteIteration(iterationPublicId);
+	}
+
 	async createEpic(params: CreateEpic): Promise<Epic> {
 		const response = await this.client.createEpic(params);
 		const epic = response?.data ?? null;
@@ -420,6 +443,34 @@ export class ShortcutClientWrapper {
 		if (!epic) throw new Error(`Failed to create the epic: ${response.status}`);
 
 		return epic;
+	}
+
+	async updateEpic(epicPublicId: number, params: UpdateEpic): Promise<Epic> {
+		const response = await this.client.updateEpic(epicPublicId, params);
+		const epic = response?.data ?? null;
+
+		if (!epic) throw new Error(`Failed to update the epic: ${response.status}`);
+
+		return epic;
+	}
+
+	async deleteEpic(epicPublicId: number): Promise<void> {
+		await this.client.deleteEpic(epicPublicId);
+	}
+
+	async listProjects(): Promise<Project[]> {
+		const response = await this.client.listProjects();
+		return response?.data ?? [];
+	}
+
+	async getProject(projectPublicId: number): Promise<Project | null> {
+		const response = await this.client.getProject(projectPublicId);
+		return response?.data ?? null;
+	}
+
+	async listProjectStories(projectPublicId: number): Promise<StorySlim[]> {
+		const response = await this.client.listStories(projectPublicId);
+		return response?.data ?? [];
 	}
 
 	async addTaskToStory(

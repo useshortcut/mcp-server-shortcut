@@ -113,8 +113,10 @@ describe("EpicTools", () => {
 			expect(mockToolRead.mock.calls?.[0]?.[0]).toBe("epics-get-by-id");
 			expect(mockToolRead.mock.calls?.[1]?.[0]).toBe("epics-search");
 
-			expect(mockToolWrite).toHaveBeenCalledTimes(1);
+			expect(mockToolWrite).toHaveBeenCalledTimes(3);
 			expect(mockToolWrite.mock.calls?.[0]?.[0]).toBe("epics-create");
+			expect(mockToolWrite.mock.calls?.[1]?.[0]).toBe("epics-update");
+			expect(mockToolWrite.mock.calls?.[2]?.[0]).toBe("epics-delete");
 		});
 	});
 
@@ -318,6 +320,155 @@ describe("EpicTools", () => {
 			});
 
 			expect(getTextContent(result)).toBe("Epic created with ID: 1.");
+		});
+	});
+
+	describe("updateEpic method", () => {
+		const getEpicMock = mock(async (id: number) => mockEpics.find((epic) => epic.id === id));
+		const updateEpicMock = mock(async (_id: number, _params: Record<string, unknown>) => ({
+			id: 1,
+			name: "Updated Epic 1",
+			app_url: "https://app.shortcut.com/test/epic/1",
+		}));
+
+		beforeEach(() => {
+			updateEpicMock.mockClear();
+		});
+
+		test("should update epic with provided fields", async () => {
+			const mockClient = createMockClient({
+				getEpic: getEpicMock,
+				updateEpic: updateEpicMock,
+			});
+			const epicTools = new EpicTools(mockClient);
+			const result = await epicTools.updateEpic({
+				epicPublicId: 1,
+				name: "Updated Epic 1",
+				description: "Updated description",
+				state: "in progress",
+			});
+
+			expect(getTextContent(result)).toBe(
+				"Updated epic 1. Epic URL: https://app.shortcut.com/test/epic/1",
+			);
+			expect(updateEpicMock).toHaveBeenCalledTimes(1);
+			expect(updateEpicMock.mock.calls?.[0]?.[0]).toBe(1);
+			expect(updateEpicMock.mock.calls?.[0]?.[1]).toMatchObject({
+				name: "Updated Epic 1",
+				description: "Updated description",
+				state: "in progress",
+			});
+		});
+
+		test("should throw error when epic public ID is not provided", async () => {
+			const mockClient = createMockClient({
+				getEpic: getEpicMock,
+				updateEpic: updateEpicMock,
+			});
+			const epicTools = new EpicTools(mockClient);
+
+			// @ts-ignore - Testing runtime check for missing ID
+			await expect(() => epicTools.updateEpic({})).toThrow(
+				"Failed to retrieve Shortcut epic with public ID: undefined",
+			);
+		});
+
+		test("should throw error when epic is not found", async () => {
+			const mockClient = createMockClient({
+				getEpic: mock(async () => null),
+				updateEpic: updateEpicMock,
+			});
+			const epicTools = new EpicTools(mockClient);
+
+			await expect(() =>
+				epicTools.updateEpic({
+					epicPublicId: 999,
+					name: "Updated Epic",
+				}),
+			).toThrow("Failed to retrieve Shortcut epic with public ID: 999");
+		});
+
+		test("should handle null values for optional fields", async () => {
+			const mockClient = createMockClient({
+				getEpic: getEpicMock,
+				updateEpic: updateEpicMock,
+			});
+			const epicTools = new EpicTools(mockClient);
+			await epicTools.updateEpic({
+				epicPublicId: 1,
+				deadline: null,
+				team_id: null,
+			});
+
+			expect(updateEpicMock).toHaveBeenCalledTimes(1);
+			expect(updateEpicMock.mock.calls?.[0]?.[1]).toMatchObject({
+				deadline: null,
+				group_id: null,
+			});
+		});
+
+		test("should update external_id", async () => {
+			const mockClient = createMockClient({
+				getEpic: getEpicMock,
+				updateEpic: updateEpicMock,
+			});
+			const epicTools = new EpicTools(mockClient);
+			await epicTools.updateEpic({
+				epicPublicId: 1,
+				external_id: "ext-123",
+			});
+
+			expect(updateEpicMock).toHaveBeenCalledTimes(1);
+			expect(updateEpicMock.mock.calls?.[0]?.[1]).toMatchObject({
+				external_id: "ext-123",
+			});
+		});
+	});
+
+	describe("deleteEpic method", () => {
+		const getEpicMock = mock(async (id: number) => mockEpics.find((epic) => epic.id === id));
+		const deleteEpicMock = mock(async (_id: number) => undefined);
+
+		beforeEach(() => {
+			deleteEpicMock.mockClear();
+		});
+
+		test("should delete epic successfully", async () => {
+			const mockClient = createMockClient({
+				getEpic: getEpicMock,
+				deleteEpic: deleteEpicMock,
+			});
+			const epicTools = new EpicTools(mockClient);
+			const result = await epicTools.deleteEpic(1);
+
+			expect(getTextContent(result)).toBe("Deleted epic 1.");
+			expect(deleteEpicMock).toHaveBeenCalledTimes(1);
+			expect(deleteEpicMock.mock.calls?.[0]?.[0]).toBe(1);
+		});
+
+		test("should throw error when epic public ID is not provided", async () => {
+			const mockClient = createMockClient({
+				getEpic: getEpicMock,
+				deleteEpic: deleteEpicMock,
+			});
+			const epicTools = new EpicTools(mockClient);
+
+			// @ts-ignore - Testing runtime check for missing ID
+			await expect(() => epicTools.deleteEpic(0)).toThrow(
+				"Failed to retrieve Shortcut epic with public ID: 0",
+			);
+		});
+
+		test("should throw error when epic is not found", async () => {
+			const mockClient = createMockClient({
+				getEpic: mock(async () => null),
+				deleteEpic: deleteEpicMock,
+			});
+			const epicTools = new EpicTools(mockClient);
+
+			await expect(() => epicTools.deleteEpic(999)).toThrow(
+				"Failed to retrieve Shortcut epic with public ID: 999",
+			);
 		});
 	});
 });

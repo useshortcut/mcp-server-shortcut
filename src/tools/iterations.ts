@@ -12,7 +12,7 @@ export class IterationTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"iterations-get-stories",
-			"Get stories in a specific iteration by iteration public ID",
+			"Get stories in a specific iteration by iteration public ID.",
 			{
 				iterationPublicId: z.number().positive().describe("The public ID of the iteration"),
 				includeStoryDescriptions: z
@@ -29,7 +29,7 @@ export class IterationTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"iterations-get-by-id",
-			"Get a Shortcut iteration by public ID",
+			"Get a Shortcut iteration by public ID.",
 			{
 				iterationPublicId: z.number().positive().describe("The public ID of the iteration to get"),
 				full: z
@@ -79,7 +79,7 @@ export class IterationTools extends BaseTools {
 
 		server.addToolWithWriteAccess(
 			"iterations-create",
-			"Create a new Shortcut iteration",
+			"Create a new Shortcut iteration.",
 			{
 				name: z.string().describe("The name of the iteration"),
 				startDate: z.string().describe("The start date of the iteration in YYYY-MM-DD format"),
@@ -90,9 +90,60 @@ export class IterationTools extends BaseTools {
 			async (params) => await tools.createIteration(params),
 		);
 
+		server.addToolWithWriteAccess(
+			"iterations-update",
+			"Update an existing Shortcut iteration. Only provide fields you want to update. Note: iteration status (unstarted/started/done) is calculated based on dates.",
+			{
+				iterationPublicId: z
+					.number()
+					.positive()
+					.describe("The public ID of the iteration to update"),
+				name: z.string().max(256).optional().describe("The name of the iteration"),
+				description: z.string().max(100000).optional().describe("A description of the iteration"),
+				startDate: z
+					.string()
+					.optional()
+					.describe("The start date of the iteration in YYYY-MM-DD format"),
+				endDate: z
+					.string()
+					.optional()
+					.describe("The end date of the iteration in YYYY-MM-DD format"),
+				team_ids: z
+					.array(z.string())
+					.optional()
+					.describe("Array of team (group) UUIDs to associate with the iteration"),
+				follower_ids: z
+					.array(z.string())
+					.optional()
+					.describe("Array of user UUIDs to add as followers of the iteration"),
+				labels: z
+					.array(
+						z.object({
+							name: z.string().describe("The name of the label"),
+							color: z.string().optional().describe("The color of the label"),
+						}),
+					)
+					.optional()
+					.describe("Labels to assign to the iteration"),
+			},
+			async (params) => await tools.updateIteration(params),
+		);
+
+		server.addToolWithWriteAccess(
+			"iterations-delete",
+			"Delete a Shortcut iteration. This action cannot be undone. Stories in the iteration will be unassigned from it.",
+			{
+				iterationPublicId: z
+					.number()
+					.positive()
+					.describe("The public ID of the iteration to delete"),
+			},
+			async ({ iterationPublicId }) => await tools.deleteIteration(iterationPublicId),
+		);
+
 		server.addToolWithReadAccess(
 			"iterations-get-active",
-			"Get the active Shortcut iterations for the current user based on their team memberships",
+			"Get the active Shortcut iterations for the current user based on their team memberships.",
 			{
 				teamId: z.string().optional().describe("The ID of a team to filter iterations by"),
 			},
@@ -101,7 +152,7 @@ export class IterationTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"iterations-get-upcoming",
-			"Get the upcoming Shortcut iterations for the current user based on their team memberships",
+			"Get the upcoming Shortcut iterations for the current user based on their team memberships.",
 			{
 				teamId: z.string().optional().describe("The ID of a team to filter iterations by"),
 			},
@@ -119,7 +170,7 @@ export class IterationTools extends BaseTools {
 
 		if (!stories)
 			throw new Error(
-				`Failed to retrieve Shortcut stories in iteration with public ID: ${iterationPublicId}.`,
+				`Failed to retrieve Shortcut stories in iteration with public ID: ${iterationPublicId}`,
 			);
 
 		return this.toResult(
@@ -151,9 +202,7 @@ export class IterationTools extends BaseTools {
 		const iteration = await this.client.getIteration(iterationPublicId);
 
 		if (!iteration)
-			throw new Error(
-				`Failed to retrieve Shortcut iteration with public ID: ${iterationPublicId}.`,
-			);
+			throw new Error(`Failed to retrieve Shortcut iteration with public ID: ${iterationPublicId}`);
 
 		return this.toResult(
 			`Iteration: ${iterationPublicId}`,
@@ -185,6 +234,50 @@ export class IterationTools extends BaseTools {
 		if (!iteration) throw new Error(`Failed to create the iteration.`);
 
 		return this.toResult(`Iteration created with ID: ${iteration.id}.`);
+	}
+
+	async updateIteration({
+		iterationPublicId,
+		...updates
+	}: {
+		iterationPublicId: number;
+		name?: string;
+		description?: string;
+		startDate?: string;
+		endDate?: string;
+		team_ids?: string[];
+		follower_ids?: string[];
+		labels?: Array<{ name: string; color?: string }>;
+	}): Promise<CallToolResult> {
+		const iteration = await this.client.getIteration(iterationPublicId);
+		if (!iteration)
+			throw new Error(`Failed to retrieve Shortcut iteration with public ID: ${iterationPublicId}`);
+
+		// Build update params, mapping API field names where they differ
+		const updateParams: Record<string, unknown> = {};
+		if (updates.name !== undefined) updateParams.name = updates.name;
+		if (updates.description !== undefined) updateParams.description = updates.description;
+		if (updates.startDate !== undefined) updateParams.start_date = updates.startDate;
+		if (updates.endDate !== undefined) updateParams.end_date = updates.endDate;
+		if (updates.team_ids !== undefined) updateParams.group_ids = updates.team_ids;
+		if (updates.follower_ids !== undefined) updateParams.follower_ids = updates.follower_ids;
+		if (updates.labels !== undefined) updateParams.labels = updates.labels;
+
+		const updatedIteration = await this.client.updateIteration(iterationPublicId, updateParams);
+
+		return this.toResult(
+			`Updated iteration ${iterationPublicId}. Iteration URL: ${updatedIteration.app_url}`,
+		);
+	}
+
+	async deleteIteration(iterationPublicId: number): Promise<CallToolResult> {
+		const iteration = await this.client.getIteration(iterationPublicId);
+		if (!iteration)
+			throw new Error(`Failed to retrieve Shortcut iteration with public ID: ${iterationPublicId}`);
+
+		await this.client.deleteIteration(iterationPublicId);
+
+		return this.toResult(`Deleted iteration ${iterationPublicId}.`);
 	}
 
 	async getActiveIterations(teamId?: string) {
