@@ -2,6 +2,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { ShortcutClient } from "@shortcut/client";
 import { ShortcutClientWrapper } from "@/client/shortcut";
 import { CustomMcpServer } from "./mcp/CustomMcpServer";
+import { StoryPrompts } from "./prompts/stories";
 import { DocumentTools } from "./tools/documents";
 import { EpicTools } from "./tools/epics";
 import { IterationTools } from "./tools/iterations";
@@ -42,6 +43,9 @@ if (!apiToken) {
 
 const server = new CustomMcpServer({ readonly: isReadonly, tools: enabledTools });
 const client = new ShortcutClientWrapper(new ShortcutClient(apiToken));
+
+// Register prompts
+StoryPrompts.create(server);
 
 // The order these are created impacts the order they are listed to the LLM. Most important tools should be at the top.
 UserTools.create(client, server);
