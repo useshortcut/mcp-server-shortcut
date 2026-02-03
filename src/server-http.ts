@@ -619,35 +619,13 @@ async function startServer() {
 		});
 	});
 
-app.get("/.well-known/oauth-protected-resource", (_req: Request, res: Response) => {
-	res.json({
-		resource: MCP_SERVER_URL,
-		authorization_servers: [`${ISSUER}`],
-		bearer_methods_supported: ["header"],
-	});
-});
-
-// OAuth Authorization Server Metadata proxy (for older clients)
-app.get("/.well-known/oauth-authorization-server", async (_req: Request, res: Response) => {
-	try {
-		// const response = await fetch(
-		// 	`https://${AUTH_SERVER}/${OAUTH_AUTHORIZATION_PATH}`
-		// );
-		//const metadata = await response.json();
+	app.get("/.well-known/oauth-protected-resource", (_req: Request, res: Response) => {
 		res.json({
-			authorization_endpoint: "https://api.app.shortcut-staging.com/oauth2/authorize",
-			grant_types_supported: ["authorization_code", "refresh_token"],
-			issuer: "https://api.app.shortcut-staging.com/oauth2/authorize",
-			scopes_supported: ["openid"],
-			response_modes_supported: ["query"],
-			response_types_supported: ["code"],
-			token_endpoint: "https://api.app.shortcut-staging.com/oauth2/token",
-			token_endpoint_auth_methods_supported: ["none"]
+			resource: `${MCP_SERVER_URL}/mcp`,
+			authorization_servers: [`https://${AUTH_SERVER}`],
+			bearer_methods_supported: ["header"],
 		});
-	} catch (_error) {
-		res.status(502).json({ error: "Failed to fetch authorization server metadata" });
-	}
-});
+	});
 
 	app.post("/mcp", (req, res) => handleMcpPost(req, res, sessionManager, config));
 	app.get("/mcp", (req, res) => handleMcpGet(req, res, sessionManager));
