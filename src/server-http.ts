@@ -14,6 +14,7 @@ import { StoryTools } from "./tools/stories";
 import { TeamTools } from "./tools/teams";
 import { UserTools } from "./tools/user";
 import { WorkflowTools } from "./tools/workflows";
+import 'dotenv/config';
 
 // ============================================================================
 // Constants
@@ -23,9 +24,14 @@ const DEFAULT_PORT = 9292;
 const BEARER_PREFIX = "Bearer ";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
+const AUTH_SERVER = process.env.AUTH_SERVER ?? "api.app.shortcut-staging.com";
+const MCP_SERVER_URL = process.env.MCP_SERVER_URL ?? `http://localhost:${process.env.PORT ?? DEFAULT_PORT}`;
+const ISSUER = process.env.ISSUER ?? `https://${AUTH_SERVER}/oauth2`;
+
+const OAUTH_PROTECTED_RESOURCE_PATH = "/.well-known/oauth-protected-resource";
+
 const HEADERS = {
 	AUTHORIZATION: "authorization",
-	X_SHORTCUT_API_TOKEN: "x-shortcut-api-token",
 	MCP_SESSION_ID: "mcp-session-id",
 	LAST_EVENT_ID: "last-event-id",
 } as const;
@@ -34,7 +40,6 @@ const JSON_RPC_ERRORS = {
 	UNAUTHORIZED: { code: -32000, message: "Unauthorized" },
 	BAD_REQUEST: { code: -32000, message: "Bad Request" },
 	SESSION_NOT_FOUND: { code: -32001, message: "Session not found" },
-	INVALID_TOKEN: { code: -32002, message: "Invalid API token" },
 	INTERNAL_ERROR: { code: -32603, message: "Internal server error" },
 } as const;
 
@@ -108,7 +113,7 @@ function parseToolsList(toolsStr: string): string[] {
 
 interface SessionData {
 	transport: StreamableHTTPServerTransport;
-	apiToken: string; // Store hashed version in production
+	accessToken: string; // Store hashed version in production
 	createdAt: Date;
 	lastAccessedAt: Date;
 }
@@ -134,10 +139,14 @@ class SessionManager {
 		return session;
 	}
 
-	add(sessionId: string, transport: StreamableHTTPServerTransport, apiToken: string): void {
+	add(
+		sessionId: string,
+		transport: StreamableHTTPServerTransport,
+		accessToken: string,
+	): void {
 		this.sessions.set(sessionId, {
 			transport,
-			apiToken,
+			accessToken,
 			createdAt: new Date(),
 			lastAccessedAt: new Date(),
 		});
@@ -152,13 +161,12 @@ class SessionManager {
 		}
 	}
 
-	validateToken(sessionId: string, providedToken: string): boolean {
+	validateToken(sessionId: string, accessToken: string): boolean {
 		const session = this.sessions.get(sessionId);
 		if (!session) {
 			return false;
 		}
-		// Compare hashed tokens
-		return session.apiToken === providedToken;
+		return session.accessToken === accessToken;
 	}
 
 	private cleanupStaleSessions(): void {
@@ -212,39 +220,12 @@ class SessionManager {
 // Authentication & Validation
 // ============================================================================
 
-function extractApiToken(req: Request): string | null {
-	// Try Authorization header first (Bearer token)
+function extractAccessToken(req: Request): string | null {
 	const authHeader = req.headers[HEADERS.AUTHORIZATION];
 	if (authHeader?.startsWith(BEARER_PREFIX)) {
 		return authHeader.slice(BEARER_PREFIX.length);
 	}
-
-	// Try custom header
-	const customHeader = req.headers[HEADERS.X_SHORTCUT_API_TOKEN];
-	if (typeof customHeader === "string") {
-		return customHeader;
-	}
-
 	return null;
-}
-
-/**
- * Validates the API token by attempting to fetch current user info.
- * This ensures the token is valid before creating a session.
- */
-async function validateApiToken(token: string): Promise<boolean> {
-	try {
-		const client = new ShortcutClient(token);
-		// Validate by attempting to get current user info
-		await client.getCurrentMemberInfo();
-		return true;
-	} catch (error) {
-		logger.debug(
-			{ error: error instanceof Error ? error.message : error },
-			"API token validation failed",
-		);
-		return false;
-	}
 }
 
 // ============================================================================
@@ -260,27 +241,31 @@ interface JsonRpcError {
 	id: unknown;
 }
 
+function getProtectedResourceMetadataUrl(): string {
+	return new URL(OAUTH_PROTECTED_RESOURCE_PATH, MCP_SERVER_URL).toString();
+}
+
+function setWwwAuthenticateHeader(res: Response): void {
+	const headerValue = [
+		'Bearer error="unauthorized"',
+		'error_description="Authorization needed"',
+		`resource_metadata="${getProtectedResourceMetadataUrl()}"`,
+	].join(", ");
+
+	res.set("WWW-Authenticate", headerValue);
+}
+
 function sendUnauthorizedError(res: Response, message?: string): void {
+	setWwwAuthenticateHeader(res);
 	res.status(401).json({
 		jsonrpc: "2.0",
 		error: {
 			...JSON_RPC_ERRORS.UNAUTHORIZED,
 			message:
 				message ||
-				"API token required. Provide via Authorization: Bearer <token> or X-Shortcut-API-Token: <token>",
+				"Access token required. Provide via Authorization: Bearer <token>.",
 		},
 		id: null,
-	} satisfies JsonRpcError);
-}
-
-function sendInvalidTokenError(res: Response, requestId?: unknown): void {
-	res.status(401).json({
-		jsonrpc: "2.0",
-		error: {
-			...JSON_RPC_ERRORS.INVALID_TOKEN,
-			message: "Invalid or expired API token. Please check your credentials.",
-		},
-		id: requestId || null,
 	} satisfies JsonRpcError);
 }
 
@@ -321,12 +306,12 @@ function sendInternalError(res: Response, requestId?: unknown): void {
 // MCP Server Creation
 // ============================================================================
 
-function createServerInstance(apiToken: string, config: ServerConfig): CustomMcpServer {
+function createServerInstance(accessToken: string, config: ServerConfig): CustomMcpServer {
 	const server = new CustomMcpServer({
 		readonly: config.isReadonly,
 		tools: config.enabledTools,
 	});
-	const client = new ShortcutClientWrapper(new ShortcutClient(apiToken));
+	const client = new ShortcutClientWrapper(new ShortcutClient(accessToken));
 
 	// The order these are created impacts the order they are listed to the LLM
 	// Most important tools should be at the top
@@ -347,7 +332,7 @@ function createServerInstance(apiToken: string, config: ServerConfig): CustomMcp
 // ============================================================================
 
 async function createTransport(
-	apiToken: string,
+	accessToken: string,
 	config: ServerConfig,
 	sessionManager: SessionManager,
 ): Promise<StreamableHTTPServerTransport> {
@@ -357,7 +342,7 @@ async function createTransport(
 		sessionIdGenerator: () => randomUUID(),
 		onsessioninitialized: (sid): void => {
 			if (transport) {
-				sessionManager.add(sid, transport, apiToken);
+				sessionManager.add(sid, transport, accessToken);
 			}
 		},
 	});
@@ -372,8 +357,8 @@ async function createTransport(
 		}
 	};
 
-	// Create server instance with the API token and connect
-	const server = createServerInstance(apiToken, config);
+	// Create server instance with the access token and connect
+	const server = createServerInstance(accessToken, config);
 	await server.connect(transport);
 
 	return transport;
@@ -390,24 +375,24 @@ async function handleMcpPost(
 	config: ServerConfig,
 ): Promise<void> {
 	const sessionId = req.headers[HEADERS.MCP_SESSION_ID] as string | undefined;
-	const apiToken = extractApiToken(req);
+	const accessToken = extractAccessToken(req);
 	const requestId = req.body?.id;
 
 	const reqLogger = logger.child({ sessionId: sessionId || "new", method: "POST" });
-	reqLogger.debug({ hasToken: !!apiToken }, "Received POST request");
+	reqLogger.debug({ hasAccessToken: !!accessToken }, "Received POST request");
 
 	try {
 		// Scenario 1: Existing session
 		if (sessionId && sessionManager.has(sessionId)) {
-			if (!apiToken) {
+			if (!accessToken) {
 				sendUnauthorizedError(res);
 				return;
 			}
 
 			// Validate that the provided token matches the session's token
-			if (!sessionManager.validateToken(sessionId, apiToken)) {
+			if (!sessionManager.validateToken(sessionId, accessToken)) {
 				reqLogger.warn("Token mismatch for session");
-				sendUnauthorizedError(res, "API token does not match the session");
+				sendUnauthorizedError(res, "Token does not match the session");
 				return;
 			}
 
@@ -418,22 +403,13 @@ async function handleMcpPost(
 
 		// Scenario 2: Initialization request
 		if (isInitializeRequest(req.body)) {
-			if (!apiToken) {
+			if (!accessToken) {
 				sendUnauthorizedError(res);
 				return;
 			}
 
-			// Validate the API token before creating a session
-			reqLogger.info("Validating API token");
-			const isValid = await validateApiToken(apiToken);
-			if (!isValid) {
-				reqLogger.warn("API token validation failed");
-				sendInvalidTokenError(res, requestId);
-				return;
-			}
-
-			reqLogger.info("API token validated, creating session");
-			const transport = await createTransport(apiToken, config, sessionManager);
+			reqLogger.info("Creating session");
+			const transport = await createTransport(accessToken, config, sessionManager);
 			await transport.handleRequest(req, res, req.body);
 			return;
 		}
@@ -458,7 +434,7 @@ async function handleMcpGet(
 	sessionManager: SessionManager,
 ): Promise<void> {
 	const sessionId = req.headers[HEADERS.MCP_SESSION_ID] as string | undefined;
-	const apiToken = extractApiToken(req);
+	const accessToken = extractAccessToken(req);
 
 	const reqLogger = logger.child({ sessionId, method: "GET" });
 
@@ -468,14 +444,14 @@ async function handleMcpGet(
 	}
 
 	// Validate token for SSE stream establishment
-	if (!apiToken) {
+	if (!accessToken) {
 		sendUnauthorizedError(res);
 		return;
 	}
 
-	if (!sessionManager.validateToken(sessionId, apiToken)) {
+	if (!sessionManager.validateToken(sessionId, accessToken)) {
 		reqLogger.warn("Token mismatch for GET request");
-		sendUnauthorizedError(res, "API token does not match the session");
+		sendUnauthorizedError(res, "Token does not match the session");
 		return;
 	}
 
@@ -503,7 +479,7 @@ async function handleMcpDelete(
 	sessionManager: SessionManager,
 ): Promise<void> {
 	const sessionId = req.headers[HEADERS.MCP_SESSION_ID] as string | undefined;
-	const apiToken = extractApiToken(req);
+	const accessToken = extractAccessToken(req);
 
 	const reqLogger = logger.child({ sessionId, method: "DELETE" });
 
@@ -513,14 +489,14 @@ async function handleMcpDelete(
 	}
 
 	// Validate token for session termination
-	if (!apiToken) {
+	if (!accessToken) {
 		sendUnauthorizedError(res);
 		return;
 	}
 
-	if (!sessionManager.validateToken(sessionId, apiToken)) {
+	if (!sessionManager.validateToken(sessionId, accessToken)) {
 		reqLogger.warn("Token mismatch for DELETE request");
-		sendUnauthorizedError(res, "API token does not match the session");
+		sendUnauthorizedError(res, "Token does not match the session");
 		return;
 	}
 
@@ -547,7 +523,7 @@ function corsMiddleware(req: Request, res: Response, next: NextFunction): void {
 	res.header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
 	res.header(
 		"Access-Control-Allow-Headers",
-		"Content-Type, Authorization, X-Shortcut-API-Token, Mcp-Session-Id, Last-Event-Id",
+		"Content-Type, Authorization, Mcp-Session-Id, Last-Event-Id",
 	);
 	res.header("Access-Control-Expose-Headers", "Mcp-Session-Id");
 
@@ -564,14 +540,14 @@ function corsMiddleware(req: Request, res: Response, next: NextFunction): void {
  */
 function loggingMiddleware(req: Request, _res: Response, next: NextFunction): void {
 	const sessionId = req.headers[HEADERS.MCP_SESSION_ID];
-	const hasToken = !!extractApiToken(req);
+	const hasAccessToken = !!extractAccessToken(req);
 
 	logger.debug(
 		{
 			method: req.method,
 			path: req.path,
 			sessionId: sessionId || "none",
-			hasToken,
+			hasAccessToken,
 		},
 		"Incoming request",
 	);
@@ -582,7 +558,6 @@ function loggingMiddleware(req: Request, _res: Response, next: NextFunction): vo
 function httpDebugRequestMiddleware(req: Request, _res: Response, next: NextFunction): void {
 	const headers = { ...req.headers };
 	delete headers[HEADERS.AUTHORIZATION];
-	delete headers[HEADERS.X_SHORTCUT_API_TOKEN];
 	delete headers.cookie;
 
 	logger.info(
@@ -643,6 +618,36 @@ async function startServer() {
 			version: "2025-06-18", // MCP spec version
 		});
 	});
+
+app.get("/.well-known/oauth-protected-resource", (_req: Request, res: Response) => {
+	res.json({
+		resource: MCP_SERVER_URL,
+		authorization_servers: [`${ISSUER}`],
+		bearer_methods_supported: ["header"],
+	});
+});
+
+// OAuth Authorization Server Metadata proxy (for older clients)
+app.get("/.well-known/oauth-authorization-server", async (_req: Request, res: Response) => {
+	try {
+		// const response = await fetch(
+		// 	`https://${AUTH_SERVER}/${OAUTH_AUTHORIZATION_PATH}`
+		// );
+		//const metadata = await response.json();
+		res.json({
+			authorization_endpoint: "https://api.app.shortcut-staging.com/oauth2/authorize",
+			grant_types_supported: ["authorization_code", "refresh_token"],
+			issuer: "https://api.app.shortcut-staging.com/oauth2/authorize",
+			scopes_supported: ["openid"],
+			response_modes_supported: ["query"],
+			response_types_supported: ["code"],
+			token_endpoint: "https://api.app.shortcut-staging.com/oauth2/token",
+			token_endpoint_auth_methods_supported: ["none"]
+		});
+	} catch (_error) {
+		res.status(502).json({ error: "Failed to fetch authorization server metadata" });
+	}
+});
 
 	app.post("/mcp", (req, res) => handleMcpPost(req, res, sessionManager, config));
 	app.get("/mcp", (req, res) => handleMcpGet(req, res, sessionManager));
