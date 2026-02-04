@@ -1,0 +1,98 @@
+name: Publish MCPB Bundle
+
+on:
+  push:
+    branches: [mdthorpe/sc-307141/create-mcpb-bundle-releases-for-shortcut-mcp]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (defaults to package.json version)'
+        required: false
+        type: string
+
+jobs:
+  build-mcpb:
+    name: Build and Publish MCPB Bundle
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Get version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            VERSION=$(node -p "require('./package.json').version")
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update manifest version
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+            manifest.version = '$VERSION';
+            fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, '\t'));
+          "
+
+      - name: Create bundle directory
+        run: mkdir -p bundle
+
+      - name: Copy manifest
+        run: cp manifest.json bundle/
+
+      - name: Copy built server
+        run: cp -r dist bundle/
+
+      - name: Install production dependencies in bundle
+        working-directory: bundle
+        run: |
+          cp ../package.json .
+          cp ../package-lock.json .
+          npm ci --omit=dev
+          rm package.json package-lock.json
+
+      - name: Copy icon (if exists)
+        run: |
+          if [ -f assets/icon.png ]; then
+            cp assets/icon.png bundle/icon.png
+          fi
+
+      - name: Create MCPB bundle
+        run: |
+          cd bundle
+          zip -r ../shortcut-mcp-${{ steps.version.outputs.version }}.mcpb .
+
+      - name: Upload MCPB as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: shortcut-mcp-${{ steps.version.outputs.version }}.mcpb
+          path: shortcut-mcp-${{ steps.version.outputs.version }}.mcpb
+
+      - name: Upload MCPB to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: shortcut-mcp-${{ steps.version.outputs.version }}.mcpb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,113 @@
+{
+	"manifest_version": "0.3",
+	"name": "shortcut-mcp",
+	"display_name": "Shortcut MCP Server",
+	"version": "0.19.0",
+	"description": "MCP server for interacting with Shortcut project management - create, update, and search stories, epics, iterations, and more",
+	"long_description": "The Shortcut MCP Server enables AI assistants to interact with your Shortcut workspace. Manage stories, epics, iterations, objectives, documents, and more directly through natural language. Features include creating and updating stories, searching across your workspace, managing team workflows, and organizing work with labels and iterations.",
+	"author": {
+		"name": "Shortcut",
+		"url": "https://www.shortcut.com"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/useshortcut/mcp-server-shortcut.git"
+	},
+	"homepage": "https://www.shortcut.com",
+	"documentation": "https://github.com/useshortcut/mcp-server-shortcut#readme",
+	"support": "https://github.com/useshortcut/mcp-server-shortcut/issues",
+	"icon": "icon.png",
+	"server": {
+		"type": "node",
+		"entry_point": "dist/server.js",
+		"mcp_config": {
+			"command": "node",
+			"args": ["${__dirname}/dist/server.js"],
+			"env": {
+				"SHORTCUT_API_TOKEN": "${user_config.api_token}",
+				"SHORTCUT_READONLY": "${user_config.readonly_mode}",
+				"SHORTCUT_TOOLS": "${user_config.enabled_tools}"
+			}
+		}
+	},
+	"tools": [
+		{ "name": "users-get-current", "description": "Get the current user" },
+		{ "name": "users-get-current-teams", "description": "Get a list of teams where the current user is a member" },
+		{ "name": "users-list", "description": "Get all users" },
+		{ "name": "stories-get-by-id", "description": "Get a Shortcut story by public ID" },
+		{ "name": "stories-search", "description": "Find Shortcut stories" },
+		{ "name": "stories-get-branch-name", "description": "Get a valid branch name for a specific story" },
+		{ "name": "stories-create", "description": "Create a new Shortcut story" },
+		{ "name": "stories-update", "description": "Update an existing Shortcut story" },
+		{ "name": "stories-upload-file", "description": "Upload a file and link it to a story" },
+		{ "name": "stories-assign-current-user", "description": "Assign the current user as the owner of a story" },
+		{ "name": "stories-unassign-current-user", "description": "Unassign the current user as the owner of a story" },
+		{ "name": "stories-create-comment", "description": "Create a comment on a story" },
+		{ "name": "stories-create-subtask", "description": "Create a new story as a sub-task" },
+		{ "name": "stories-add-subtask", "description": "Add an existing story as a sub-task" },
+		{ "name": "stories-remove-subtask", "description": "Remove a story from its parent" },
+		{ "name": "stories-add-task", "description": "Add a task to a story" },
+		{ "name": "stories-update-task", "description": "Update a task in a story" },
+		{ "name": "stories-add-relation", "description": "Add a story relationship to a story" },
+		{ "name": "stories-add-external-link", "description": "Add an external link to a Shortcut story" },
+		{ "name": "stories-remove-external-link", "description": "Remove an external link from a Shortcut story" },
+		{ "name": "stories-set-external-links", "description": "Replace all external links on a story with a new set of links" },
+		{ "name": "stories-get-by-external-link", "description": "Find all stories that contain a specific external link" },
+		{ "name": "iterations-get-stories", "description": "Get stories in a specific iteration by iteration public ID" },
+		{ "name": "iterations-get-by-id", "description": "Get a Shortcut iteration by public ID" },
+		{ "name": "iterations-search", "description": "Find Shortcut iterations" },
+		{ "name": "iterations-create", "description": "Create a new Shortcut iteration" },
+		{ "name": "iterations-get-active", "description": "Get the active Shortcut iterations for the current user" },
+		{ "name": "iterations-get-upcoming", "description": "Get the upcoming Shortcut iterations for the current user" },
+		{ "name": "epics-get-by-id", "description": "Get a Shortcut epic by public ID" },
+		{ "name": "epics-search", "description": "Find Shortcut epics" },
+		{ "name": "epics-create", "description": "Create a new Shortcut epic" },
+		{ "name": "objectives-get-by-id", "description": "Get a Shortcut objective by public ID" },
+		{ "name": "objectives-search", "description": "Find Shortcut objectives" },
+		{ "name": "teams-get-by-id", "description": "Get a Shortcut team by public ID" },
+		{ "name": "teams-list", "description": "List all Shortcut teams" },
+		{ "name": "workflows-get-default", "description": "Get the default workflow for a specific team or the global default" },
+		{ "name": "workflows-get-by-id", "description": "Get a Shortcut workflow by public ID" },
+		{ "name": "workflows-list", "description": "List all Shortcut workflows" },
+		{ "name": "documents-create", "description": "Create a new document in Shortcut" },
+		{ "name": "documents-update", "description": "Update an existing document in Shortcut" },
+		{ "name": "documents-list", "description": "List all documents in Shortcut" },
+		{ "name": "documents-search", "description": "Find documents" },
+		{ "name": "documents-get-by-id", "description": "Get a document as markdown by its ID" },
+		{ "name": "labels-list", "description": "List all labels in the Shortcut workspace" },
+		{ "name": "labels-create", "description": "Create a new label in Shortcut" }
+	],
+	"keywords": ["shortcut", "mcp", "project-management", "stories", "epics", "iterations", "agile"],
+	"license": "MIT",
+	"privacy_policies": ["https://www.shortcut.com/privacy-policy"],
+	"user_config": {
+		"api_token": {
+			"type": "string",
+			"title": "Shortcut API Token",
+			"description": "Your Shortcut API token. Generate one at https://app.shortcut.com/settings/account/api-tokens",
+			"sensitive": true,
+			"required": true
+		},
+		"readonly_mode": {
+			"type": "boolean",
+			"title": "Read-Only Mode",
+			"description": "When enabled, only read operations are allowed (no creating or updating)",
+			"default": false,
+			"required": false
+		},
+		"enabled_tools": {
+			"type": "string",
+			"title": "Enabled Tools",
+			"description": "Comma-separated list of tool names to enable. Leave empty to enable all tools.",
+			"default": "",
+			"required": false
+		}
+	},
+	"compatibility": {
+		"claude_desktop": ">=0.10.0",
+		"platforms": ["darwin", "win32", "linux"],
+		"runtimes": {
+			"node": ">=18.0.0"
+		}
+	}
+}

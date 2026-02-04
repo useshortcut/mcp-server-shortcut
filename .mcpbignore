@@ -1,0 +1,34 @@
+# Source files (we only need compiled dist)
+src/
+*.ts
+tsconfig.json
+tsdown.config.ts
+
+# Development files
+.git/
+.github/
+.husky/
+.env*
+*.test.ts
+*.test.js
+
+# Config files not needed in bundle
+biome.json
+bunfig.toml
+.gitignore
+.mcpbignore
+
+# Documentation (optional - can include if desired)
+# README.md
+# LICENSE
+
+# Build artifacts and caches
+*.log
+.DS_Store
+coverage/
+
+# Docker/deployment files not needed for MCPB
+Dockerfile
+codedeploy/
+
+# Development dependencies are excluded via npm ci --omit=dev
