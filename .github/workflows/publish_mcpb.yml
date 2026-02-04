@@ -35,6 +35,12 @@ jobs:
       - name: Build TypeScript
         run: npm run build
 
+      - name: Copy icon to dist
+        run: |
+          if [ -f assets/icon.png ]; then
+            cp assets/icon.png dist/icon.png
+          fi
+
       - name: Get version
         id: version
         run: |
@@ -55,44 +61,28 @@ jobs:
             fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, '\t'));
           "
 
-      - name: Create bundle directory
-        run: mkdir -p bundle
+      - name: Install mcpb CLI
+        run: npm install -g @anthropic-ai/mcpb
 
-      - name: Copy manifest
-        run: cp manifest.json bundle/
+      - name: Pack MCPB bundle
+        run: mcpb pack
 
-      - name: Copy built server
-        run: cp -r dist bundle/
-
-      - name: Install production dependencies in bundle
-        working-directory: bundle
+      - name: Find MCPB file
+        id: find_mcpb
         run: |
-          cp ../package.json .
-          cp ../package-lock.json .
-          npm ci --omit=dev
-          rm package.json package-lock.json
-
-      - name: Copy icon (if exists)
-        run: |
-          if [ -f assets/icon.png ]; then
-            cp assets/icon.png bundle/icon.png
-          fi
-
-      - name: Create MCPB bundle
-        run: |
-          cd bundle
-          zip -r ../shortcut-mcp-${{ steps.version.outputs.version }}.mcpb .
+          MCPB_FILE=$(ls *.mcpb 2>/dev/null | head -1)
+          echo "file=$MCPB_FILE" >> $GITHUB_OUTPUT
 
       - name: Upload MCPB as artifact
         uses: actions/upload-artifact@v4
         with:
           name: shortcut-mcp-${{ steps.version.outputs.version }}.mcpb
-          path: shortcut-mcp-${{ steps.version.outputs.version }}.mcpb
+          path: ${{ steps.find_mcpb.outputs.file }}
 
       - name: Upload MCPB to release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v1
         with:
-          files: shortcut-mcp-${{ steps.version.outputs.version }}.mcpb
+          files: ${{ steps.find_mcpb.outputs.file }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
