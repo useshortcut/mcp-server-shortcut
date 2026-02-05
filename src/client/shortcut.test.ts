@@ -145,6 +145,11 @@ describe("ShortcutClientWrapper", () => {
 				const teams = await client.getTeams();
 				expect(teams.length).toBe(2);
 			});
+
+			test("should exclude archived teams", async () => {
+				await client.getTeams();
+				expect(mockClient.listGroups).toHaveBeenCalledWith({ archived: false });
+			});
 		});
 
 		describe("getTeam", () => {
