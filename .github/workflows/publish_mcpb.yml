@@ -2,7 +2,7 @@ name: Publish MCPB Bundle
 
 on:
   push:
-    branches: [mdthorpe/sc-307141/create-mcpb-bundle-releases-for-shortcut-mcp]
+    branches: main
   release:
     types: [published]
   workflow_dispatch:
