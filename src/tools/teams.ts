@@ -25,7 +25,7 @@ export class TeamTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"teams-list",
-			"List all Shortcut teams",
+			"List all non-archived Shortcut teams",
 			async () => await tools.getTeams(),
 		);
 
