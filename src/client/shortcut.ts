@@ -77,7 +77,7 @@ export class ShortcutClientWrapper {
 
 	private async loadTeams() {
 		if (this.teamCache.isStale) {
-			const response = await this.client.listGroups({ archived: false });
+			const response = await this.client.listGroups();
 			const groups = response?.data ?? null;
 
 			if (groups) {

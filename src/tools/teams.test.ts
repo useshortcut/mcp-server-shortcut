@@ -105,8 +105,8 @@ describe("TeamTools", () => {
 			spyOn(tools, "getTeams").mockImplementation(async () => ({
 				content: [{ text: "", type: "text" }],
 			}));
-			await mockTool.mock.calls?.[1]?.[2]();
-			expect(tools.getTeams).toHaveBeenCalled();
+			await mockTool.mock.calls?.[1]?.[3]({ includeArchived: true });
+			expect(tools.getTeams).toHaveBeenCalledWith(true);
 		});
 	});
 
@@ -180,6 +180,19 @@ describe("TeamTools", () => {
 	});
 
 	describe("getTeams method", () => {
+		const mockArchivedTeam = {
+			entity_type: "group",
+			id: "team3",
+			name: "Archived Team",
+			mention_name: "archived-team",
+			description: "An archived team",
+			archived: true,
+			app_url: "https://app.shortcut.com/test/team/team3",
+			global_id: "team3",
+			member_ids: [] as string[],
+			workflow_ids: [] as number[],
+		} as Group;
+
 		const getTeamsMock = mock(async () => mockTeams);
 		const getWorkflowMapMock = mock(async (ids: number[]) => {
 			const map = new Map<number, Workflow>();
@@ -199,7 +212,7 @@ describe("TeamTools", () => {
 
 		test("should return formatted list of teams when teams are found", async () => {
 			const teamTools = new TeamTools(mockClient);
-			const result = await teamTools.getTeams();
+			const result = await teamTools.getTeams(false);
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = getTextContent(result);
@@ -215,7 +228,7 @@ describe("TeamTools", () => {
 				getTeams: mock(async () => []),
 			} as unknown as ShortcutClientWrapper);
 
-			const result = await teamTools.getTeams();
+			const result = await teamTools.getTeams(false);
 
 			expect(result.content[0].type).toBe("text");
 			expect(getTextContent(result)).toBe("No teams found.");
@@ -234,7 +247,7 @@ describe("TeamTools", () => {
 				getTeamMap: mock(async () => new Map()),
 			} as unknown as ShortcutClientWrapper);
 
-			const result = await teamTools.getTeams();
+			const result = await teamTools.getTeams(false);
 
 			expect(result.content[0].type).toBe("text");
 			const textContent = getTextContent(result);
@@ -242,6 +255,44 @@ describe("TeamTools", () => {
 			expect(textContent).toContain('"id": "team1"');
 			expect(textContent).toContain('"name": "Team 1"');
 			expect(textContent).toContain('"workflow_ids": []');
+		});
+
+		test("should filter out archived teams when includeArchived is false", async () => {
+			const teamTools = new TeamTools({
+				getTeams: mock(async () => [...mockTeams, mockArchivedTeam]),
+				getWorkflowMap: getWorkflowMapMock,
+				getUserMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
+			} as unknown as ShortcutClientWrapper);
+
+			const result = await teamTools.getTeams(false);
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = getTextContent(result);
+			expect(textContent).toContain("Result (first 2 shown of 2 total teams found):");
+			expect(textContent).toContain('"id": "team1"');
+			expect(textContent).toContain('"id": "team2"');
+			expect(textContent).not.toContain('"id": "team3"');
+			expect(textContent).not.toContain("Archived Team");
+		});
+
+		test("should include archived teams when includeArchived is true", async () => {
+			const teamTools = new TeamTools({
+				getTeams: mock(async () => [...mockTeams, mockArchivedTeam]),
+				getWorkflowMap: getWorkflowMapMock,
+				getUserMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
+			} as unknown as ShortcutClientWrapper);
+
+			const result = await teamTools.getTeams(true);
+
+			expect(result.content[0].type).toBe("text");
+			const textContent = getTextContent(result);
+			expect(textContent).toContain("Result (first 3 shown of 3 total teams found):");
+			expect(textContent).toContain('"id": "team1"');
+			expect(textContent).toContain('"id": "team2"');
+			expect(textContent).toContain('"id": "team3"');
+			expect(textContent).toContain("Archived Team");
 		});
 	});
 });
