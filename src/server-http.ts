@@ -606,6 +606,7 @@ async function startServer() {
 	if (config.httpDebug) app.use(httpDebugRequestMiddleware);
 	app.use(corsMiddleware);
 	app.use(loggingMiddleware);
+	app.set('trust proxy', true);
 
 	app.use((req, res, next) => {
 		const start = Date.now();
