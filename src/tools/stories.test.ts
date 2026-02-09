@@ -507,7 +507,7 @@ describe("StoryTools", () => {
 		test("should throw error when story ID is not provided", async () => {
 			const storyTools = new StoryTools(mockClient);
 
-			// @ts-ignore - Testing runtime check for missing ID
+			// @ts-expect-error - Testing runtime check for missing ID
 			await expect(() => storyTools.updateStory({})).toThrow("Story public ID is required");
 		});
 	});
