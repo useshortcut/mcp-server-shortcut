@@ -18,8 +18,8 @@ The MCP server for [Shortcut](https://shortcut.com).
 
 See the [official Windsurf docs](https://docs.windsurf.com/windsurf/cascade/mcp) for more information.
 
-1. Open the `Windsurf MCP Configuration Panel`
-2. Click `Add custom server`.
+1. Open the MCP configuration by clicking the `MCPs` icon in the Cascade panel, or navigate to `Windsurf Settings` > `Cascade` > `MCP Servers`.
+2. Click `Add Custom Server` to edit the raw `mcp_config.json` file (located at `~/.codeium/windsurf/mcp_config.json`).
 3. Add the following details and save the file:
 
 ```json
@@ -66,35 +66,28 @@ See the [official Cursor docs](https://docs.cursor.com/context/model-context-pro
 
 ### Claude Code
 
-See the [official Claude Code docs](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/tutorials#set-up-model-context-protocol-mcp) for more information.
+See the [official Claude Code docs](https://docs.anthropic.com/en/docs/claude-code/mcp) for more information.
 
-_You can add a new MCP server from the Claude Code CLI. But modifying the json file directly is simpler!_
-
-You can either add a new MCP server from the command line:
+Add the MCP server from the command line:
 
 ```shell
 # Grab your Shortcut token here: https://app.shortcut.com/settings/account/api-tokens
-claude mcp add shortcut --transport=stdio -e SHORTCUT_API_TOKEN=$SHORTCUT_API_TOKEN -- npx -y @shortcut/mcp@latest
+claude mcp add shortcut --transport stdio -e SHORTCUT_API_TOKEN=$SHORTCUT_API_TOKEN -- npx -y @shortcut/mcp@latest
 ```
 
-Or you can edit the local JSON file directly:
-
-1. Open the Claude Code configuration file (it should be in `~/.claude.json`).
-2. Find the `projects` > `mcpServers` section and add the following details and save the file:
+Or you can create a `.mcp.json` file in your project root to share with your team:
 
 ```json
 {
-  "projects": {
-    "mcpServers": {
-      "shortcut": {
-        "command": "npx",
-        "args": [
-          "-y",
-          "@shortcut/mcp@latest"
-        ],
-        "env": {
-          "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
-        }
+  "mcpServers": {
+    "shortcut": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@shortcut/mcp@latest"
+      ],
+      "env": {
+        "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
       }
     }
   }
@@ -102,26 +95,72 @@ Or you can edit the local JSON file directly:
 ```
 
 ### Zed
-[Zed MCP Documentation](https://zed.dev/docs/ai/mcp)
-1. Open your `settings.json` file. Instructions [here](https://zed.dev/docs/configuring-zed#settings-files)
-2. Add the following details and save the file:
+
+See the [official Zed MCP docs](https://zed.dev/docs/ai/mcp) for more information.
+
+1. Open your `settings.json` file. Instructions [here](https://zed.dev/docs/configuring-zed#settings-files).
+2. Add the following to the `context_servers` section and save the file:
 
 ```json
+{
   "context_servers": {
     "shortcut": {
-      "settings":{},
-      "command": {
-        "path": "<PATH/TO/NPX>",
-        "args": [
-          "-y",
-          "@shortcut/mcp@latest"
-        ],
-        "env": {
-          "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
-        }
+      "command": "npx",
+      "args": [
+        "-y",
+        "@shortcut/mcp@latest"
+      ],
+      "env": {
+        "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
       }
     }
   }
+}
+```
+
+### VS Code
+
+See the [official VS Code MCP docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers) for more information.
+
+1. Create (or open) the `.vscode/mcp.json` file in your workspace.
+2. Add the following details and save the file:
+
+```json
+{
+  "servers": {
+    "shortcut": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@shortcut/mcp@latest"
+      ],
+      "env": {
+        "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
+      }
+    }
+  }
+}
+```
+
+### OpenCode
+
+See the [official OpenCode MCP docs](https://opencode.ai/docs/mcp-servers/) for more information.
+
+Add the following to your `opencode.json` configuration file:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "shortcut": {
+      "type": "local",
+      "command": ["npx", "-y", "@shortcut/mcp@latest"],
+      "environment": {
+        "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
+      }
+    }
+  }
+}
 ```
 
 ## Available Tools
@@ -204,7 +243,8 @@ You can limit the tools available to the LLM by setting the `SHORTCUT_TOOLS` env
 - Tools can be limited by entity type by just adding the entity, eg `stories` or `epics`.
 - Individual tools can also be limitied by their full name, eg `stories-get-by-id` or `epics-search`.
 
-By default, all tools are enabled.
+> [!NOTE]
+> By default, all tools are enabled.
 
 Example:
 
@@ -242,7 +282,8 @@ The following values are accepted in addition to the full tool names listed abov
 
 You can run the MCP server in read-only mode by setting the `SHORTCUT_READONLY` environment variable to `true`. This will disable all tools that modify data in Shortcut.
 
-Additionally, Shortcut now supports **read-only API tokens**, which you can use to ensure that the MCP server is limited to read-only operations at the API level. This provides an additional layer of security since the restriction is enforced by the Shortcut API itself, not just the MCP server. You can create a read-only token from your [Shortcut API tokens settings](https://app.shortcut.com/settings/account/api-tokens).
+> [!TIP]
+> Shortcut supports **read-only API tokens**, which you can use to ensure that the MCP server is limited to read-only operations at the API level. This provides an additional layer of security since the restriction is enforced by the Shortcut API itself, not just the MCP server. You can create a read-only token from your [Shortcut API tokens settings](https://app.shortcut.com/settings/account/api-tokens).
 
 Example:
 
@@ -266,7 +307,8 @@ Example:
 
 ## Issues and Troubleshooting
 
-Before doing anything else, please make sure you are running the latest version!
+> [!IMPORTANT]
+> Before doing anything else, please make sure you are running the latest version!
 
 If you run into problems using this MCP server, you have a couple of options:
 
