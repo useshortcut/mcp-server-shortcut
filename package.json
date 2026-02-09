@@ -51,6 +51,7 @@
 		"build": "tsdown",
 		"prepublish": "bun run build",
 		"prepare": "husky",
+		"dev": "bun src/server.ts",
 		"dev:http": "bun run src/server-http.ts",
 		"prod:http": "node dist/server-http.js"
 	}
