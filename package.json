@@ -1,18 +1,18 @@
 {
 	"name": "@shortcut/mcp",
-	"author": "Shortcut (https://www.shortcut.com)",
+	"version": "0.19.0",
 	"description": "Shortcut MCP Server",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/useshortcut/mcp-server-shortcut.git"
-	},
 	"keywords": [
 		"shortcut",
 		"mcp",
 		"modelcontextprotocol"
 	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/useshortcut/mcp-server-shortcut.git"
+	},
 	"license": "MIT",
-	"version": "0.19.0",
+	"author": "Shortcut (https://www.shortcut.com)",
 	"type": "module",
 	"main": "dist/index.js",
 	"bin": {
@@ -21,6 +21,25 @@
 	"files": [
 		"dist"
 	],
+	"scripts": {
+		"build": "tsdown",
+		"dev:http": "bun run src/server-http.ts",
+		"format": "biome check --write ./",
+		"lint": "biome check ./",
+		"prepare": "husky",
+		"prod:http": "node dist/server-http.js",
+		"prepublish": "bun run build",
+		"test": "bun test",
+		"ts": "tsc -b"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.25.1",
+		"@shortcut/client": "^3.2.0",
+		"express": "^4.18.2",
+		"pino": "^9.5.0",
+		"pino-http": "^10.3.0",
+		"zod": "^3.24.4"
+	},
 	"devDependencies": {
 		"@biomejs/biome": "2.0.5",
 		"@types/bun": "latest",
@@ -32,24 +51,5 @@
 	},
 	"peerDependencies": {
 		"typescript": "^5"
-	},
-	"dependencies": {
-		"@modelcontextprotocol/sdk": "^1.25.1",
-		"@shortcut/client": "^3.2.0",
-		"express": "^4.18.2",
-		"pino": "^9.5.0",
-		"pino-http": "^10.3.0",
-		"zod": "^3.24.4"
-	},
-	"scripts": {
-		"test": "bun test",
-		"format": "biome check --write ./",
-		"lint": "biome check ./",
-		"ts": "tsc -b",
-		"build": "tsdown",
-		"prepublish": "bun run build",
-		"prepare": "husky",
-		"dev:http": "bun run src/server-http.ts",
-		"prod:http": "node dist/server-http.js"
 	}
 }
