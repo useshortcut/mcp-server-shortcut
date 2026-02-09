@@ -1,9 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import {
+	getOAuthProtectedResourceMetadataUrl,
+	mcpAuthRouter,
+} from "@modelcontextprotocol/sdk/server/auth/router.js";
+import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { ShortcutClient } from "@shortcut/client";
 import express, { type NextFunction, type Request, type Response } from "express";
 import pino from "pino";
+import { createOAuthProvider } from "@/auth/provider";
 import { ShortcutClientWrapper } from "@/client/shortcut";
 import { CustomMcpServer } from "./mcp/CustomMcpServer";
 import { DocumentTools } from "./tools/documents";
@@ -14,21 +20,17 @@ import { StoryTools } from "./tools/stories";
 import { TeamTools } from "./tools/teams";
 import { UserTools } from "./tools/user";
 import { WorkflowTools } from "./tools/workflows";
-import 'dotenv/config';
+import "dotenv/config";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
 const DEFAULT_PORT = 9292;
-const BEARER_PREFIX = "Bearer ";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
-const AUTH_SERVER = process.env.AUTH_SERVER ?? "api.app.shortcut-staging.com";
-const MCP_SERVER_URL = process.env.MCP_SERVER_URL ?? `http://localhost:${process.env.PORT ?? DEFAULT_PORT}`;
-const ISSUER = process.env.ISSUER ?? `https://${AUTH_SERVER}/oauth2`;
-
-const OAUTH_PROTECTED_RESOURCE_PATH = "/.well-known/oauth-protected-resource";
+const MCP_SERVER_URL =
+	process.env.MCP_SERVER_URL ?? `http://localhost:${process.env.PORT ?? DEFAULT_PORT}`;
 
 const HEADERS = {
 	AUTHORIZATION: "authorization",
@@ -113,7 +115,8 @@ function parseToolsList(toolsStr: string): string[] {
 
 interface SessionData {
 	transport: StreamableHTTPServerTransport;
-	accessToken: string; // Store hashed version in production
+	accessToken: string;
+	clientWrapper: ShortcutClientWrapper;
 	createdAt: Date;
 	lastAccessedAt: Date;
 }
@@ -143,10 +146,12 @@ class SessionManager {
 		sessionId: string,
 		transport: StreamableHTTPServerTransport,
 		accessToken: string,
+		clientWrapper: ShortcutClientWrapper,
 	): void {
 		this.sessions.set(sessionId, {
 			transport,
 			accessToken,
+			clientWrapper,
 			createdAt: new Date(),
 			lastAccessedAt: new Date(),
 		});
@@ -159,14 +164,6 @@ class SessionManager {
 			this.sessions.delete(sessionId);
 			logger.info({ sessionId }, "Session removed");
 		}
-	}
-
-	validateToken(sessionId: string, accessToken: string): boolean {
-		const session = this.sessions.get(sessionId);
-		if (!session) {
-			return false;
-		}
-		return session.accessToken === accessToken;
 	}
 
 	private cleanupStaleSessions(): void {
@@ -217,18 +214,6 @@ class SessionManager {
 }
 
 // ============================================================================
-// Authentication & Validation
-// ============================================================================
-
-function extractAccessToken(req: Request): string | null {
-	const authHeader = req.headers[HEADERS.AUTHORIZATION];
-	if (authHeader?.startsWith(BEARER_PREFIX)) {
-		return authHeader.slice(BEARER_PREFIX.length);
-	}
-	return null;
-}
-
-// ============================================================================
 // Error Responses
 // ============================================================================
 
@@ -239,34 +224,6 @@ interface JsonRpcError {
 		message: string;
 	};
 	id: unknown;
-}
-
-function getProtectedResourceMetadataUrl(): string {
-	return new URL(OAUTH_PROTECTED_RESOURCE_PATH, MCP_SERVER_URL).toString();
-}
-
-function setWwwAuthenticateHeader(res: Response): void {
-	const headerValue = [
-		'Bearer error="unauthorized"',
-		'error_description="Authorization needed"',
-		`resource_metadata="${getProtectedResourceMetadataUrl()}"`,
-	].join(", ");
-
-	res.set("WWW-Authenticate", headerValue);
-}
-
-function sendUnauthorizedError(res: Response, message?: string): void {
-	setWwwAuthenticateHeader(res);
-	res.status(401).json({
-		jsonrpc: "2.0",
-		error: {
-			...JSON_RPC_ERRORS.UNAUTHORIZED,
-			message:
-				message ||
-				"Access token required. Provide via Authorization: Bearer <token>.",
-		},
-		id: null,
-	} satisfies JsonRpcError);
 }
 
 function sendSessionNotFoundError(res: Response, sessionId: string, requestId?: unknown): void {
@@ -306,25 +263,56 @@ function sendInternalError(res: Response, requestId?: unknown): void {
 // MCP Server Creation
 // ============================================================================
 
-function createServerInstance(accessToken: string, config: ServerConfig): CustomMcpServer {
+const API_BASE_URL = `https://${process.env.AUTH_SERVER ?? "api.app.shortcut.com"}`;
+
+/**
+ * Creates a ShortcutClient configured for OAuth Bearer tokens.
+ * - Sends Authorization: Bearer instead of Shortcut-Token
+ * - Uses the correct base URL (staging vs production) based on AUTH_SERVER
+ */
+function createOAuthShortcutClient(accessToken: string): ShortcutClient {
+	const client = new ShortcutClient("_placeholder_", {
+		baseURL: API_BASE_URL,
+		headers: {
+			Authorization: `Bearer ${accessToken}`,
+		},
+	});
+	// Remove the Shortcut-Token header set by the constructor --
+	// the Shortcut API rejects requests with an invalid Shortcut-Token
+	// even when a valid Authorization: Bearer header is present.
+	// biome-ignore lint/suspicious/noExplicitAny: accessing axios internals
+	const instance = (client as any).instance;
+	if (instance?.defaults?.headers) {
+		delete instance.defaults.headers["Shortcut-Token"];
+		if (instance.defaults.headers.common) {
+			delete instance.defaults.headers.common["Shortcut-Token"];
+		}
+	}
+	return client;
+}
+
+function createServerInstance(
+	accessToken: string,
+	config: ServerConfig,
+): { server: CustomMcpServer; clientWrapper: ShortcutClientWrapper } {
 	const server = new CustomMcpServer({
 		readonly: config.isReadonly,
 		tools: config.enabledTools,
 	});
-	const client = new ShortcutClientWrapper(new ShortcutClient(accessToken));
+	const clientWrapper = new ShortcutClientWrapper(createOAuthShortcutClient(accessToken));
 
 	// The order these are created impacts the order they are listed to the LLM
 	// Most important tools should be at the top
-	UserTools.create(client, server);
-	StoryTools.create(client, server);
-	IterationTools.create(client, server);
-	EpicTools.create(client, server);
-	ObjectiveTools.create(client, server);
-	TeamTools.create(client, server);
-	WorkflowTools.create(client, server);
-	DocumentTools.create(client, server);
+	UserTools.create(clientWrapper, server);
+	StoryTools.create(clientWrapper, server);
+	IterationTools.create(clientWrapper, server);
+	EpicTools.create(clientWrapper, server);
+	ObjectiveTools.create(clientWrapper, server);
+	TeamTools.create(clientWrapper, server);
+	WorkflowTools.create(clientWrapper, server);
+	DocumentTools.create(clientWrapper, server);
 
-	return server;
+	return { server, clientWrapper };
 }
 
 // ============================================================================
@@ -337,12 +325,13 @@ async function createTransport(
 	sessionManager: SessionManager,
 ): Promise<StreamableHTTPServerTransport> {
 	let transport: StreamableHTTPServerTransport | null = null;
+	const { server, clientWrapper } = createServerInstance(accessToken, config);
 
 	transport = new StreamableHTTPServerTransport({
 		sessionIdGenerator: () => randomUUID(),
 		onsessioninitialized: (sid): void => {
 			if (transport) {
-				sessionManager.add(sid, transport, accessToken);
+				sessionManager.add(sid, transport, accessToken, clientWrapper);
 			}
 		},
 	});
@@ -357,8 +346,6 @@ async function createTransport(
 		}
 	};
 
-	// Create server instance with the access token and connect
-	const server = createServerInstance(accessToken, config);
 	await server.connect(transport);
 
 	return transport;
@@ -375,7 +362,7 @@ async function handleMcpPost(
 	config: ServerConfig,
 ): Promise<void> {
 	const sessionId = req.headers[HEADERS.MCP_SESSION_ID] as string | undefined;
-	const accessToken = extractAccessToken(req);
+	const accessToken = req.auth?.token;
 	const requestId = req.body?.id;
 
 	const reqLogger = logger.child({ sessionId: sessionId || "new", method: "POST" });
@@ -384,19 +371,30 @@ async function handleMcpPost(
 	try {
 		// Scenario 1: Existing session
 		if (sessionId && sessionManager.has(sessionId)) {
+			// Token is already verified by requireBearerAuth middleware
+			// (which also auto-refreshes expired tokens). The token in req.auth
+			// may differ from the session's original token due to refresh --
+			// that's OK, we trust the middleware's verification.
 			if (!accessToken) {
-				sendUnauthorizedError(res);
-				return;
-			}
-
-			// Validate that the provided token matches the session's token
-			if (!sessionManager.validateToken(sessionId, accessToken)) {
-				reqLogger.warn("Token mismatch for session");
-				sendUnauthorizedError(res, "Token does not match the session");
+				reqLogger.warn("Missing access token for session");
+				res.status(401).json({
+					jsonrpc: "2.0",
+					error: JSON_RPC_ERRORS.UNAUTHORIZED,
+					id: requestId || null,
+				} satisfies JsonRpcError);
 				return;
 			}
 
 			const session = sessionManager.get(sessionId)!;
+
+			// If the token was refreshed by the auth middleware, update the
+			// session's ShortcutClient so tools use the fresh token.
+			if (accessToken !== session.accessToken) {
+				reqLogger.info("Token refreshed, updating session client");
+				session.accessToken = accessToken;
+				session.clientWrapper.updateClient(createOAuthShortcutClient(accessToken));
+			}
+
 			await session.transport.handleRequest(req, res, req.body);
 			return;
 		}
@@ -404,7 +402,11 @@ async function handleMcpPost(
 		// Scenario 2: Initialization request
 		if (isInitializeRequest(req.body)) {
 			if (!accessToken) {
-				sendUnauthorizedError(res);
+				res.status(401).json({
+					jsonrpc: "2.0",
+					error: JSON_RPC_ERRORS.UNAUTHORIZED,
+					id: requestId || null,
+				} satisfies JsonRpcError);
 				return;
 			}
 
@@ -421,7 +423,11 @@ async function handleMcpPost(
 		}
 
 		// Scenario 4: Missing session ID
-		sendBadRequestError(res, "No session ID provided for non-initialization request", requestId);
+		sendBadRequestError(
+			res,
+			"No session ID provided for non-initialization request",
+			requestId,
+		);
 	} catch (error) {
 		reqLogger.error({ error }, "Error handling MCP POST request");
 		sendInternalError(res, requestId);
@@ -434,7 +440,7 @@ async function handleMcpGet(
 	sessionManager: SessionManager,
 ): Promise<void> {
 	const sessionId = req.headers[HEADERS.MCP_SESSION_ID] as string | undefined;
-	const accessToken = extractAccessToken(req);
+	const accessToken = req.auth?.token;
 
 	const reqLogger = logger.child({ sessionId, method: "GET" });
 
@@ -443,15 +449,15 @@ async function handleMcpGet(
 		return;
 	}
 
-	// Validate token for SSE stream establishment
+	// Token is already verified by requireBearerAuth middleware
+	// (which also auto-refreshes expired tokens).
 	if (!accessToken) {
-		sendUnauthorizedError(res);
-		return;
-	}
-
-	if (!sessionManager.validateToken(sessionId, accessToken)) {
-		reqLogger.warn("Token mismatch for GET request");
-		sendUnauthorizedError(res, "Token does not match the session");
+		reqLogger.warn("Missing access token for GET request");
+		res.status(401).json({
+			jsonrpc: "2.0",
+			error: JSON_RPC_ERRORS.UNAUTHORIZED,
+			id: null,
+		} satisfies JsonRpcError);
 		return;
 	}
 
@@ -479,7 +485,7 @@ async function handleMcpDelete(
 	sessionManager: SessionManager,
 ): Promise<void> {
 	const sessionId = req.headers[HEADERS.MCP_SESSION_ID] as string | undefined;
-	const accessToken = extractAccessToken(req);
+	const accessToken = req.auth?.token;
 
 	const reqLogger = logger.child({ sessionId, method: "DELETE" });
 
@@ -488,15 +494,15 @@ async function handleMcpDelete(
 		return;
 	}
 
-	// Validate token for session termination
+	// Token is already verified by requireBearerAuth middleware
+	// (which also auto-refreshes expired tokens).
 	if (!accessToken) {
-		sendUnauthorizedError(res);
-		return;
-	}
-
-	if (!sessionManager.validateToken(sessionId, accessToken)) {
-		reqLogger.warn("Token mismatch for DELETE request");
-		sendUnauthorizedError(res, "Token does not match the session");
+		reqLogger.warn("Missing access token for DELETE request");
+		res.status(401).json({
+			jsonrpc: "2.0",
+			error: JSON_RPC_ERRORS.UNAUTHORIZED,
+			id: null,
+		} satisfies JsonRpcError);
 		return;
 	}
 
@@ -540,7 +546,7 @@ function corsMiddleware(req: Request, res: Response, next: NextFunction): void {
  */
 function loggingMiddleware(req: Request, _res: Response, next: NextFunction): void {
 	const sessionId = req.headers[HEADERS.MCP_SESSION_ID];
-	const hasAccessToken = !!extractAccessToken(req);
+	const hasAccessToken = !!req.headers[HEADERS.AUTHORIZATION];
 
 	logger.debug(
 		{
@@ -584,6 +590,17 @@ async function startServer() {
 	const sessionManager = new SessionManager(config.sessionTimeoutMs);
 	const app = express();
 
+	// OAuth provider and resource metadata URL
+	const oauthProvider = createOAuthProvider({ mcpServerUrl: MCP_SERVER_URL });
+	const mcpResourceUrl = new URL(`${MCP_SERVER_URL}/mcp`);
+	const resourceMetadataUrl = getOAuthProtectedResourceMetadataUrl(mcpResourceUrl);
+
+	// Bearer auth middleware for protecting /mcp routes
+	const bearerAuth = requireBearerAuth({
+		verifier: oauthProvider,
+		resourceMetadataUrl,
+	});
+
 	// Middleware
 	app.use(express.json());
 	if (config.httpDebug) app.use(httpDebugRequestMiddleware);
@@ -608,6 +625,50 @@ async function startServer() {
 		next();
 	});
 
+	// OAuth auth router: installs /.well-known/oauth-protected-resource/mcp,
+	// /.well-known/oauth-authorization-server, /authorize, /token, /register
+	app.use(
+		mcpAuthRouter({
+			provider: oauthProvider,
+			issuerUrl: new URL(MCP_SERVER_URL),
+			baseUrl: new URL(MCP_SERVER_URL),
+			resourceServerUrl: mcpResourceUrl,
+			scopesSupported: ["openid"],
+		}),
+	);
+
+	// OAuth callback: relays the authorization code from the upstream auth server
+	// back to the original MCP client's redirect_uri.
+	app.get(oauthProvider.callbackPath, (req: Request, res: Response) => {
+		const { code, state, error, error_description } = req.query as Record<string, string>;
+
+		if (!state) {
+			res.status(400).send("Missing state parameter");
+			return;
+		}
+
+		const originalRedirectUri = oauthProvider.pendingAuthorizations.get(state);
+		if (!originalRedirectUri) {
+			res.status(400).send("Unknown or expired authorization state");
+			return;
+		}
+
+		// Clean up the pending authorization
+		oauthProvider.pendingAuthorizations.delete(state);
+
+		// Build the redirect back to the original client
+		const redirectUrl = new URL(originalRedirectUri);
+		if (code) redirectUrl.searchParams.set("code", code);
+		if (state) redirectUrl.searchParams.set("state", state);
+		if (error) redirectUrl.searchParams.set("error", error);
+		if (error_description) {
+			redirectUrl.searchParams.set("error_description", error_description);
+		}
+
+		logger.info({ state, hasCode: !!code, hasError: !!error }, "OAuth callback relay");
+		res.redirect(redirectUrl.toString());
+	});
+
 	// Routes
 	app.get("/health", (_req: Request, res: Response) => {
 		res.json({
@@ -619,17 +680,16 @@ async function startServer() {
 		});
 	});
 
-	app.get("/.well-known/oauth-protected-resource", (_req: Request, res: Response) => {
-		res.json({
-			resource: `${MCP_SERVER_URL}/mcp`,
-			authorization_servers: [`https://${AUTH_SERVER}`],
-			bearer_methods_supported: ["header"],
-		});
-	});
-
-	app.post("/mcp", (req, res) => handleMcpPost(req, res, sessionManager, config));
-	app.get("/mcp", (req, res) => handleMcpGet(req, res, sessionManager));
-	app.delete("/mcp", (req, res) => handleMcpDelete(req, res, sessionManager));
+	// MCP routes protected by bearer auth
+	app.post("/mcp", bearerAuth, (req, res) =>
+		handleMcpPost(req, res, sessionManager, config),
+	);
+	app.get("/mcp", bearerAuth, (req, res) =>
+		handleMcpGet(req, res, sessionManager),
+	);
+	app.delete("/mcp", bearerAuth, (req, res) =>
+		handleMcpDelete(req, res, sessionManager),
+	);
 
 	// Start server
 	app.listen(config.port, () => {
