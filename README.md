@@ -230,7 +230,7 @@ Add the following to your `opencode.json` configuration file:
 
 ### Documents
 
-- **documents-create** - Create a new document in Shortcut with HTML content
+- **documents-create** - Create a new document in Shortcut with Markdown content
 - **documents-update** - Update content of an existing document by its ID
 - **documents-list** - List all documents in Shortcut
 - **documents-search** - Search for documents
