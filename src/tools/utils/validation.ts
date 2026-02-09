@@ -55,5 +55,5 @@ export const user = (field: string) =>
 		.string()
 		.optional()
 		.describe(
-			`Find entities where the ${field} match the specified user. This must either be the user\'s mention name or the keyword "me" for the current user.`,
+			`Find entities where the ${field} match the specified user. This must either be the user's mention name or the keyword "me" for the current user.`,
 		);
