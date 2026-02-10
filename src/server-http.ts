@@ -152,6 +152,13 @@ function parseToolsList(toolsStr: string): string[] {
 
 interface SessionData {
 	transport: StreamableHTTPServerTransport;
+	/**
+	 * Session-bound bearer token used to authorize reuse of this session.
+	 * This is kept stable to preserve ownership binding even if middleware
+	 * refreshes tokens behind the scenes.
+	 */
+	sessionToken: string;
+	/** Current token used by the Shortcut client for upstream API calls. */
 	accessToken: string;
 	clientWrapper: ShortcutClientWrapper;
 	createdAt: Date;
@@ -187,6 +194,7 @@ class SessionManager {
 	): void {
 		this.sessions.set(sessionId, {
 			transport,
+			sessionToken: accessToken,
 			accessToken,
 			clientWrapper,
 			createdAt: new Date(),
@@ -294,6 +302,50 @@ function sendInternalError(res: Response, requestId?: unknown): void {
 			id: requestId || null,
 		} satisfies JsonRpcError);
 	}
+}
+
+function sendUnauthorizedError(res: Response, requestId?: unknown): void {
+	res.status(401).json({
+		jsonrpc: "2.0",
+		error: JSON_RPC_ERRORS.UNAUTHORIZED,
+		id: requestId || null,
+	} satisfies JsonRpcError);
+}
+
+function extractBearerToken(req: Request): string | undefined {
+	const authHeader = req.headers[HEADERS.AUTHORIZATION];
+	if (typeof authHeader !== "string") {
+		return undefined;
+	}
+	const [type, token] = authHeader.split(" ");
+	if (type?.toLowerCase() !== "bearer" || !token) {
+		return undefined;
+	}
+	return token;
+}
+
+function isAuthorizedForSession(
+	req: Request,
+	session: SessionData,
+	warn: (message: string) => void,
+): boolean {
+	const presentedBearerToken = extractBearerToken(req);
+	if (!presentedBearerToken) {
+		warn("Missing bearer token for session-bound request");
+		return false;
+	}
+
+	// Accept the original bound token and the current active client token.
+	// The latter lets clients continue after refresh if they begin sending
+	// the refreshed token explicitly.
+	const tokenMatchesSession =
+		presentedBearerToken === session.sessionToken || presentedBearerToken === session.accessToken;
+	if (!tokenMatchesSession) {
+		warn("Bearer token does not match session binding");
+		return false;
+	}
+
+	return true;
 }
 
 // ============================================================================
@@ -408,21 +460,21 @@ async function handleMcpPost(
 	try {
 		// Scenario 1: Existing session
 		if (sessionId && sessionManager.has(sessionId)) {
-			// Token is already verified by requireBearerAuth middleware
-			// (which also auto-refreshes expired tokens). The token in req.auth
-			// may differ from the session's original token due to refresh --
-			// that's OK, we trust the middleware's verification.
 			if (!accessToken) {
 				reqLogger.warn("Missing access token for session");
-				res.status(401).json({
-					jsonrpc: "2.0",
-					error: JSON_RPC_ERRORS.UNAUTHORIZED,
-					id: requestId || null,
-				} satisfies JsonRpcError);
+				sendUnauthorizedError(res, requestId);
 				return;
 			}
 
-			const session = sessionManager.get(sessionId)!;
+			const session = sessionManager.get(sessionId);
+			if (!session) {
+				sendSessionNotFoundError(res, sessionId, requestId);
+				return;
+			}
+			if (!isAuthorizedForSession(req, session, (message) => reqLogger.warn(message))) {
+				sendUnauthorizedError(res, requestId);
+				return;
+			}
 
 			// If the token was refreshed by the auth middleware, update the
 			// session's ShortcutClient so tools use the fresh token.
@@ -439,11 +491,7 @@ async function handleMcpPost(
 		// Scenario 2: Initialization request
 		if (isInitializeRequest(req.body)) {
 			if (!accessToken) {
-				res.status(401).json({
-					jsonrpc: "2.0",
-					error: JSON_RPC_ERRORS.UNAUTHORIZED,
-					id: requestId || null,
-				} satisfies JsonRpcError);
+				sendUnauthorizedError(res, requestId);
 				return;
 			}
 
@@ -490,11 +538,7 @@ async function handleMcpGet(
 	// (which also auto-refreshes expired tokens).
 	if (!accessToken) {
 		reqLogger.warn("Missing access token for GET request");
-		res.status(401).json({
-			jsonrpc: "2.0",
-			error: JSON_RPC_ERRORS.UNAUTHORIZED,
-			id: null,
-		} satisfies JsonRpcError);
+		sendUnauthorizedError(res);
 		return;
 	}
 
@@ -506,7 +550,15 @@ async function handleMcpGet(
 	}
 
 	try {
-		const session = sessionManager.get(sessionId)!;
+		const session = sessionManager.get(sessionId);
+		if (!session) {
+			res.status(400).send("Invalid or missing session ID");
+			return;
+		}
+		if (!isAuthorizedForSession(req, session, (message) => reqLogger.warn(message))) {
+			sendUnauthorizedError(res);
+			return;
+		}
 		await session.transport.handleRequest(req, res);
 	} catch (error) {
 		reqLogger.error({ error }, "Error handling MCP GET request");
@@ -535,18 +587,22 @@ async function handleMcpDelete(
 	// (which also auto-refreshes expired tokens).
 	if (!accessToken) {
 		reqLogger.warn("Missing access token for DELETE request");
-		res.status(401).json({
-			jsonrpc: "2.0",
-			error: JSON_RPC_ERRORS.UNAUTHORIZED,
-			id: null,
-		} satisfies JsonRpcError);
+		sendUnauthorizedError(res);
 		return;
 	}
 
 	reqLogger.info("Terminating session");
 
 	try {
-		const session = sessionManager.get(sessionId)!;
+		const session = sessionManager.get(sessionId);
+		if (!session) {
+			res.status(400).send("Invalid or missing session ID");
+			return;
+		}
+		if (!isAuthorizedForSession(req, session, (message) => reqLogger.warn(message))) {
+			sendUnauthorizedError(res);
+			return;
+		}
 		await session.transport.handleRequest(req, res);
 		// The session will be removed via the onclose handler
 	} catch (error) {
