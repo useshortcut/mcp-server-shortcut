@@ -26,7 +26,7 @@ jobs:
     uses: ./.github/workflows/codedeploy_deploy.yml
     with:
       environment: staging
-      sha: ${{ needs.build.outputs.sha }}
+      sha: ${{ needs.build-scripts.outputs.sha }}
     permissions:
       contents: read
       id-token: write

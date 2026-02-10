@@ -31,6 +31,18 @@ function getMcpServerUrl(): string {
 	return process.env.MCP_SERVER_URL ?? `http://localhost:${defaultPort}`;
 }
 
+function getDefaultRedirectUris(): string[] {
+	const raw = process.env.OAUTH_ALLOWED_REDIRECT_URIS;
+	if (!raw) {
+		return [];
+	}
+
+	return raw
+		.split(",")
+		.map((uri) => uri.trim())
+		.filter((uri) => uri.length > 0);
+}
+
 function getStaticClientInfo(): OAuthClientInformationFull | undefined {
 	const clientId = process.env.SHORTCUT_OAUTH_CLIENT_ID;
 	const clientSecret = process.env.SHORTCUT_OAUTH_CLIENT_SECRET;
@@ -220,21 +232,12 @@ export function createOAuthProvider(
 		return newEntry;
 	}
 
-	// Track redirect_uris from client registrations so the authorize
-	// handler can validate them. Merges URIs across registrations.
-	const registeredRedirectUris = new Set<string>();
+	// Track redirect_uris from registrations and optional env allowlist.
+	// The SDK will enforce exact membership via Array.includes().
+	const registeredRedirectUris = new Set<string>(getDefaultRedirectUris());
 
-	// The SDK's authorize handler validates redirect_uri against client.redirect_uris
-	// using Array.includes(). Since we're a proxy (upstream validates redirect_uris),
-	// and MCP clients like VS Code may skip /register, we use a Proxy array that
-	// accepts any redirect_uri while still returning registered ones for iteration.
 	function buildRedirectUris(): string[] {
-		return new Proxy([...registeredRedirectUris], {
-			get(target, prop) {
-				if (prop === "includes") return () => true;
-				return Reflect.get(target, prop);
-			},
-		}) as string[];
+		return [...registeredRedirectUris];
 	}
 
 	const getClient =
@@ -272,14 +275,13 @@ export function createOAuthProvider(
 				}
 			}
 
-			// Return the static client info merged with any metadata from the request
+			// Return the static client_id but do not expose client_secret to callers.
 			return {
 				...clientMetadata,
 				client_id: staticClient.client_id,
-				client_secret: staticClient.client_secret,
 				client_id_issued_at: Math.floor(Date.now() / 1000),
-				client_secret_expires_at: 0, // Does not expire
 				redirect_uris: [...registeredRedirectUris],
+				token_endpoint_auth_method: "none",
 			} as OAuthClientInformationFull;
 		},
 	};
@@ -334,7 +336,9 @@ export function createOAuthProvider(
 				client_id: client.client_id,
 				code: authorizationCode,
 			});
-			if (client.client_secret) params.append("client_secret", client.client_secret);
+			if (staticClient?.client_secret) {
+				params.append("client_secret", staticClient.client_secret);
+			}
 			if (codeVerifier) params.append("code_verifier", codeVerifier);
 			// Always use OUR callback URL, since that's what the upstream auth
 			// server saw during the authorization step.
@@ -369,7 +373,9 @@ export function createOAuthProvider(
 				client_id: client.client_id,
 				refresh_token: refreshToken,
 			});
-			if (client.client_secret) params.set("client_secret", client.client_secret);
+			if (staticClient?.client_secret) {
+				params.set("client_secret", staticClient.client_secret);
+			}
 			if (scopes?.length) params.set("scope", scopes.join(" "));
 			if (resource) params.set("resource", resource.href);
 
