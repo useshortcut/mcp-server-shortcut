@@ -346,8 +346,9 @@ export function createOAuthProvider(
 			});
 
 			if (!response.ok) {
-				throw new Error(`Token exchange failed: ${response.status}`);
-			}
+				const body = await response.text();
+				throw new Error(`Token exchange failed: ${response.status} ${body}`);
+			  }
 
 			const tokens = (await response.json()) as OAuthTokens;
 			cacheIssuedToken(tokens, client.client_id);
