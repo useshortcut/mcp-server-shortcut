@@ -1,21 +1,21 @@
 name: Pipeline - MCP Server
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
       - mdthorpe/sc-305049/setup-basic-ec2-app-environment-for-shortcut-3 
-  workflow_dispatch:
 
- jobs:
-#   build-docker:
-#     uses: ./.github/workflows/build_ecr_image.yml
-#     permissions:
-#       contents: read
-#       id-token: write
+jobs:
+  build-docker:
+    uses: ./.github/workflows/build_ecr_image.yml
+    permissions:
+      contents: read
+      id-token: write
 
   build-scripts:
-#    needs: build-docker
+    needs: build-docker
     uses: ./.github/workflows/codedeploy_build.yml
     permissions:
       contents: read
@@ -47,8 +47,7 @@ on:
           echo "✅ Integration tests passed"
 
   deploy-production:
- #   needs: [build-docker, build-scripts, test-staging]
-    needs: [build-scripts, test-staging]
+    needs: [build-docker, build-scripts, test-staging]
     uses: ./.github/workflows/codedeploy_deploy.yml
     with:
       environment: production
