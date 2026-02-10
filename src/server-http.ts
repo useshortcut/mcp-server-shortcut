@@ -624,7 +624,7 @@ async function startServer() {
 	if (config.httpDebug) app.use(httpDebugResponseMiddleware);
 	app.use(corsMiddleware);
 	app.use(loggingMiddleware);
-	app.set('trust proxy', 1);
+	app.set('trust proxy', 1); // Required when behind ALB/Load Balancer
 
 	app.use((req, res, next) => {
 		const start = Date.now();

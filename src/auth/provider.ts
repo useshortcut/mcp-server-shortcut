@@ -192,6 +192,8 @@ export function createOAuthProvider(
 		});
 
 		if (!response.ok) {
+			const body = await response.text();
+			console.error("Token refresh failed (expired-token flow)", { status: response.status, body });	   
 			issuedTokens.delete(oldToken);
 			throw new InvalidTokenError("Token refresh failed");
 		}
@@ -347,6 +349,7 @@ export function createOAuthProvider(
 
 			if (!response.ok) {
 				const body = await response.text();
+				console.error("Token exchange failed", { status: response.status, body });
 				throw new Error(`Token exchange failed: ${response.status} ${body}`);
 			  }
 
@@ -377,6 +380,8 @@ export function createOAuthProvider(
 			});
 
 			if (!response.ok) {
+				const body = await response.text();
+				console.error("Token refresh failed", { status: response.status, body });			  
 				throw new Error(`Token refresh failed: ${response.status}`);
 			}
 
