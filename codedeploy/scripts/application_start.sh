@@ -15,7 +15,7 @@ fi
 docker run \
  --name shortcut-mcp \
  --rm -d -p 9292:9292 \
- --mount type=bind,source=/opt/shortcut-mcp/.env,target=/usr/src/app/.env,readonly \
+ --mount type=bind,source=$ENV_FILE,target=/usr/src/app/.env,readonly \
  --log-driver=awslogs \
  --log-opt awslogs-region=us-east-1 \
  --log-opt awslogs-group="/shortcut/${DEPLOYMENT_GROUP_NAME}/${APPLICATION_NAME}" \
