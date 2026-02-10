@@ -305,7 +305,8 @@ export function createOAuthProvider(
 			}
 			if (clientId === staticClient.client_id) {
 				return {
-					...staticClient,
+					client_id: staticClient.client_id,
+					token_endpoint_auth_method: "none",
 					redirect_uris: buildRedirectUris(),
 				};
 			}

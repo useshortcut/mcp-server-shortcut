@@ -46,8 +46,7 @@ interface ResourceMetadataResponse {
 
 interface ClientInfoResponse {
 	client_id: string;
-	client_secret: string;
-	client_secret_expires_at: number;
+	token_endpoint_auth_method?: string;
 }
 
 interface TokenResponse {
@@ -265,7 +264,7 @@ describe("OAuth Flow Tests", () => {
 			expect(data.response_types_supported).toContain("code");
 			expect(data.grant_types_supported).toContain("authorization_code");
 			expect(data.grant_types_supported).toContain("refresh_token");
-			expect(data.token_endpoint_auth_methods_supported).toContain("client_secret_post");
+			expect(data.token_endpoint_auth_methods_supported).toContain("none");
 			expect(data.code_challenge_methods_supported).toContain("S256");
 			expect(data.scopes_supported).toContain("openid");
 		});
@@ -279,7 +278,7 @@ describe("OAuth Flow Tests", () => {
 	});
 
 	describe("Client Registration (pre-configured)", () => {
-		test("POST /register returns pre-configured client credentials", async () => {
+		test("POST /register returns pre-configured client id only", async () => {
 			const res = await fetch(`${baseUrl}/register`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -293,8 +292,7 @@ describe("OAuth Flow Tests", () => {
 
 			const data = (await res.json()) as ClientInfoResponse;
 			expect(data.client_id).toBe(TEST_CLIENT_ID);
-			expect(data.client_secret).toBe(TEST_CLIENT_SECRET);
-			expect(data.client_secret_expires_at).toBe(0);
+			expect(data.token_endpoint_auth_method).toBe("none");
 		});
 
 		test("POST /register returns same credentials on repeated calls", async () => {
@@ -312,7 +310,7 @@ describe("OAuth Flow Tests", () => {
 
 			for (const data of results) {
 				expect(data.client_id).toBe(TEST_CLIENT_ID);
-				expect(data.client_secret).toBe(TEST_CLIENT_SECRET);
+				expect(data.token_endpoint_auth_method).toBe("none");
 			}
 		});
 	});
@@ -410,7 +408,6 @@ describe("OAuth Flow Tests", () => {
 				grant_type: "authorization_code",
 				code: "test-auth-code",
 				client_id: TEST_CLIENT_ID,
-				client_secret: TEST_CLIENT_SECRET,
 				redirect_uri: "http://localhost:6274/oauth/callback",
 				code_verifier: "test-code-verifier",
 			});
@@ -433,12 +430,11 @@ describe("OAuth Flow Tests", () => {
 			expect(mockFetch).toHaveBeenCalledTimes(1);
 		});
 
-		test("POST /token passes client_secret to upstream (client_secret_post)", async () => {
+		test("POST /token injects static client_secret upstream", async () => {
 			const params = new URLSearchParams({
 				grant_type: "authorization_code",
 				code: "test-auth-code",
 				client_id: TEST_CLIENT_ID,
-				client_secret: TEST_CLIENT_SECRET,
 				redirect_uri: "http://localhost:6274/oauth/callback",
 				code_verifier: "test-code-verifier",
 			});
@@ -467,7 +463,6 @@ describe("OAuth Flow Tests", () => {
 				grant_type: "refresh_token",
 				refresh_token: "test-refresh-token",
 				client_id: TEST_CLIENT_ID,
-				client_secret: TEST_CLIENT_SECRET,
 			});
 
 			const res = await fetch(`${baseUrl}/token`, {
@@ -566,7 +561,7 @@ describe("OAuth Flow Tests", () => {
 			expect(authMeta.token_endpoint).toBeDefined();
 			expect(authMeta.registration_endpoint).toBeDefined();
 
-			// Step 3: Register client (get pre-configured credentials)
+			// Step 3: Register client (get pre-configured client metadata)
 			const registerUrl = new URL(authMeta.registration_endpoint!);
 			registerUrl.host = new URL(baseUrl).host;
 			registerUrl.protocol = "http:";
@@ -582,7 +577,7 @@ describe("OAuth Flow Tests", () => {
 			expect(registerRes.status).toBe(201);
 			const clientInfo = (await registerRes.json()) as ClientInfoResponse;
 			expect(clientInfo.client_id).toBe(TEST_CLIENT_ID);
-			expect(clientInfo.client_secret).toBe(TEST_CLIENT_SECRET);
+			expect(clientInfo.token_endpoint_auth_method).toBe("none");
 
 			// Step 4: Build authorization URL (simulated, would redirect in browser)
 			const authorizeUrl = new URL(authMeta.authorization_endpoint);
@@ -615,7 +610,6 @@ describe("OAuth Flow Tests", () => {
 				grant_type: "authorization_code",
 				code: "simulated-auth-code",
 				client_id: clientInfo.client_id,
-				client_secret: clientInfo.client_secret,
 				redirect_uri: "http://localhost:6274/oauth/callback",
 				code_verifier: "test-verifier",
 			});

@@ -220,14 +220,12 @@ describe.skipIf(SKIP)("OAuth Integration Tests (staging)", () => {
 		() => {
 			test("exchanges authorization code for access token", async () => {
 				const clientId = process.env.SHORTCUT_OAUTH_CLIENT_ID!;
-				const clientSecret = process.env.SHORTCUT_OAUTH_CLIENT_SECRET!;
 				const authCode = process.env.TEST_AUTH_CODE!;
 
 				const params = new URLSearchParams({
 					grant_type: "authorization_code",
 					code: authCode,
 					client_id: clientId,
-					client_secret: clientSecret,
 					redirect_uri: "http://localhost:6274/oauth/callback",
 				});
 

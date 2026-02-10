@@ -24,7 +24,7 @@ sequenceDiagram
     MCP-->>Client: OAuth metadata (endpoints)
 
     Client->>MCP: POST /register (optional)
-    MCP-->>Client: Pre-configured client_id/secret
+    MCP-->>Client: Pre-configured client_id
 
     Client->>MCP: GET /authorize (with PKCE)
     Note over MCP: Saves client redirect_uri, rewrites to /oauth/callback
@@ -153,13 +153,13 @@ Added `updateClient(newClient)` method that swaps the internal `ShortcutClient` 
 
 ### Mocked unit tests (`src/auth/oauth.test.ts`)
 
-17 tests running against a real Express server (random port) with mocked upstream fetch. Uses Bun's test runner.
+19 tests running against a real Express server (random port) with mocked upstream fetch. Uses Bun's test runner.
 
 | Group | Tests |
 |-------|-------|
 | Metadata Discovery | Protected resource metadata, authorization server metadata, registration endpoint presence |
-| Client Registration | Returns pre-configured credentials, idempotent across calls |
-| Authorization Flow | Redirect to upstream with PKCE params, error on missing params |
+| Client Registration | Returns pre-configured client id metadata, idempotent across calls |
+| Authorization Flow | Redirect to upstream with PKCE params, allows loopback without registration, rejects non-loopback without registration, error on missing params |
 | Token Exchange | Authorization code exchange, client_secret_post verification, refresh token grant |
 | Protected MCP Endpoint | 401 without token, 200 with valid token, 401 with invalid token, unauthenticated GET/DELETE, health unprotected |
 | Full Flow | End-to-end: discovery -> register -> authorize -> token -> authenticated MCP request |
