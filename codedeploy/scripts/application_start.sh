@@ -6,6 +6,12 @@ deployment_json=$(aws deploy get-deployment --deployment-id "$DEPLOYMENT_ID")
 key=$(echo "$deployment_json" | jq -r '.deploymentInfo.revision.s3Location.key')
 sha=$(echo "$key" | sed -E 's/.*-([0-9a-f]{7,40})\.tgz/\1/')
 
+ENV_FILE="/opt/shortcut-mcp/.env"
+if [ ! -f "$ENV_FILE" ]; then
+  echo "ERROR: Required env file not found: $ENV_FILE"
+  exit 1
+fi
+
 docker run \
  --name shortcut-mcp \
  --rm -d -p 9292:9292 \

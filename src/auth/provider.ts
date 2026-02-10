@@ -15,7 +15,7 @@ import { ShortcutClient } from "@shortcut/client";
 // ============================================================================
 
 function getAuthServer(): string {
-	return process.env.AUTH_SERVER ?? "api.app.shortcut-staging.com";
+	return process.env.AUTH_SERVER ?? "api.app.shortcut.com";
 }
 
 function getUpstreamEndpoints() {

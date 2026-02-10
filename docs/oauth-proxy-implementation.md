@@ -63,7 +63,7 @@ sequenceDiagram
 |----------|----------|---------|-------------|
 | `SHORTCUT_OAUTH_CLIENT_ID` | Yes | -- | Pre-registered OAuth client ID |
 | `SHORTCUT_OAUTH_CLIENT_SECRET` | Yes | -- | Pre-registered OAuth client secret |
-| `AUTH_SERVER` | No | `api.app.shortcut-staging.com` | Shortcut auth/API server hostname |
+| `AUTH_SERVER` | No | `api.app.shortcut.com` | Shortcut auth/API server hostname |
 | `MCP_SERVER_URL` | No | `http://localhost:9292` | Public URL of this MCP server |
 | `PORT` | No | `9292` | HTTP listen port |
 
