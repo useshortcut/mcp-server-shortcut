@@ -43,6 +43,20 @@ function getDefaultRedirectUris(): string[] {
 		.filter((uri) => uri.length > 0);
 }
 
+function getAllowedCustomRedirectSchemes(): Set<string> {
+	const raw = process.env.OAUTH_ALLOWED_REDIRECT_SCHEMES;
+	if (!raw) {
+		return new Set();
+	}
+
+	return new Set(
+		raw
+			.split(",")
+			.map((scheme) => scheme.trim().toLowerCase())
+			.filter((scheme) => scheme.length > 0),
+	);
+}
+
 function getStaticClientInfo(): OAuthClientInformationFull | undefined {
 	const clientId = process.env.SHORTCUT_OAUTH_CLIENT_ID;
 	const clientSecret = process.env.SHORTCUT_OAUTH_CLIENT_SECRET;
@@ -233,11 +247,54 @@ export function createOAuthProvider(
 	}
 
 	// Track redirect_uris from registrations and optional env allowlist.
-	// The SDK will enforce exact membership via Array.includes().
+	// We also allow loopback callbacks (for native clients such as VS Code)
+	// and optional explicitly-configured custom URI schemes.
 	const registeredRedirectUris = new Set<string>(getDefaultRedirectUris());
+	const allowedCustomRedirectSchemes = getAllowedCustomRedirectSchemes();
+
+	function isLoopbackRedirectUri(uri: URL): boolean {
+		if (uri.protocol !== "http:") {
+			return false;
+		}
+		if (!uri.port) {
+			return false;
+		}
+		return uri.hostname === "localhost" || uri.hostname === "127.0.0.1" || uri.hostname === "::1";
+	}
+
+	function isAllowedRedirectUri(candidate: unknown): boolean {
+		if (typeof candidate !== "string" || candidate.length === 0) {
+			return false;
+		}
+
+		if (registeredRedirectUris.has(candidate)) {
+			return true;
+		}
+
+		let parsed: URL;
+		try {
+			parsed = new URL(candidate);
+		} catch {
+			return false;
+		}
+
+		const scheme = parsed.protocol.slice(0, -1).toLowerCase();
+		if (allowedCustomRedirectSchemes.has(scheme)) {
+			return true;
+		}
+
+		return isLoopbackRedirectUri(parsed);
+	}
 
 	function buildRedirectUris(): string[] {
-		return [...registeredRedirectUris];
+		return new Proxy([...registeredRedirectUris], {
+			get(target, prop) {
+				if (prop === "includes") {
+					return (candidate: unknown) => isAllowedRedirectUri(candidate);
+				}
+				return Reflect.get(target, prop);
+			},
+		}) as string[];
 	}
 
 	const getClient =

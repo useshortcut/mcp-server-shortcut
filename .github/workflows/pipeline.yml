@@ -51,7 +51,7 @@ jobs:
     uses: ./.github/workflows/codedeploy_deploy.yml
     with:
       environment: production
-      sha: ${{ needs.build.outputs.sha }}
+      sha: ${{ needs.build-build-scripts.outputs.sha }}
     permissions:
       contents: read
       id-token: write

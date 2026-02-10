@@ -66,6 +66,8 @@ sequenceDiagram
 | `AUTH_SERVER` | No | `api.app.shortcut.com` | Shortcut auth/API server hostname |
 | `MCP_SERVER_URL` | No | `http://localhost:9292` | Public URL of this MCP server |
 | `PORT` | No | `9292` | HTTP listen port |
+| `OAUTH_ALLOWED_REDIRECT_URIS` | No | -- | Comma-separated exact redirect URI allowlist |
+| `OAUTH_ALLOWED_REDIRECT_SCHEMES` | No | -- | Comma-separated custom redirect URI schemes to allow (e.g. `vscode`) |
 
 The OAuth callback URL (`{MCP_SERVER_URL}/oauth/callback`) must be registered as an allowed redirect URI on the Shortcut auth server for the configured client ID.
 
@@ -77,7 +79,7 @@ Factory function that returns an `OAuthProviderWithCallback` implementing the MC
 
 ### Key behaviors
 
-**Client registration:** Returns the pre-configured `client_id`/`client_secret` for any registration request. MCP clients that skip `/register` (like VS Code on reconnect) still work because `getClient` accepts any `redirect_uri` via a Proxy array.
+**Client registration:** Returns the pre-configured `client_id` for registration requests. Redirect URIs are validated by an allowlist strategy: explicit registered/env-configured URIs plus loopback HTTP callback URIs (for native clients like VS Code using dynamic localhost ports).
 
 **Authorization (callback proxy):** The `/authorize` handler does NOT forward the client's `redirect_uri` to the upstream Shortcut auth server. Instead:
 1. Saves the client's original `redirect_uri` keyed by `state`

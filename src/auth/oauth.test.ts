@@ -318,6 +318,45 @@ describe("OAuth Flow Tests", () => {
 	});
 
 	describe("Authorization Flow", () => {
+		test("GET /authorize allows loopback redirect URI without prior registration", async () => {
+			const params = new URLSearchParams({
+				client_id: TEST_CLIENT_ID,
+				response_type: "code",
+				redirect_uri: "http://127.0.0.1:6274/oauth/callback",
+				code_challenge: "test-code-challenge-value",
+				code_challenge_method: "S256",
+				state: "test-loopback-state",
+				scope: "openid",
+			});
+
+			const res = await fetch(`${baseUrl}/authorize?${params}`, {
+				redirect: "manual",
+			});
+
+			expect(res.status).toBe(302);
+			const location = res.headers.get("location");
+			expect(location).toBeDefined();
+			expect(location).toContain("/oauth-authorization-code-flow/code");
+		});
+
+		test("GET /authorize rejects non-loopback redirect URI without registration", async () => {
+			const params = new URLSearchParams({
+				client_id: TEST_CLIENT_ID,
+				response_type: "code",
+				redirect_uri: "https://evil.example/callback",
+				code_challenge: "test-code-challenge-value",
+				code_challenge_method: "S256",
+				state: "test-external-state",
+				scope: "openid",
+			});
+
+			const res = await fetch(`${baseUrl}/authorize?${params}`, {
+				redirect: "manual",
+			});
+
+			expect(res.status).toBeGreaterThanOrEqual(400);
+		});
+
 		test("GET /authorize redirects to upstream auth server", async () => {
 			// First register the client to establish the redirect_uri
 			await fetch(`${baseUrl}/register`, {
