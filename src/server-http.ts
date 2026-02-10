@@ -581,6 +581,23 @@ function httpDebugRequestMiddleware(req: Request, _res: Response, next: NextFunc
 	next();
 }
 
+function httpDebugResponseMiddleware(req: Request, res: Response, next: NextFunction): void {
+	const originalJson = res.json.bind(res);
+	res.json = (body: unknown) => {
+		logger.info(
+			JSON.stringify({
+				event: "http_response",
+				method: req.method,
+				path: req.path,
+				status: res.statusCode,
+				body,
+			}),
+		);
+		return originalJson(body);
+	};
+	next();
+}
+
 // ============================================================================
 // Server Setup
 // ============================================================================
@@ -604,6 +621,7 @@ async function startServer() {
 	// Middleware
 	app.use(express.json());
 	if (config.httpDebug) app.use(httpDebugRequestMiddleware);
+	if (config.httpDebug) app.use(httpDebugResponseMiddleware);
 	app.use(corsMiddleware);
 	app.use(loggingMiddleware);
 	app.set('trust proxy', true);
