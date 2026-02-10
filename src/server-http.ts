@@ -64,6 +64,24 @@ const logger = pino({
 			: undefined,
 });
 
+const VERBOSE_KEYS = ["body", "headers", "query"] as const;
+
+/** Set from config in startServer(); controls whether logEvent includes full body/headers/query. */
+let httpDebugVerbose = false;
+
+/** Log structured event for HTTP debug; use this instead of logger.info(JSON.stringify(...)) */
+function logEvent(event: string, data: Record<string, unknown>): void {
+	const payload =
+		httpDebugVerbose
+			? data
+			: Object.fromEntries(
+					Object.entries(data).map(([k, v]) =>
+						VERBOSE_KEYS.includes(k as (typeof VERBOSE_KEYS)[number]) ? [k, "[REDACTED]"] : [k, v],
+					),
+				);
+	logger.info({ event, ...payload });
+}
+
 // ============================================================================
 // Configuration
 // ============================================================================
@@ -74,12 +92,26 @@ interface ServerConfig {
 	enabledTools: string[];
 	sessionTimeoutMs: number;
 	httpDebug: boolean;
+	/** When true, logEvent includes full body/headers/query; when false, those keys are redacted. */
+	httpDebugVerbose: boolean;
+}
+
+/** DEBUG_LEVEL: 0 = none, 1 = HTTP debug (redacted), 2 = full verbose */
+function parseDebugLevel(value: string): { httpDebug: boolean; httpDebugVerbose: boolean } {
+	const level = Number.parseInt(value, 10);
+	if (Number.isNaN(level) || level < 0) {
+		return { httpDebug: false, httpDebugVerbose: false };
+	}
+	return {
+		httpDebug: level >= 1,
+		httpDebugVerbose: level >= 2,
+	};
 }
 
 function loadConfig(): ServerConfig {
 	let isReadonly = process.env.SHORTCUT_READONLY !== "false";
 	let enabledTools = parseToolsList(process.env.SHORTCUT_TOOLS || "");
-	let httpDebug = process.env.SHORTCUT_HTTP_DEBUG === "true";
+	let { httpDebug, httpDebugVerbose } = parseDebugLevel(process.env.DEBUG_LEVEL ?? "0");
 
 	// Parse command line arguments
 	if (process.argv.length >= 3) {
@@ -89,7 +121,11 @@ function loadConfig(): ServerConfig {
 			.forEach(([name, value]) => {
 				if (name === "SHORTCUT_READONLY") isReadonly = value !== "false";
 				if (name === "SHORTCUT_TOOLS") enabledTools = parseToolsList(value);
-				if (name === "SHORTCUT_HTTP_DEBUG") httpDebug = value === "true";
+				if (name === "DEBUG_LEVEL") {
+					const parsed = parseDebugLevel(value);
+					httpDebug = parsed.httpDebug;
+					httpDebugVerbose = parsed.httpDebugVerbose;
+				}
 			});
 	}
 
@@ -99,6 +135,7 @@ function loadConfig(): ServerConfig {
 		enabledTools,
 		sessionTimeoutMs: SESSION_TIMEOUT_MS,
 		httpDebug,
+		httpDebugVerbose,
 	};
 }
 
@@ -566,17 +603,7 @@ function httpDebugRequestMiddleware(req: Request, _res: Response, next: NextFunc
 	delete headers[HEADERS.AUTHORIZATION];
 	delete headers.cookie;
 
-	logger.info(
-		JSON.stringify({
-			event: "http_request",
-			method: req.method,
-			path: req.path,
-			url: req.originalUrl,
-			query: req.query,
-			headers,
-			body: req.body,
-		}),
-	);
+	logEvent("http_request", { method: req.method, path: req.path, url: req.originalUrl, query: req.query, headers, body: req.body });
 
 	next();
 }
@@ -584,17 +611,9 @@ function httpDebugRequestMiddleware(req: Request, _res: Response, next: NextFunc
 function httpDebugResponseMiddleware(req: Request, res: Response, next: NextFunction): void {
 	const originalJson = res.json.bind(res);
 	res.json = (body: unknown) => {
-		logger.info(
-			JSON.stringify({
-				event: "http_response",
-				method: req.method,
-				path: req.path,
-				status: res.statusCode,
-				body,
-			}),
-		);
+		logEvent("http_response", { method: req.method, path: req.path, status: res.statusCode, body });
 		return originalJson(body);
-	};
+	  };
 	next();
 }
 
@@ -604,6 +623,7 @@ function httpDebugResponseMiddleware(req: Request, res: Response, next: NextFunc
 
 async function startServer() {
 	const config = loadConfig();
+	httpDebugVerbose = config.httpDebugVerbose;
 	const sessionManager = new SessionManager(config.sessionTimeoutMs);
 	const app = express();
 
@@ -629,16 +649,10 @@ async function startServer() {
 	app.use((req, res, next) => {
 		const start = Date.now();
 		res.on("finish", () => {
+			const ms = Date.now() - start;
 			if (res.statusCode >= 400) {
-				logger.info(
-					JSON.stringify({
-						event: "http_request_failed",
-						method: req.method,
-						path: req.path,
-						status: res.statusCode,
-						ms: Date.now() - start,
-					}),
-				);
+				const headers = { ...req.headers };
+				logEvent("http_request_failed", { method: req.method, path: req.path, url: req.originalUrl, query: req.query, headers, body: req.body, ms: ms });
 			}
 		});
 		next();
