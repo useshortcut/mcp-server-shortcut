@@ -44,7 +44,7 @@ Examples:
 }
 ```
 
-Due to an issue in `gemini-cli` that redacts environment variables that contain the word "token", you can also use the alternative name `SHORTCUT_AUTH` instead of `SHORTCUT_API_TOKEN`. This works for both the environment variable and the CLI argument:
+Due to an issue in `gemini-cli` that redacts environment variables that contain the word "token", you can also use the alternative name `SHORTCUT_API_TKN` instead of `SHORTCUT_API_TOKEN`. This works for both the environment variable and the CLI argument:
 
 ```json
 "shortcut": {
@@ -54,7 +54,7 @@ Due to an issue in `gemini-cli` that redacts environment variables that contain 
     "@shortcut/mcp@latest"
   ],
   "env": {
-    "SHORTCUT_AUTH": "<YOUR_SHORTCUT_API_TOKEN>"
+    "SHORTCUT_API_TKN": "<YOUR_SHORTCUT_API_TOKEN>"
   }
 }
 ```
@@ -65,7 +65,7 @@ Due to an issue in `gemini-cli` that redacts environment variables that contain 
   "args": [
     "-y",
     "@shortcut/mcp@latest",
-    "SHORTCUT_AUTH=<YOUR_SHORTCUT_API_TOKEN>"
+    "SHORTCUT_API_TKN=<YOUR_SHORTCUT_API_TOKEN>"
   ]
 }
 ```
@@ -378,7 +378,7 @@ You can also check the list of [common issues](#common-issues) below to see if t
 
 #### MCP fails on startup in Gemini CLI
 
-If you are using the Gemini CLI and the MCP fails with the following error: `✕ Error during discovery for MCP server 'shortcut': MCP error -32000: Connection closed`, it might be due to an issue in Gemini where it redacts environment variables that contain the word `token`. You can either pass the Shortcut token as a CLI argument, or use the alternative name `SHORTCUT_AUTH` instead of `SHORTCUT_API_TOKEN`. See the [Usage section](#usage) for more information.
+If you are using the Gemini CLI and the MCP fails with the following error: `✕ Error during discovery for MCP server 'shortcut': MCP error -32000: Connection closed`, it might be due to an issue in Gemini where it redacts environment variables that contain the word `token`. You can either pass the Shortcut token as a CLI argument, or use the alternative name `SHORTCUT_API_TKN` instead of `SHORTCUT_API_TOKEN`. See the [Usage section](#usage) for more information.
 
 #### NPX command not working when using MISE for version management
 

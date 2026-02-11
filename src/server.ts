@@ -12,7 +12,7 @@ import { TeamTools } from "./tools/teams";
 import { UserTools } from "./tools/user";
 import { WorkflowTools } from "./tools/workflows";
 
-let apiToken = process.env.SHORTCUT_AUTH || process.env.SHORTCUT_API_TOKEN;
+let apiToken = process.env.SHORTCUT_API_TKN || process.env.SHORTCUT_API_TOKEN;
 let isReadonly = process.env.SHORTCUT_READONLY === "true";
 let enabledTools = (process.env.SHORTCUT_TOOLS || "")
 	.split(",")
@@ -25,7 +25,7 @@ if (process.argv.length >= 3) {
 		.slice(2)
 		.map((arg) => arg.split("="))
 		.forEach(([name, value]) => {
-			if (name === "SHORTCUT_AUTH") apiToken = value;
+			if (name === "SHORTCUT_API_TKN") apiToken = value;
 			if (name === "SHORTCUT_API_TOKEN") apiToken = value;
 			if (name === "SHORTCUT_READONLY") isReadonly = value === "true";
 			if (name === "SHORTCUT_TOOLS")
