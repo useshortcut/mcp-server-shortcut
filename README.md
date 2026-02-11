@@ -14,6 +14,64 @@ The MCP server for [Shortcut](https://shortcut.com).
 
 ## Usage
 
+The only required input is your Shortcut API token. You can find it in your [Shortcut account settings](https://app.shortcut.com/settings/account/api-tokens).
+
+Once you have a valid token, you can pass it to the MCP server as an environement variable or a CLI argument.
+
+Examples:
+
+```json
+"shortcut": {
+  "command": "npx",
+  "args": [
+    "-y",
+    "@shortcut/mcp@latest"
+  ],
+  "env": {
+    "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
+  }
+}
+```
+
+```json
+"shortcut": {
+  "command": "npx",
+  "args": [
+    "-y",
+    "@shortcut/mcp@latest",
+    "SHORTCUT_API_TOKEN=<YOUR_SHORTCUT_API_TOKEN>"
+  ]
+}
+```
+
+Due to an issue in `gemini-cli` that redacts environment variables that contain the word "token", you can also use the alternative name `SHORTCUT_AUTH` instead of `SHORTCUT_API_TOKEN`. This works for both the environment variable and the CLI argument:
+
+```json
+"shortcut": {
+  "command": "npx",
+  "args": [
+    "-y",
+    "@shortcut/mcp@latest"
+  ],
+  "env": {
+    "SHORTCUT_AUTH": "<YOUR_SHORTCUT_API_TOKEN>"
+  }
+}
+```
+
+```json
+"shortcut": {
+  "command": "npx",
+  "args": [
+    "-y",
+    "@shortcut/mcp@latest",
+    "SHORTCUT_AUTH=<YOUR_SHORTCUT_API_TOKEN>"
+  ]
+}
+```
+
+For more information on how to setup the MCP for your tool of choice, see below.
+
 ### Windsurf
 
 See the [official Windsurf docs](https://docs.windsurf.com/windsurf/cascade/mcp) for more information.
@@ -71,7 +129,6 @@ See the [official Claude Code docs](https://docs.anthropic.com/en/docs/claude-co
 Add the MCP server from the command line:
 
 ```shell
-# Grab your Shortcut token here: https://app.shortcut.com/settings/account/api-tokens
 claude mcp add shortcut --transport stdio -e SHORTCUT_API_TOKEN=$SHORTCUT_API_TOKEN -- npx -y @shortcut/mcp@latest
 ```
 
@@ -318,6 +375,10 @@ If you run into problems using this MCP server, you have a couple of options:
 You can also check the list of [common issues](#common-issues) below to see if there is a known solution already.
 
 ### Common Issues and Solutions
+
+#### MCP fails on startup in Gemini CLI
+
+If you are using the Gemini CLI and the MCP fails with the following error: `✕ Error during discovery for MCP server 'shortcut': MCP error -32000: Connection closed`, it might be due to an issue in Gemini where it redacts environment variables that contain the word `token`. You can either pass the Shortcut token as a CLI argument, or use the alternative name `SHORTCUT_AUTH` instead of `SHORTCUT_API_TOKEN`. See the [Usage section](#usage) for more information.
 
 #### NPX command not working when using MISE for version management
 
