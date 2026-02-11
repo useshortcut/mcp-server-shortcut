@@ -458,6 +458,8 @@ export function createOAuthProvider(
 			// First check if this is a token we issued through our proxy
 			const cached = issuedTokens.get(token);
 			if (cached) {
+				console.log("Have token: ", token)
+				console.log("Expires: ", cached.expiresAt )
 				const now = Date.now() / 1000;
 				const REFRESH_BUFFER_SECONDS = 60;
 

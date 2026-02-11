@@ -68,6 +68,8 @@ const VERBOSE_KEYS = ["body", "headers", "query"] as const;
 
 /** Set from config in startServer(); controls whether logEvent includes full body/headers/query. */
 let httpDebugVerbose = false;
+/** Set from config in startServer(); controls whether proxy request logs are emitted. */
+let httpDebugEnabled = false;
 
 /** Log structured event for HTTP debug; use this instead of logger.info(JSON.stringify(...)) */
 function logEvent(event: string, data: Record<string, unknown>): void {
@@ -377,6 +379,58 @@ function isAuthorizedForSession(
 
 const API_BASE_URL = `https://${process.env.AUTH_SERVER ?? "api.app.shortcut.com"}`;
 
+function attachShortcutProxyLogging(client: ShortcutClient): void {
+	if (!httpDebugEnabled) {
+		return;
+	}
+
+	// biome-ignore lint/suspicious/noExplicitAny: accessing axios internals
+	const instance = (client as any).instance;
+	if (!instance?.interceptors?.request || !instance?.interceptors?.response) {
+		return;
+	}
+
+	instance.interceptors.request.use((config: any) => {
+		config.__proxyStartMs = Date.now();
+		logEvent("shortcut_api_proxy_request", {
+			method: (config.method ?? "get").toString().toUpperCase(),
+			baseURL: config.baseURL,
+			url: config.url,
+		});
+		return config;
+	});
+
+	instance.interceptors.response.use(
+		(response: any) => {
+			const startMs =
+				typeof response?.config?.__proxyStartMs === "number"
+					? response.config.__proxyStartMs
+					: undefined;
+			logEvent("shortcut_api_proxy_response", {
+				method: (response?.config?.method ?? "get").toString().toUpperCase(),
+				baseURL: response?.config?.baseURL,
+				url: response?.config?.url,
+				status: response?.status,
+				ms: typeof startMs === "number" ? Date.now() - startMs : undefined,
+			});
+			return response;
+		},
+		(error: any) => {
+			const config = error?.config;
+			const startMs =
+				typeof config?.__proxyStartMs === "number" ? config.__proxyStartMs : undefined;
+			logEvent("shortcut_api_proxy_response_error", {
+				method: (config?.method ?? "get").toString().toUpperCase(),
+				baseURL: config?.baseURL,
+				url: config?.url,
+				status: error?.response?.status ?? "network_error",
+				ms: typeof startMs === "number" ? Date.now() - startMs : undefined,
+			});
+			return Promise.reject(error);
+		},
+	);
+}
+
 /**
  * Creates a ShortcutClient configured for OAuth Bearer tokens.
  * - Sends Authorization: Bearer instead of Shortcut-Token
@@ -400,6 +454,7 @@ function createOAuthShortcutClient(accessToken: string): ShortcutClient {
 			delete instance.defaults.headers.common["Shortcut-Token"];
 		}
 	}
+	attachShortcutProxyLogging(client);
 	return client;
 }
 
@@ -703,6 +758,7 @@ function httpDebugResponseMiddleware(req: Request, res: Response, next: NextFunc
 
 async function startServer() {
 	const config = loadConfig();
+	httpDebugEnabled = config.httpDebug;
 	httpDebugVerbose = config.httpDebugVerbose;
 	const sessionManager = new SessionManager(config.sessionTimeoutMs);
 	const app = express();
