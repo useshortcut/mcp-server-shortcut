@@ -160,9 +160,32 @@ interface SessionData {
 	sessionToken: string;
 	/** Current token used by the Shortcut client for upstream API calls. */
 	accessToken: string;
+	/** Bounded set of tokens that are valid for this session chain. */
+	boundTokens: Set<string>;
 	clientWrapper: ShortcutClientWrapper;
 	createdAt: Date;
 	lastAccessedAt: Date;
+}
+
+const MAX_BOUND_TOKENS_PER_SESSION = 8;
+
+function bindSessionToken(session: SessionData, token: string): void {
+	if (!token) {
+		return;
+	}
+	// Refresh insertion order if already present.
+	if (session.boundTokens.has(token)) {
+		session.boundTokens.delete(token);
+	}
+	session.boundTokens.add(token);
+	// Keep memory bounded; drop oldest seen token(s) first.
+	while (session.boundTokens.size > MAX_BOUND_TOKENS_PER_SESSION) {
+		const oldestToken = session.boundTokens.values().next().value as string | undefined;
+		if (!oldestToken) {
+			break;
+		}
+		session.boundTokens.delete(oldestToken);
+	}
 }
 
 class SessionManager {
@@ -196,6 +219,7 @@ class SessionManager {
 			transport,
 			sessionToken: accessToken,
 			accessToken,
+			boundTokens: new Set([accessToken]),
 			clientWrapper,
 			createdAt: new Date(),
 			lastAccessedAt: new Date(),
@@ -336,10 +360,9 @@ function isAuthorizedForSession(
 	}
 
 	// Accept the original bound token and the current active client token.
-	// The latter lets clients continue after refresh if they begin sending
-	// the refreshed token explicitly.
-	const tokenMatchesSession =
-		presentedBearerToken === session.sessionToken || presentedBearerToken === session.accessToken;
+	// This allows clients that lag behind token refreshes to keep using a
+	// recently-bound token, while still requiring session-specific ownership.
+	const tokenMatchesSession = session.boundTokens.has(presentedBearerToken);
 	if (!tokenMatchesSession) {
 		warn("Bearer token does not match session binding");
 		return false;
@@ -481,6 +504,7 @@ async function handleMcpPost(
 			if (accessToken !== session.accessToken) {
 				reqLogger.info("Token refreshed, updating session client");
 				session.accessToken = accessToken;
+				bindSessionToken(session, accessToken);
 				session.clientWrapper.updateClient(createOAuthShortcutClient(accessToken));
 			}
 
