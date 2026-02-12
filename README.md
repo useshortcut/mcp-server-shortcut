@@ -414,7 +414,7 @@ To test your local development version of the MCP server rather than using the p
        "shortcut": {
          "command": "node",
          "args": [
-           "/path/to/your/local/mcp-server-shortcut/dist/index.js"
+           "/path/to/your/local/mcp-server-shortcut/dist/index.mjs"
          ],
          "env": {
            "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"

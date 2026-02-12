@@ -1,6 +1,6 @@
 {
 	"name": "@shortcut/mcp",
-	"version": "0.20.0",
+	"version": "0.20.1",
 	"description": "Shortcut MCP Server",
 	"keywords": [
 		"shortcut",
@@ -14,9 +14,9 @@
 	"license": "MIT",
 	"author": "Shortcut (https://www.shortcut.com)",
 	"type": "module",
-	"main": "dist/index.js",
+	"main": "dist/index.mjs",
 	"bin": {
-		"mcp-server-shortcut": "dist/index.js"
+		"mcp-server-shortcut": "dist/index.mjs"
 	},
 	"files": [
 		"dist"
