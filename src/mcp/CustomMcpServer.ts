@@ -33,8 +33,13 @@ export class CustomMcpServer extends McpServer {
 
 	shouldAddTool(name: string) {
 		if (!this.tools.size) return true;
-		const [entityType] = name.split("-");
-		if (this.tools.has(entityType) || this.tools.has(name)) return true;
+		// Check exact tool name first
+		if (this.tools.has(name)) return true;
+		// Check if tool name starts with any configured entity type
+		// This handles hyphenated entity types like "custom-fields"
+		for (const tool of this.tools) {
+			if (name.startsWith(`${tool}-`)) return true;
+		}
 		return false;
 	}
 

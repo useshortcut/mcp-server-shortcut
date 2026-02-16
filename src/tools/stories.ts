@@ -12,7 +12,7 @@ export class StoryTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"stories-get-by-id",
-			"Get a Shortcut story by public ID",
+			"Get a Shortcut story by public ID.",
 			{
 				storyPublicId: z.number().positive().describe("The public ID of the story to get"),
 				full: z
@@ -24,6 +24,15 @@ export class StoryTools extends BaseTools {
 					),
 			},
 			async ({ storyPublicId, full }) => await tools.getStory(storyPublicId, full),
+		);
+
+		server.addToolWithReadAccess(
+			"stories-get-history",
+			"Get the change history for a Shortcut story. Shows what changed, when, and by whom.",
+			{
+				storyPublicId: z.number().positive().describe("The public ID of the story"),
+			},
+			async ({ storyPublicId }) => await tools.getStoryHistory(storyPublicId),
 		);
 
 		server.addToolWithReadAccess(
@@ -211,6 +220,43 @@ The story will be added to the default state for the workflow.
 					)
 					.optional()
 					.describe("Labels to assign to the story"),
+				custom_fields: z
+					.array(
+						z.object({
+							field_id: z.string().uuid().describe("The UUID of the custom field"),
+							value_id: z.string().uuid().describe("The UUID of the custom field value"),
+						}),
+					)
+					.optional()
+					.describe(
+						"Custom field values to set on the story. Use custom-fields-list to discover available fields and their value IDs.",
+					),
+				team_id: z
+					.string()
+					.nullable()
+					.optional()
+					.describe("The team (group) UUID to assign the story to, or null to unset"),
+				project_id: z
+					.number()
+					.nullable()
+					.optional()
+					.describe("The project ID to assign the story to, or null to unset"),
+				deadline: z
+					.string()
+					.nullable()
+					.optional()
+					.describe(
+						"The due date for the story in ISO 8601 datetime format (e.g., 2025-01-31T00:00:00Z), or null to unset",
+					),
+				follower_ids: z
+					.array(z.string())
+					.optional()
+					.describe("Array of user UUIDs to add as followers of the story"),
+				requested_by_id: z
+					.string()
+					.optional()
+					.describe("The UUID of the user who requested the story"),
+				archived: z.boolean().optional().describe("Whether to archive the story"),
 			},
 			async (params) => await tools.updateStory(params),
 		);
@@ -227,7 +273,7 @@ The story will be added to the default state for the workflow.
 
 		server.addToolWithWriteAccess(
 			"stories-assign-current-user",
-			"Assign the current user as the owner of a story",
+			"Assign the current user as the owner of a story.",
 			{
 				storyPublicId: z.number().positive().describe("The public ID of the story"),
 			},
@@ -236,7 +282,7 @@ The story will be added to the default state for the workflow.
 
 		server.addToolWithWriteAccess(
 			"stories-unassign-current-user",
-			"Unassign the current user as the owner of a story",
+			"Unassign the current user as the owner of a story.",
 			{
 				storyPublicId: z.number().positive().describe("The public ID of the story"),
 			},
@@ -245,7 +291,7 @@ The story will be added to the default state for the workflow.
 
 		server.addToolWithWriteAccess(
 			"stories-create-comment",
-			"Create a comment on a story",
+			"Create a comment on a story.",
 			{
 				storyPublicId: z.number().positive().describe("The public ID of the story"),
 				text: z.string().min(1).describe("The text of the comment"),
@@ -255,7 +301,7 @@ The story will be added to the default state for the workflow.
 
 		server.addToolWithWriteAccess(
 			"stories-create-subtask",
-			"Create a new story as a sub-task",
+			"Create a new story as a sub-task.",
 			{
 				parentStoryPublicId: z.number().positive().describe("The public ID of the parent story"),
 				name: z.string().min(1).max(512).describe("The name of the sub-task. Required."),
@@ -266,7 +312,7 @@ The story will be added to the default state for the workflow.
 
 		server.addToolWithWriteAccess(
 			"stories-add-subtask",
-			"Add an existing story as a sub-task",
+			"Add an existing story as a sub-task.",
 			{
 				parentStoryPublicId: z.number().positive().describe("The public ID of the parent story"),
 				subTaskPublicId: z.number().positive().describe("The public ID of the sub-task story"),
@@ -285,7 +331,7 @@ The story will be added to the default state for the workflow.
 
 		server.addToolWithWriteAccess(
 			"stories-add-task",
-			"Add a task to a story",
+			"Add a task to a story.",
 			{
 				storyPublicId: z.number().positive().describe("The public ID of the story"),
 				taskDescription: z.string().min(1).describe("The description of the task"),
@@ -299,7 +345,7 @@ The story will be added to the default state for the workflow.
 
 		server.addToolWithWriteAccess(
 			"stories-update-task",
-			"Update a task in a story",
+			"Update a task in a story.",
 			{
 				storyPublicId: z.number().positive().describe("The public ID of the story"),
 				taskPublicId: z.number().positive().describe("The public ID of the task"),
@@ -315,7 +361,7 @@ The story will be added to the default state for the workflow.
 
 		server.addToolWithWriteAccess(
 			"stories-add-relation",
-			"Add a story relationship to a story",
+			"Add a story relationship to a story.",
 			{
 				storyPublicId: z.number().positive().describe("The public ID of the story"),
 				relatedStoryPublicId: z.number().positive().describe("The public ID of the related story"),
@@ -330,7 +376,7 @@ The story will be added to the default state for the workflow.
 
 		server.addToolWithWriteAccess(
 			"stories-add-external-link",
-			"Add an external link to a Shortcut story",
+			"Add an external link to a Shortcut story.",
 			{
 				storyPublicId: z.number().positive().describe("The public ID of the story"),
 				externalLink: z.string().url().max(2048).describe("The external link URL to add"),
@@ -341,7 +387,7 @@ The story will be added to the default state for the workflow.
 
 		server.addToolWithWriteAccess(
 			"stories-remove-external-link",
-			"Remove an external link from a Shortcut story",
+			"Remove an external link from a Shortcut story.",
 			{
 				storyPublicId: z.number().positive().describe("The public ID of the story"),
 				externalLink: z.string().url().max(2048).describe("The external link URL to remove"),
@@ -352,7 +398,7 @@ The story will be added to the default state for the workflow.
 
 		server.addToolWithWriteAccess(
 			"stories-set-external-links",
-			"Replace all external links on a story with a new set of links",
+			"Replace all external links on a story with a new set of links.",
 			{
 				storyPublicId: z.number().positive().describe("The public ID of the story"),
 				externalLinks: z
@@ -365,7 +411,7 @@ The story will be added to the default state for the workflow.
 
 		server.addToolWithReadAccess(
 			"stories-get-by-external-link",
-			"Find all stories that contain a specific external link",
+			"Find all stories that contain a specific external link.",
 			{
 				externalLink: z.string().url().max(2048).describe("The external link URL to search for"),
 			},
@@ -574,11 +620,38 @@ The story will be added to the default state for the workflow.
 		const story = await this.client.getStory(storyPublicId);
 
 		if (!story)
-			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}.`);
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
 
 		return this.toResult(
 			`Story: sc-${storyPublicId}`,
 			await this.entityWithRelatedEntities(story, "story", full),
+		);
+	}
+
+	async getStoryHistory(storyPublicId: number) {
+		const story = await this.client.getStory(storyPublicId);
+		if (!story)
+			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
+
+		const history = await this.client.getStoryHistory(storyPublicId);
+
+		if (!history.length) {
+			return this.toResult(`Result: No history found for story sc-${storyPublicId}.`);
+		}
+
+		// Format history entries for readability
+		const formattedHistory = history.map((entry) => ({
+			id: entry.id,
+			changed_at: entry.changed_at,
+			member_id: entry.member_id,
+			...(entry.actor_name ? { actor_name: entry.actor_name } : {}),
+			actions: entry.actions,
+			...(entry.references?.length ? { references: entry.references } : {}),
+		}));
+
+		return this.toResult(
+			`Result (${history.length} history entries for story sc-${storyPublicId}):`,
+			{ history: formattedHistory },
 		);
 	}
 
@@ -615,17 +688,23 @@ The story will be added to the default state for the workflow.
 			color?: string;
 			description?: string;
 		}>;
+		custom_fields?: Array<{
+			field_id: string;
+			value_id: string;
+		}>;
+		team_id?: string | null;
+		project_id?: number | null;
+		deadline?: string | null;
+		follower_ids?: string[];
+		requested_by_id?: string;
+		archived?: boolean;
 	}) {
-		if (!storyPublicId) throw new Error("Story public ID is required");
-
-		// Verify the story exists
 		const story = await this.client.getStory(storyPublicId);
 		if (!story)
 			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
 
-		// Convert API parameters
+		// Build update params, mapping API field names where they differ
 		const updateParams: Record<string, unknown> = {};
-
 		if (updates.name !== undefined) updateParams.name = updates.name;
 		if (updates.description !== undefined) updateParams.description = updates.description;
 		if (updates.type !== undefined) updateParams.story_type = updates.type;
@@ -636,8 +715,15 @@ The story will be added to the default state for the workflow.
 		if (updates.workflow_state_id !== undefined)
 			updateParams.workflow_state_id = updates.workflow_state_id;
 		if (updates.labels !== undefined) updateParams.labels = updates.labels;
+		if (updates.custom_fields !== undefined) updateParams.custom_fields = updates.custom_fields;
+		if (updates.team_id !== undefined) updateParams.group_id = updates.team_id;
+		if (updates.project_id !== undefined) updateParams.project_id = updates.project_id;
+		if (updates.deadline !== undefined) updateParams.deadline = updates.deadline;
+		if (updates.follower_ids !== undefined) updateParams.follower_ids = updates.follower_ids;
+		if (updates.requested_by_id !== undefined)
+			updateParams.requested_by_id = updates.requested_by_id;
+		if (updates.archived !== undefined) updateParams.archived = updates.archived;
 
-		// Update the story
 		const updatedStory = await this.client.updateStory(storyPublicId, updateParams);
 
 		return this.toResult(`Updated story sc-${storyPublicId}. Story URL: ${updatedStory.app_url}`);
@@ -735,9 +821,6 @@ The story will be added to the default state for the workflow.
 		relatedStoryPublicId: number;
 		relationshipType: "relates to" | "blocks" | "blocked by" | "duplicates" | "duplicated by";
 	}) {
-		if (!storyPublicId) throw new Error("Story public ID is required");
-		if (!relatedStoryPublicId) throw new Error("Related story public ID is required");
-
 		const story = await this.client.getStory(storyPublicId);
 		if (!story)
 			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
@@ -749,6 +832,7 @@ The story will be added to the default state for the workflow.
 		let subjectStoryId = storyPublicId;
 		let objectStoryId = relatedStoryPublicId;
 
+		// Normalize "blocked by" and "duplicated by" to their inverse relationships
 		if (relationshipType === "blocked by" || relationshipType === "duplicated by") {
 			relationshipType = relationshipType === "blocked by" ? "blocks" : "duplicates";
 			subjectStoryId = relatedStoryPublicId;
@@ -757,19 +841,20 @@ The story will be added to the default state for the workflow.
 
 		await this.client.addRelationToStory(subjectStoryId, objectStoryId, relationshipType);
 
-		return this.toResult(
-			relationshipType === "blocks"
-				? `Marked sc-${subjectStoryId} as a blocker to sc-${objectStoryId}.`
-				: relationshipType === "duplicates"
-					? `Marked sc-${subjectStoryId} as a duplicate of sc-${objectStoryId}.`
-					: `Added a relationship between sc-${subjectStoryId} and sc-${objectStoryId}.`,
-		);
+		// Format message based on relationship type
+		let message: string;
+		if (relationshipType === "blocks") {
+			message = `Marked sc-${subjectStoryId} as a blocker to sc-${objectStoryId}.`;
+		} else if (relationshipType === "duplicates") {
+			message = `Marked sc-${subjectStoryId} as a duplicate of sc-${objectStoryId}.`;
+		} else {
+			message = `Added a relationship between sc-${subjectStoryId} and sc-${objectStoryId}.`;
+		}
+
+		return this.toResult(message);
 	}
 
 	async addExternalLinkToStory(storyPublicId: number, externalLink: string) {
-		if (!storyPublicId) throw new Error("Story public ID is required");
-		if (!externalLink) throw new Error("External link is required");
-
 		const updatedStory = await this.client.addExternalLinkToStory(storyPublicId, externalLink);
 
 		return this.toResult(
@@ -778,9 +863,6 @@ The story will be added to the default state for the workflow.
 	}
 
 	async removeExternalLinkFromStory(storyPublicId: number, externalLink: string) {
-		if (!storyPublicId) throw new Error("Story public ID is required");
-		if (!externalLink) throw new Error("External link is required");
-
 		const updatedStory = await this.client.removeExternalLinkFromStory(storyPublicId, externalLink);
 
 		return this.toResult(
@@ -789,8 +871,6 @@ The story will be added to the default state for the workflow.
 	}
 
 	async getStoriesByExternalLink(externalLink: string) {
-		if (!externalLink) throw new Error("External link is required");
-
 		const { stories, total } = await this.client.getStoriesByExternalLink(externalLink);
 
 		if (!stories || !stories.length) {
@@ -804,9 +884,6 @@ The story will be added to the default state for the workflow.
 	}
 
 	async setStoryExternalLinks(storyPublicId: number, externalLinks: string[]) {
-		if (!storyPublicId) throw new Error("Story public ID is required");
-		if (!Array.isArray(externalLinks)) throw new Error("External links must be an array");
-
 		const updatedStory = await this.client.setStoryExternalLinks(storyPublicId, externalLinks);
 
 		const linkCount = externalLinks.length;

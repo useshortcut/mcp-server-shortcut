@@ -9,7 +9,7 @@ export class TeamTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"teams-get-by-id",
-			"Get a Shortcut team by public ID",
+			"Get a Shortcut team by public ID.",
 			{
 				teamPublicId: z.string().describe("The public ID of the team to get"),
 				full: z
