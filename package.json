@@ -12,7 +12,6 @@
 		"url": "https://github.com/useshortcut/mcp-server-shortcut.git"
 	},
 	"license": "MIT",
-	"author": "Shortcut (https://www.shortcut.com)",
 	"type": "module",
 	"main": "dist/index.js",
 	"bin": {
