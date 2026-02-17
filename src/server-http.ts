@@ -1,4 +1,9 @@
 import { randomUUID } from "node:crypto";
+import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
+import {
+	getOAuthProtectedResourceMetadataUrl,
+	mcpAuthRouter,
+} from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { ShortcutClient } from "@shortcut/client";
@@ -56,6 +61,23 @@ const logger = pino({
 				}
 			: undefined,
 });
+
+const VERBOSE_KEYS = ["body", "headers", "query"] as const;
+
+/** Set from config in startServer(); controls whether logEvent includes full body/headers/query. */
+let httpDebugVerbose = false;
+
+/** Log structured event for HTTP debug; use this instead of logger.info(JSON.stringify(...)) */
+function logEvent(event: string, data: Record<string, unknown>): void {
+	const payload = httpDebugVerbose
+		? data
+		: Object.fromEntries(
+				Object.entries(data).map(([k, v]) =>
+					VERBOSE_KEYS.includes(k as (typeof VERBOSE_KEYS)[number]) ? [k, "[REDACTED]"] : [k, v],
+				),
+			);
+	logger.info({ event, ...payload });
+}
 
 // ============================================================================
 // Configuration
@@ -339,7 +361,7 @@ function createServerInstance(apiToken: string, config: ServerConfig): CustomMcp
 	WorkflowTools.create(client, server);
 	DocumentTools.create(client, server);
 
-	return server;
+	return { server, clientWrapper };
 }
 
 // ============================================================================
@@ -445,6 +467,7 @@ async function handleMcpPost(
 		}
 
 		// Scenario 4: Missing session ID
+		sendBadRequestError(res, "No session ID provided for non-initialization request", requestId);
 		sendBadRequestError(res, "No session ID provided for non-initialization request", requestId);
 	} catch (error) {
 		reqLogger.error({ error }, "Error handling MCP POST request");
@@ -585,18 +608,24 @@ function httpDebugRequestMiddleware(req: Request, _res: Response, next: NextFunc
 	delete headers[HEADERS.X_SHORTCUT_API_TOKEN];
 	delete headers.cookie;
 
-	logger.info(
-		JSON.stringify({
-			event: "http_request",
-			method: req.method,
-			path: req.path,
-			url: req.originalUrl,
-			query: req.query,
-			headers,
-			body: req.body,
-		}),
-	);
+	logEvent("http_request", {
+		method: req.method,
+		path: req.path,
+		url: req.originalUrl,
+		query: req.query,
+		headers,
+		body: req.body,
+	});
 
+	next();
+}
+
+function httpDebugResponseMiddleware(req: Request, res: Response, next: NextFunction): void {
+	const originalJson = res.json.bind(res);
+	res.json = (body: unknown) => {
+		logEvent("http_response", { method: req.method, path: req.path, status: res.statusCode, body });
+		return originalJson(body);
+	};
 	next();
 }
 
@@ -614,20 +643,22 @@ async function startServer() {
 	if (config.httpDebug) app.use(httpDebugRequestMiddleware);
 	app.use(corsMiddleware);
 	app.use(loggingMiddleware);
+	app.set("trust proxy", 1); // Required when behind ALB/Load Balancer
 
 	app.use((req, res, next) => {
 		const start = Date.now();
 		res.on("finish", () => {
 			if (res.statusCode >= 400) {
-				logger.info(
-					JSON.stringify({
-						event: "http_request_failed",
-						method: req.method,
-						path: req.path,
-						status: res.statusCode,
-						ms: Date.now() - start,
-					}),
-				);
+				const headers = { ...req.headers };
+				logEvent("http_request_failed", {
+					method: req.method,
+					path: req.path,
+					url: req.originalUrl,
+					query: req.query,
+					headers,
+					body: req.body,
+					ms: ms,
+				});
 			}
 		});
 		next();
@@ -644,6 +675,10 @@ async function startServer() {
 		});
 	});
 
+	// MCP routes protected by bearer auth
+	app.post("/mcp", bearerAuth, (req, res) => handleMcpPost(req, res, sessionManager, config));
+	app.get("/mcp", bearerAuth, (req, res) => handleMcpGet(req, res, sessionManager));
+	app.delete("/mcp", bearerAuth, (req, res) => handleMcpDelete(req, res, sessionManager));
 	app.post("/mcp", (req, res) => handleMcpPost(req, res, sessionManager, config));
 	app.get("/mcp", (req, res) => handleMcpGet(req, res, sessionManager));
 	app.delete("/mcp", (req, res) => handleMcpDelete(req, res, sessionManager));
