@@ -643,9 +643,19 @@ The story will be added to the default state for the workflow.
 		const formattedHistory = history.map((entry) => ({
 			id: entry.id,
 			changed_at: entry.changed_at,
-			member_id: entry.member_id,
+			actor_id: entry.member_id,
 			...(entry.actor_name ? { actor_name: entry.actor_name } : {}),
-			actions: entry.actions,
+			actions: entry.actions /*.filter((action) => action.id === storyPublicId)*/
+				.map((action) => {
+					if (action.id !== storyPublicId) return action;
+					const ignoredKeys =
+						action.action === "create"
+							? ["app_url", "entity_type"]
+							: ["name", "story_type", "app_url", "entity_type"];
+					return Object.fromEntries(
+						Object.entries(action).filter(([key]) => !ignoredKeys.includes(key)),
+					);
+				}),
 			...(entry.references?.length ? { references: entry.references } : {}),
 		}));
 
