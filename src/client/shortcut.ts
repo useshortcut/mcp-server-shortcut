@@ -23,7 +23,8 @@ import type {
 	StoryComment,
 	StoryLink,
 	Task,
-	UpdateDoc,
+	UpdateEpic,
+	UpdateIteration,
 	UpdateStory,
 	Workflow,
 } from "@shortcut/client";
