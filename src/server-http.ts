@@ -352,14 +352,17 @@ function createServerInstance(apiToken: string, config: ServerConfig): CustomMcp
 
 	// The order these are created impacts the order they are listed to the LLM
 	// Most important tools should be at the top
-	UserTools.create(client, server);
-	StoryTools.create(client, server);
-	IterationTools.create(client, server);
-	EpicTools.create(client, server);
-	ObjectiveTools.create(client, server);
-	TeamTools.create(client, server);
-	WorkflowTools.create(client, server);
-	DocumentTools.create(client, server);
+	UserTools.create(clientWrapper, server);
+	StoryTools.create(clientWrapper, server);
+	IterationTools.create(clientWrapper, server);
+	EpicTools.create(clientWrapper, server);
+	ObjectiveTools.create(clientWrapper, server);
+	TeamTools.create(clientWrapper, server);
+	WorkflowTools.create(clientWrapper, server);
+	DocumentTools.create(clientWrapper, server);
+	LabelTools.create(clientWrapper, server);
+	ProjectTools.create(clientWrapper, server);
+	CustomFieldTools.create(clientWrapper, server);
 
 	return { server, clientWrapper };
 }

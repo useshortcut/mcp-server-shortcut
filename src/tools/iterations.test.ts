@@ -645,7 +645,6 @@ describe("IterationTools", () => {
 				}),
 			);
 
-			// @ts-expect-error - Testing runtime check for missing ID
 			await expect(() => iterationTools.deleteIteration(0)).toThrow(
 				"Failed to retrieve Shortcut iteration with public ID: 0",
 			);
