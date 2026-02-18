@@ -13,14 +13,8 @@ export class ObjectiveTools extends BaseTools {
 			"objectives-get-by-id",
 			"Get a Shortcut objective by public ID.",
 			{
-				objectivePublicId: z.number().positive().describe("The public ID of the objective to get"),
-				full: z
-					.boolean()
-					.optional()
-					.default(false)
-					.describe(
-						"True to return all objective fields from the API. False to return a slim version that excludes uncommon fields",
-					),
+				objectivePublicId: z.number().positive().describe("Objective ID"),
+				full: z.boolean().optional().default(false).describe("Return all fields (default: slim)"),
 			},
 			async ({ objectivePublicId, full }) => await tools.getObjective(objectivePublicId, full),
 		);
@@ -29,33 +23,19 @@ export class ObjectiveTools extends BaseTools {
 			"objectives-search",
 			"Find Shortcut objectives.",
 			{
-				nextPageToken: z
-					.string()
-					.optional()
-					.describe(
-						"If a next_page_token was returned from the search result, pass it in to get the next page of results. Should be combined with the original search parameters.",
-					),
-				id: z.number().optional().describe("Find objectives matching the specified id"),
-				name: z.string().optional().describe("Find objectives matching the specified name"),
-				description: z
-					.string()
-					.optional()
-					.describe("Find objectives matching the specified description"),
-				state: z
-					.enum(["unstarted", "started", "done"])
-					.optional()
-					.describe("Find objectives matching the specified state"),
+				nextPageToken: z.string().optional().describe("Pagination token from previous search"),
+				id: z.number().optional().describe("Objective ID"),
+				name: z.string().optional().describe("Name contains"),
+				description: z.string().optional().describe("Description contains"),
+				state: z.enum(["unstarted", "started", "done"]).optional().describe("Objective state"),
 				owner: user("owner"),
 				requester: user("requester"),
-				team: z
-					.string()
-					.optional()
-					.describe("Find objectives matching the specified team. Should be a team mention name."),
+				team: z.string().optional().describe("Team mention name"),
 				isUnstarted: is("unstarted"),
 				isStarted: is("started"),
 				isDone: is("completed"),
 				isArchived: is("archived"),
-				hasOwner: has("an owner"),
+				hasOwner: has("owner"),
 				created: date(),
 				updated: date(),
 				completed: date(),
