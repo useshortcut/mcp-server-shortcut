@@ -21,7 +21,7 @@ export class WorkflowTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"workflows-get-by-id",
-			"Get a Shortcut workflow by public ID",
+			"Get a Shortcut workflow by public ID.",
 			{
 				workflowPublicId: z.number().positive().describe("The public ID of the workflow to get"),
 				full: z
@@ -37,7 +37,7 @@ export class WorkflowTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"workflows-list",
-			"List all Shortcut workflows",
+			"List all Shortcut workflows.",
 			async () => await tools.listWorkflows(),
 		);
 

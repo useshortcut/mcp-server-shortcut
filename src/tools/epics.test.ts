@@ -113,8 +113,10 @@ describe("EpicTools", () => {
 			expect(mockToolRead.mock.calls?.[0]?.[0]).toBe("epics-get-by-id");
 			expect(mockToolRead.mock.calls?.[1]?.[0]).toBe("epics-search");
 
-			expect(mockToolWrite).toHaveBeenCalledTimes(1);
+			expect(mockToolWrite).toHaveBeenCalledTimes(3);
 			expect(mockToolWrite.mock.calls?.[0]?.[0]).toBe("epics-create");
+			expect(mockToolWrite.mock.calls?.[1]?.[0]).toBe("epics-update");
+			expect(mockToolWrite.mock.calls?.[2]?.[0]).toBe("epics-delete");
 		});
 	});
 
@@ -366,6 +368,7 @@ describe("EpicTools", () => {
 			const epicTools = new EpicTools(mockClient);
 
 			// @ts-expect-error - Testing runtime check for missing ID
+			// @ts-ignore - Testing runtime check for missing ID
 			await expect(() => epicTools.updateEpic({})).toThrow(
 				"Failed to retrieve Shortcut epic with public ID: undefined",
 			);
@@ -451,6 +454,7 @@ describe("EpicTools", () => {
 			});
 			const epicTools = new EpicTools(mockClient);
 
+			// @ts-ignore - Testing runtime check for missing ID
 			await expect(() => epicTools.deleteEpic(0)).toThrow(
 				"Failed to retrieve Shortcut epic with public ID: 0",
 			);
