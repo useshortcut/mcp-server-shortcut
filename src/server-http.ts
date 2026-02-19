@@ -493,6 +493,15 @@ async function handleMcpPost(
 				session.accessToken = accessToken;
 				session.clientWrapper.updateClient(createOAuthShortcutClient(accessToken));
 			}
+			
+			// If the token was refreshed by the auth middleware, update the
+			// session's ShortcutClient so tools use the fresh token.
+			if (accessToken !== session.accessToken) {
+				reqLogger.info("Token refreshed, updating session client");
+				session.accessToken = accessToken;
+				session.clientWrapper.updateClient(createOAuthShortcutClient(accessToken));
+			}
+
 
 			await session.transport.handleRequest(req, res, req.body);
 			return;
