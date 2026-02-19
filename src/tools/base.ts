@@ -50,11 +50,11 @@ export type SimplifiedWorkflow = {
 export type SimplifiedTeam = {
 	id: string;
 	name: string;
-	archived: boolean;
 	mention_name: string;
-	member_ids: string[];
-	workflow_ids: number[];
+	archived: boolean;
 	default_workflow_id: number | null;
+	member_ids?: string[];
+	workflow_ids?: number[];
 };
 export type SimplifiedObjective = {
 	id: number;
@@ -262,18 +262,28 @@ export class BaseTools {
 		};
 	}
 
-	private getSimplifiedTeam(entity: Group | null | undefined): SimplifiedTeam | null {
+	private getSimplifiedTeam(
+		entity: Group | null | undefined,
+		kind: SimplifiedKind,
+	): SimplifiedTeam | null {
 		if (!entity) return null;
 		const { archived, id, name, mention_name, member_ids, workflow_ids, default_workflow_id } =
 			entity;
+
+		const additionalFields: Partial<SimplifiedTeam> = {};
+
+		if (kind === "simple") {
+			additionalFields.member_ids = member_ids;
+			additionalFields.workflow_ids = workflow_ids;
+		}
+
 		return {
 			id,
 			name,
-			archived,
 			mention_name,
-			member_ids,
-			workflow_ids,
+			archived,
 			default_workflow_id: default_workflow_id ?? null,
+			...additionalFields,
 		};
 	}
 
@@ -336,12 +346,30 @@ export class BaseTools {
 		return { id, name, app_url, team_ids: group_ids, status, start_date, end_date };
 	}
 
-	private async getRelatedEntitiesForTeam(entity: Group | null | undefined): Promise<{
+	private async getRelatedEntitiesForTeam(
+		entity: Group | null | undefined,
+		kind: SimplifiedKind,
+	): Promise<{
 		users: Record<string, SimplifiedMember>;
 		workflows: Record<string, SimplifiedWorkflow>;
 	}> {
 		if (!entity) return { users: {}, workflows: {} };
-		const { member_ids, workflow_ids } = entity;
+
+		const { member_ids, workflow_ids, default_workflow_id } = entity;
+
+		if (kind === "list") {
+			if (!default_workflow_id) return { users: {}, workflows: {} };
+
+			const workflows = await this.client.getWorkflowMap([default_workflow_id]);
+			const simplifiedWorkflow = this.getSimplifiedWorkflow(workflows.get(default_workflow_id));
+
+			if (!simplifiedWorkflow) return { users: {}, workflows: {} };
+
+			return {
+				users: {},
+				workflows: simplifiedWorkflow ? { [default_workflow_id]: simplifiedWorkflow } : {},
+			};
+		}
 
 		const [users, workflows] = await Promise.all([
 			this.client.getUserMap(member_ids),
@@ -364,7 +392,10 @@ export class BaseTools {
 		};
 	}
 
-	private async getRelatedEntitiesForIteration(entity: Iteration | null | undefined): Promise<{
+	private async getRelatedEntitiesForIteration(
+		entity: Iteration | null | undefined,
+		kind: SimplifiedKind,
+	): Promise<{
 		teams: Record<string, SimplifiedTeam>;
 		users: Record<string, SimplifiedMember>;
 		workflows: Record<string, SimplifiedWorkflow>;
@@ -374,14 +405,14 @@ export class BaseTools {
 
 		const teams = await this.client.getTeamMap(group_ids || []);
 		const relatedEntitiesForTeams = await Promise.all(
-			Array.from(teams.values()).map((team) => this.getRelatedEntitiesForTeam(team)),
+			Array.from(teams.values()).map((team) => this.getRelatedEntitiesForTeam(team, kind)),
 		);
 		const { users, workflows } = this.mergeRelatedEntities(relatedEntitiesForTeams);
 
 		return {
 			teams: Object.fromEntries(
 				[...teams.entries()]
-					.map(([id, team]) => [id, this.getSimplifiedTeam(team)])
+					.map(([id, team]) => [id, this.getSimplifiedTeam(team, kind)])
 					.filter(([_, team]) => !!team),
 			) as Record<string, SimplifiedTeam>,
 			users,
@@ -389,7 +420,10 @@ export class BaseTools {
 		};
 	}
 
-	private async getRelatedEntitiesForEpic(entity: Epic | null | undefined): Promise<{
+	private async getRelatedEntitiesForEpic(
+		entity: Epic | null | undefined,
+		kind: SimplifiedKind,
+	): Promise<{
 		users: Record<string, SimplifiedMember>;
 		workflows: Record<string, SimplifiedWorkflow>;
 		teams: Record<string, SimplifiedTeam>;
@@ -418,8 +452,11 @@ export class BaseTools {
 				.filter(([_, user]) => !!user)
 				.map(([id, user]) => [id, this.getSimplifiedMember(user)]),
 		) as Record<string, SimplifiedMember>;
-		const team = this.getSimplifiedTeam(teams.get(group_id || ""));
-		const { users, workflows } = await this.getRelatedEntitiesForTeam(teams.get(group_id || ""));
+		const team = this.getSimplifiedTeam(teams.get(group_id || ""), kind);
+		const { users, workflows } = await this.getRelatedEntitiesForTeam(
+			teams.get(group_id || ""),
+			kind,
+		);
 		const milestone = this.getSimplifiedObjective(fullMilestone);
 
 		return {
@@ -484,18 +521,18 @@ export class BaseTools {
 		const workflowForStory = this.getSimplifiedWorkflow(workflowsForStory.get(workflow_id));
 
 		const { users: usersForTeam, workflows: workflowsForTeam } =
-			await this.getRelatedEntitiesForTeam(teamForStory);
+			await this.getRelatedEntitiesForTeam(teamForStory, kind);
 		const {
 			users: usersForIteration,
 			workflows: workflowsForIteration,
 			teams: teamsForIteration,
-		} = await this.getRelatedEntitiesForIteration(iteration);
+		} = await this.getRelatedEntitiesForIteration(iteration, kind);
 		const {
 			users: usersForEpic,
 			workflows: workflowsForEpic,
 			teams: teamsForEpic,
 			objectives,
-		} = await this.getRelatedEntitiesForEpic(epic);
+		} = await this.getRelatedEntitiesForEpic(epic, kind);
 
 		const users = this.mergeRelatedEntities([
 			usersForTeam,
@@ -509,7 +546,7 @@ export class BaseTools {
 			workflowsForEpic,
 			workflowForStory ? { [workflowForStory.id]: workflowForStory } : {},
 		]);
-		const simplifiedStoryTeam = this.getSimplifiedTeam(teamForStory);
+		const simplifiedStoryTeam = this.getSimplifiedTeam(teamForStory, kind);
 		const teams = this.mergeRelatedEntities([
 			teamsForIteration,
 			teamsForEpic,
@@ -563,10 +600,11 @@ export class BaseTools {
 			| Milestone,
 		kind: SimplifiedKind,
 	) {
-		if (entity.entity_type === "group") return this.getRelatedEntitiesForTeam(entity as Group);
+		if (entity.entity_type === "group")
+			return this.getRelatedEntitiesForTeam(entity as Group, kind);
 		if (entity.entity_type === "iteration")
-			return this.getRelatedEntitiesForIteration(entity as Iteration);
-		if (entity.entity_type === "epic") return this.getRelatedEntitiesForEpic(entity as Epic);
+			return this.getRelatedEntitiesForIteration(entity as Iteration, kind);
+		if (entity.entity_type === "epic") return this.getRelatedEntitiesForEpic(entity as Epic, kind);
 		if (entity.entity_type === "story")
 			return this.getRelatedEntitiesForStory(entity as Story, kind);
 
@@ -588,7 +626,7 @@ export class BaseTools {
 			| Milestone,
 		kind: SimplifiedKind,
 	) {
-		if (entity.entity_type === "group") return this.getSimplifiedTeam(entity as Group);
+		if (entity.entity_type === "group") return this.getSimplifiedTeam(entity as Group, kind);
 		if (entity.entity_type === "iteration") return this.getSimplifiedIteration(entity as Iteration);
 		if (entity.entity_type === "epic") return this.getSimplifiedEpic(entity as Epic, kind);
 		if (entity.entity_type === "story") return this.getSimplifiedStory(entity as Story, kind);

@@ -12,6 +12,11 @@ describe("DocumentTools", () => {
 		app_url: "https://app.shortcut.com/workspace/write/doc-123",
 	} satisfies DocSlim;
 
+	const mockDocFull = {
+		...mockDoc,
+		content_markdown: "Original content",
+	};
+
 	const createMockClient = (methods = {}) =>
 		({
 			createDoc: mock(async () => mockDoc),
@@ -37,8 +42,9 @@ describe("DocumentTools", () => {
 
 			DocumentTools.create(mockClient, mockServer);
 
-			expect(mockWriteTool).toHaveBeenCalledTimes(1);
+			expect(mockWriteTool).toHaveBeenCalledTimes(2);
 			expect(mockWriteTool.mock.calls?.[0]?.[0]).toBe("documents-create");
+			expect(mockWriteTool.mock.calls?.[1]?.[0]).toBe("documents-update");
 			expect(mockReadTool).toHaveBeenCalledTimes(3);
 			const [listCall, findCall, getCall] = mockReadTool.mock.calls || [];
 			expect(listCall?.[0]).toBe("documents-list");
@@ -66,6 +72,7 @@ describe("DocumentTools", () => {
 			expect(createDocMock).toHaveBeenCalledWith({
 				title: "Test Document",
 				content: "Test content",
+				content_format: "markdown",
 			});
 
 			expect(getTextContent(result)).toContain("Document created successfully");
@@ -97,6 +104,7 @@ describe("DocumentTools", () => {
 			expect(createDocMock).toHaveBeenCalledWith({
 				title: "Test Document",
 				content: "Test content",
+				content_format: "markdown",
 			});
 
 			expect(getTextContent(result)).toBe(`Failed to create document: ${errorMessage}`);
@@ -135,6 +143,175 @@ describe("DocumentTools", () => {
 
 			const schema = mockWriteTool.mock.calls?.[0]?.[2];
 			expect(schema.title.maxLength).toBe(256);
+		});
+
+		test("should successfully update a document with title and content", async () => {
+			const getDocByIdMock = mock(async () => mockDocFull);
+			const updateDocMock = mock(async () => ({
+				...mockDocFull,
+				title: "Updated Title",
+				content_markdown: "Updated content",
+			}));
+			const mockClient = createMockClient({
+				getDocById: getDocByIdMock,
+				updateDoc: updateDocMock,
+			});
+			const mockWriteTool = mock();
+			const mockReadTool = mock();
+			const mockServer = {
+				addToolWithWriteAccess: mockWriteTool,
+				addToolWithReadAccess: mockReadTool,
+			} as unknown as CustomMcpServer;
+
+			DocumentTools.create(mockClient, mockServer);
+
+			const handler = mockWriteTool.mock.calls?.[1]?.[3];
+			const result = await handler({
+				docId: "doc-123",
+				title: "Updated Title",
+				content: "Updated content",
+			});
+
+			expect(getDocByIdMock).toHaveBeenCalledWith("doc-123");
+			expect(updateDocMock).toHaveBeenCalledWith("doc-123", {
+				title: "Updated Title",
+				content: "Updated content",
+				content_format: "markdown",
+			});
+
+			expect(getTextContent(result)).toContain("Document updated successfully");
+			expect(getTextContent(result)).toContain('"title": "Updated Title"');
+			expect(getTextContent(result)).toContain('"content": "Updated content"');
+		});
+
+		test("should update only title when content is not provided", async () => {
+			const getDocByIdMock = mock(async () => mockDocFull);
+			const updateDocMock = mock(async () => ({
+				...mockDocFull,
+				title: "Updated Title",
+			}));
+			const mockClient = createMockClient({
+				getDocById: getDocByIdMock,
+				updateDoc: updateDocMock,
+			});
+			const mockWriteTool = mock();
+			const mockReadTool = mock();
+			const mockServer = {
+				addToolWithWriteAccess: mockWriteTool,
+				addToolWithReadAccess: mockReadTool,
+			} as unknown as CustomMcpServer;
+
+			DocumentTools.create(mockClient, mockServer);
+
+			const handler = mockWriteTool.mock.calls?.[1]?.[3];
+			await handler({ docId: "doc-123", title: "Updated Title" });
+
+			expect(updateDocMock).toHaveBeenCalledWith("doc-123", {
+				title: "Updated Title",
+				content: "Original content",
+				content_format: "markdown",
+			});
+		});
+
+		test("should update only content when title is not provided", async () => {
+			const getDocByIdMock = mock(async () => mockDocFull);
+			const updateDocMock = mock(async () => ({
+				...mockDocFull,
+				content_markdown: "Updated content",
+			}));
+			const mockClient = createMockClient({
+				getDocById: getDocByIdMock,
+				updateDoc: updateDocMock,
+			});
+			const mockWriteTool = mock();
+			const mockReadTool = mock();
+			const mockServer = {
+				addToolWithWriteAccess: mockWriteTool,
+				addToolWithReadAccess: mockReadTool,
+			} as unknown as CustomMcpServer;
+
+			DocumentTools.create(mockClient, mockServer);
+
+			const handler = mockWriteTool.mock.calls?.[1]?.[3];
+			await handler({ docId: "doc-123", content: "Updated content" });
+
+			expect(updateDocMock).toHaveBeenCalledWith("doc-123", {
+				title: "Test Document",
+				content: "Updated content",
+				content_format: "markdown",
+			});
+		});
+
+		test("should handle document not found when updating", async () => {
+			const getDocByIdMock = mock(async () => null);
+			const updateDocMock = mock(async () => mockDocFull);
+			const mockClient = createMockClient({
+				getDocById: getDocByIdMock,
+				updateDoc: updateDocMock,
+			});
+			const mockWriteTool = mock();
+			const mockReadTool = mock();
+			const mockServer = {
+				addToolWithWriteAccess: mockWriteTool,
+				addToolWithReadAccess: mockReadTool,
+			} as unknown as CustomMcpServer;
+
+			DocumentTools.create(mockClient, mockServer);
+
+			const handler = mockWriteTool.mock.calls?.[1]?.[3];
+			const result = await handler({ docId: "missing-doc", title: "Updated Title" });
+
+			expect(getDocByIdMock).toHaveBeenCalledWith("missing-doc");
+			expect(updateDocMock).not.toHaveBeenCalled();
+			expect(getTextContent(result)).toBe("Document with ID missing-doc not found.");
+		});
+
+		test("should handle errors when document update fails", async () => {
+			const getDocByIdMock = mock(async () => mockDocFull);
+			const updateDocMock = mock(async () => {
+				throw new Error("Update failed");
+			});
+			const mockClient = createMockClient({
+				getDocById: getDocByIdMock,
+				updateDoc: updateDocMock,
+			});
+			const mockWriteTool = mock();
+			const mockReadTool = mock();
+			const mockServer = {
+				addToolWithWriteAccess: mockWriteTool,
+				addToolWithReadAccess: mockReadTool,
+			} as unknown as CustomMcpServer;
+
+			DocumentTools.create(mockClient, mockServer);
+
+			const handler = mockWriteTool.mock.calls?.[1]?.[3];
+			const result = await handler({ docId: "doc-123", title: "Updated Title" });
+
+			expect(getTextContent(result)).toBe("Failed to update document: Update failed");
+		});
+
+		test("should handle non-Error exceptions when updating", async () => {
+			const getDocByIdMock = mock(async () => mockDocFull);
+			const updateDocMock = mock(async () => {
+				throw "Some string error";
+			});
+			const mockClient = createMockClient({
+				getDocById: getDocByIdMock,
+				updateDoc: updateDocMock,
+			});
+			const mockWriteTool = mock();
+			const mockReadTool = mock();
+			const mockServer = {
+				addToolWithWriteAccess: mockWriteTool,
+				addToolWithReadAccess: mockReadTool,
+			} as unknown as CustomMcpServer;
+
+			DocumentTools.create(mockClient, mockServer);
+
+			const handler = mockWriteTool.mock.calls?.[1]?.[3];
+			const result = await handler({ docId: "doc-123", title: "Updated Title" });
+
+			expect(getTextContent(result)).toBe("Failed to update document: Unknown error");
 		});
 
 		test("should list documents", async () => {

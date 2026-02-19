@@ -1,6 +1,6 @@
 import { describe, expect, type Mock, mock, test } from "bun:test";
 import type ShortcutClient from "@shortcut/client";
-import type { CreateStoryParams, DocSlim, UpdateStory } from "@shortcut/client";
+import type { CreateStoryParams, Doc, DocSlim, UpdateStory } from "@shortcut/client";
 import { ShortcutClientWrapper } from "./shortcut";
 
 describe("ShortcutClientWrapper", () => {
@@ -426,14 +426,15 @@ describe("ShortcutClientWrapper", () => {
 
 		describe("getDocById", () => {
 			test("should get document by ID", async () => {
+				const fullMockDoc = { ...mockDoc, content_markdown: "This is test content" } as Doc;
 				const mockClient = {
-					getDoc: mock(async () => ({ data: mockDoc })),
+					getDoc: mock(async () => ({ data: fullMockDoc })),
 				} as unknown as ShortcutClient & { getDoc: Mock<() => Promise<unknown>> };
 				const client = new ShortcutClientWrapper(mockClient);
 
 				const doc = await client.getDocById("doc-123");
 
-				expect(doc).toEqual(mockDoc);
+				expect(doc).toEqual(fullMockDoc);
 				expect(mockClient.getDoc).toHaveBeenCalledWith("doc-123");
 			});
 

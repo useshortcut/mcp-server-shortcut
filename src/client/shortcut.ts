@@ -10,6 +10,7 @@ import type {
 	CreateStoryComment,
 	CreateStoryParams,
 	CustomField,
+	Doc,
 	DocSlim,
 	Epic,
 	Group,
@@ -25,6 +26,7 @@ import type {
 	StoryLink,
 	StorySlim,
 	Task,
+	UpdateDoc,
 	UpdateEpic,
 	UpdateIteration,
 	UpdateStory,
@@ -52,16 +54,6 @@ export class ShortcutClientWrapper {
 		this.teamCache = new Cache();
 		this.workflowCache = new Cache();
 		this.customFieldCache = new Cache();
-	}
-
-	/**
-	 * Swaps the underlying Shortcut API client (e.g. after token refresh).
-	 * Clears the current user cache but preserves entity caches since
-	 * the refreshed token belongs to the same user.
-	 */
-	updateClient(newClient: BaseClient): void {
-		this.client = newClient;
-		this.currentUser = null;
 	}
 
 	private getNextPageToken(next: string | null | undefined) {
@@ -602,6 +594,15 @@ export class ShortcutClientWrapper {
 		return doc;
 	}
 
+	async updateDoc(docPublicId: string, params: UpdateDoc): Promise<Doc> {
+		const response = await this.client.updateDoc(docPublicId, params);
+		const doc = response?.data ?? null;
+
+		if (!doc) throw new Error(`Failed to update the document: ${response.status}`);
+
+		return doc;
+	}
+
 	async listDocs(): Promise<DocSlim[]> {
 		const response = await this.client.listDocs();
 		if (response.status === 403) throw new Error("Docs feature disabled for this workspace.");
@@ -643,7 +644,7 @@ export class ShortcutClientWrapper {
 		return { documents, total, next_page_token: this.getNextPageToken(next) };
 	}
 
-	async getDocById(docId: string): Promise<DocSlim | null> {
+	async getDocById(docId: string): Promise<Doc | null> {
 		const response = await this.client.getDoc(docId);
 
 		if (response.status === 403) throw new Error("Docs feature disabled for this workspace.");
