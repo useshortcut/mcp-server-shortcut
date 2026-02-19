@@ -9,16 +9,31 @@ export class DocumentTools extends BaseTools {
 
 		server.addToolWithWriteAccess(
 			"documents-create",
-			"Create a new document in Shortcut with a title and content. Returns the document's id, title, and app_url. Note: Use HTML markup for the content (e.g., <p>, <h1>, <ul>, <strong>) rather than Markdown.",
+			"Create a new document in Shortcut with a title and content. Returns the document's id, title, and app_url. Note: Use Markdown format for the content.",
 			{
 				title: z.string().max(256).describe("The title for the new document (max 256 characters)"),
-				content: z
-					.string()
-					.describe(
-						"The content for the new document in HTML format (e.g., <p>Hello</p>, <h1>Title</h1>, <ul><li>Item</li></ul>)",
-					),
+				content: z.string().describe("The content for the new document in Markdown format."),
 			},
 			async ({ title, content }) => await tools.createDocument(title, content),
+		);
+
+		server.addToolWithWriteAccess(
+			"documents-update",
+			"Update the content and/or title of an existing document in Shortcut.",
+			{
+				docId: z.string().describe("The ID of the document to retrieve"),
+				title: z
+					.string()
+					.max(256)
+					.describe("The title for the document (max 256 characters)")
+					.optional(),
+				content: z
+					.string()
+					.describe("The updated content for the document in Markdown format")
+					.optional(),
+			},
+			async ({ docId, content, title }: { docId: string; content?: string; title?: string }) =>
+				await tools.updateDocument(docId, title, content),
 		);
 
 		server.addToolWithReadAccess(
@@ -75,6 +90,7 @@ export class DocumentTools extends BaseTools {
 			const doc = await this.client.createDoc({
 				title,
 				content,
+				content_format: "markdown",
 			});
 
 			return this.toResult("Document created successfully", {
@@ -85,6 +101,29 @@ export class DocumentTools extends BaseTools {
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : "Unknown error";
 			return this.toResult(`Failed to create document: ${errorMessage}`);
+		}
+	}
+
+	private async updateDocument(docId: string, title?: string, content?: string) {
+		try {
+			const doc = await this.client.getDocById(docId);
+			if (!doc) return this.toResult(`Document with ID ${docId} not found.`);
+
+			const result = await this.client.updateDoc(docId, {
+				title: title ?? doc.title ?? "",
+				content: content ?? doc.content_markdown ?? "",
+				content_format: "markdown",
+			});
+
+			return this.toResult("Document updated successfully", {
+				id: result.id,
+				title: result.title,
+				content: result.content_markdown,
+				app_url: result.app_url,
+			});
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : "Unknown error";
+			return this.toResult(`Failed to update document: ${errorMessage}`);
 		}
 	}
 
