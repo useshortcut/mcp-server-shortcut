@@ -367,7 +367,7 @@ describe("EpicTools", () => {
 			});
 			const epicTools = new EpicTools(mockClient);
 
-			// @ts-ignore - Testing runtime check for missing ID
+			// @ts-expect-error - Testing runtime check for missing ID
 			await expect(() => epicTools.updateEpic({})).toThrow(
 				"Failed to retrieve Shortcut epic with public ID: undefined",
 			);
@@ -453,7 +453,7 @@ describe("EpicTools", () => {
 			});
 			const epicTools = new EpicTools(mockClient);
 
-			// @ts-ignore - Testing runtime check for missing ID
+			// @ts-expect-error - Testing runtime check for missing ID
 			await expect(() => epicTools.deleteEpic(0)).toThrow(
 				"Failed to retrieve Shortcut epic with public ID: 0",
 			);

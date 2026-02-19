@@ -55,7 +55,7 @@ export class ShortcutClientWrapper {
 		this.workflowCache = new Cache();
 		this.customFieldCache = new Cache();
 	}
-	
+
 	/**
 	 * Swaps the underlying Shortcut API client (e.g. after token refresh).
 	 * Clears the current user cache but preserves entity caches since

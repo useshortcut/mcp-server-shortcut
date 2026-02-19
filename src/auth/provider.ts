@@ -217,7 +217,7 @@ export function createOAuthProvider(
 
 		if (!response.ok) {
 			const body = await response.text();
-			console.error("Token refresh failed (expired-token flow)", { status: response.status, body });	   
+			console.error("Token refresh failed (expired-token flow)", { status: response.status, body });
 			issuedTokens.delete(oldToken);
 			throw new InvalidTokenError("Token refresh failed");
 		}

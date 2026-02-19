@@ -568,7 +568,7 @@ describe("IterationTools", () => {
 				}),
 			);
 
-			// @ts-ignore - Testing runtime check for missing ID
+			// @ts-expect-error - Testing runtime check for missing ID
 			await expect(() => iterationTools.updateIteration({})).toThrow(
 				"Failed to retrieve Shortcut iteration with public ID: undefined",
 			);
@@ -647,7 +647,7 @@ describe("IterationTools", () => {
 				}),
 			);
 
-			// @ts-ignore - Testing runtime check for missing ID
+			// @ts-expect-error - Testing runtime check for missing ID
 			await expect(() => iterationTools.deleteIteration(0)).toThrow(
 				"Failed to retrieve Shortcut iteration with public ID: 0",
 			);

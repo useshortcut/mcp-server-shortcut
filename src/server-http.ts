@@ -74,14 +74,13 @@ let httpDebugVerbose = false;
 
 /** Log structured event for HTTP debug; use this instead of logger.info(JSON.stringify(...)) */
 function logEvent(event: string, data: Record<string, unknown>): void {
-	const payload =
-		httpDebugVerbose
-			? data
-			: Object.fromEntries(
-					Object.entries(data).map(([k, v]) =>
-						VERBOSE_KEYS.includes(k as (typeof VERBOSE_KEYS)[number]) ? [k, "[REDACTED]"] : [k, v],
-					),
-				);
+	const payload = httpDebugVerbose
+		? data
+		: Object.fromEntries(
+				Object.entries(data).map(([k, v]) =>
+					VERBOSE_KEYS.includes(k as (typeof VERBOSE_KEYS)[number]) ? [k, "[REDACTED]"] : [k, v],
+				),
+			);
 	logger.info({ event, ...payload });
 }
 
@@ -493,7 +492,7 @@ async function handleMcpPost(
 				session.accessToken = accessToken;
 				session.clientWrapper.updateClient(createOAuthShortcutClient(accessToken));
 			}
-			
+
 			// If the token was refreshed by the auth middleware, update the
 			// session's ShortcutClient so tools use the fresh token.
 			if (accessToken !== session.accessToken) {
@@ -501,7 +500,6 @@ async function handleMcpPost(
 				session.accessToken = accessToken;
 				session.clientWrapper.updateClient(createOAuthShortcutClient(accessToken));
 			}
-
 
 			await session.transport.handleRequest(req, res, req.body);
 			return;
@@ -692,7 +690,7 @@ function httpDebugResponseMiddleware(req: Request, res: Response, next: NextFunc
 		logEvent("http_response", { method: req.method, path: req.path, status: res.statusCode, body });
 		logEvent("http_response", { method: req.method, path: req.path, status: res.statusCode, body });
 		return originalJson(body);
-	  };
+	};
 	next();
 }
 
