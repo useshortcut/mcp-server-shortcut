@@ -1,9 +1,15 @@
 import { randomUUID } from "node:crypto";
+import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
+import {
+	getOAuthProtectedResourceMetadataUrl,
+	mcpAuthRouter,
+} from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { ShortcutClient } from "@shortcut/client";
 import express, { type NextFunction, type Request, type Response } from "express";
 import pino from "pino";
+import { createOAuthProvider } from "@/auth/provider";
 import { ShortcutClientWrapper } from "@/client/shortcut";
 import { CustomMcpServer } from "./mcp/CustomMcpServer";
 import { CustomFieldTools } from "./tools/custom-fields";
@@ -17,18 +23,20 @@ import { StoryTools } from "./tools/stories";
 import { TeamTools } from "./tools/teams";
 import { UserTools } from "./tools/user";
 import { WorkflowTools } from "./tools/workflows";
+import "dotenv/config";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
 const DEFAULT_PORT = 9292;
-const BEARER_PREFIX = "Bearer ";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+
+const MCP_SERVER_URL =
+	process.env.MCP_SERVER_URL ?? `http://localhost:${process.env.PORT ?? DEFAULT_PORT}`;
 
 const HEADERS = {
 	AUTHORIZATION: "authorization",
-	X_SHORTCUT_API_TOKEN: "x-shortcut-api-token",
 	MCP_SESSION_ID: "mcp-session-id",
 	LAST_EVENT_ID: "last-event-id",
 } as const;
@@ -37,7 +45,6 @@ const JSON_RPC_ERRORS = {
 	UNAUTHORIZED: { code: -32000, message: "Unauthorized" },
 	BAD_REQUEST: { code: -32000, message: "Bad Request" },
 	SESSION_NOT_FOUND: { code: -32001, message: "Session not found" },
-	INVALID_TOKEN: { code: -32002, message: "Invalid API token" },
 	INTERNAL_ERROR: { code: -32603, message: "Internal server error" },
 } as const;
 
@@ -60,6 +67,24 @@ const logger = pino({
 			: undefined,
 });
 
+const VERBOSE_KEYS = ["body", "headers", "query"] as const;
+
+/** Set from config in startServer(); controls whether logEvent includes full body/headers/query. */
+let httpDebugVerbose = false;
+
+/** Log structured event for HTTP debug; use this instead of logger.info(JSON.stringify(...)) */
+function logEvent(event: string, data: Record<string, unknown>): void {
+	const payload =
+		httpDebugVerbose
+			? data
+			: Object.fromEntries(
+					Object.entries(data).map(([k, v]) =>
+						VERBOSE_KEYS.includes(k as (typeof VERBOSE_KEYS)[number]) ? [k, "[REDACTED]"] : [k, v],
+					),
+				);
+	logger.info({ event, ...payload });
+}
+
 // ============================================================================
 // Configuration
 // ============================================================================
@@ -70,12 +95,26 @@ interface ServerConfig {
 	enabledTools: string[];
 	sessionTimeoutMs: number;
 	httpDebug: boolean;
+	/** When true, logEvent includes full body/headers/query; when false, those keys are redacted. */
+	httpDebugVerbose: boolean;
+}
+
+/** DEBUG_LEVEL: 0 = none, 1 = HTTP debug (redacted), 2 = full verbose */
+function parseDebugLevel(value: string): { httpDebug: boolean; httpDebugVerbose: boolean } {
+	const level = Number.parseInt(value, 10);
+	if (Number.isNaN(level) || level < 0) {
+		return { httpDebug: false, httpDebugVerbose: false };
+	}
+	return {
+		httpDebug: level >= 1,
+		httpDebugVerbose: level >= 2,
+	};
 }
 
 function loadConfig(): ServerConfig {
 	let isReadonly = process.env.SHORTCUT_READONLY !== "false";
 	let enabledTools = parseToolsList(process.env.SHORTCUT_TOOLS || "");
-	let httpDebug = process.env.SHORTCUT_HTTP_DEBUG === "true";
+	let { httpDebug, httpDebugVerbose } = parseDebugLevel(process.env.DEBUG_LEVEL ?? "0");
 
 	// Parse command line arguments
 	if (process.argv.length >= 3) {
@@ -85,7 +124,11 @@ function loadConfig(): ServerConfig {
 			.forEach(([name, value]) => {
 				if (name === "SHORTCUT_READONLY") isReadonly = value !== "false";
 				if (name === "SHORTCUT_TOOLS") enabledTools = parseToolsList(value);
-				if (name === "SHORTCUT_HTTP_DEBUG") httpDebug = value === "true";
+				if (name === "DEBUG_LEVEL") {
+					const parsed = parseDebugLevel(value);
+					httpDebug = parsed.httpDebug;
+					httpDebugVerbose = parsed.httpDebugVerbose;
+				}
 			});
 	}
 
@@ -95,6 +138,7 @@ function loadConfig(): ServerConfig {
 		enabledTools,
 		sessionTimeoutMs: SESSION_TIMEOUT_MS,
 		httpDebug,
+		httpDebugVerbose,
 	};
 }
 
@@ -111,7 +155,15 @@ function parseToolsList(toolsStr: string): string[] {
 
 interface SessionData {
 	transport: StreamableHTTPServerTransport;
-	apiToken: string; // Store hashed version in production
+	/**
+	 * Session-bound bearer token used to authorize reuse of this session.
+	 * This is kept stable to preserve ownership binding even if middleware
+	 * refreshes tokens behind the scenes.
+	 */
+	sessionToken: string;
+	/** Current token used by the Shortcut client for upstream API calls. */
+	accessToken: string;
+	clientWrapper: ShortcutClientWrapper;
 	createdAt: Date;
 	lastAccessedAt: Date;
 }
@@ -137,10 +189,17 @@ class SessionManager {
 		return session;
 	}
 
-	add(sessionId: string, transport: StreamableHTTPServerTransport, apiToken: string): void {
+	add(
+		sessionId: string,
+		transport: StreamableHTTPServerTransport,
+		accessToken: string,
+		clientWrapper: ShortcutClientWrapper,
+	): void {
 		this.sessions.set(sessionId, {
 			transport,
-			apiToken,
+			sessionToken: accessToken,
+			accessToken,
+			clientWrapper,
 			createdAt: new Date(),
 			lastAccessedAt: new Date(),
 		});
@@ -153,15 +212,6 @@ class SessionManager {
 			this.sessions.delete(sessionId);
 			logger.info({ sessionId }, "Session removed");
 		}
-	}
-
-	validateToken(sessionId: string, providedToken: string): boolean {
-		const session = this.sessions.get(sessionId);
-		if (!session) {
-			return false;
-		}
-		// Compare hashed tokens
-		return session.apiToken === providedToken;
 	}
 
 	private cleanupStaleSessions(): void {
@@ -212,45 +262,6 @@ class SessionManager {
 }
 
 // ============================================================================
-// Authentication & Validation
-// ============================================================================
-
-function extractApiToken(req: Request): string | null {
-	// Try Authorization header first (Bearer token)
-	const authHeader = req.headers[HEADERS.AUTHORIZATION];
-	if (authHeader?.startsWith(BEARER_PREFIX)) {
-		return authHeader.slice(BEARER_PREFIX.length);
-	}
-
-	// Try custom header
-	const customHeader = req.headers[HEADERS.X_SHORTCUT_API_TOKEN];
-	if (typeof customHeader === "string") {
-		return customHeader;
-	}
-
-	return null;
-}
-
-/**
- * Validates the API token by attempting to fetch current user info.
- * This ensures the token is valid before creating a session.
- */
-async function validateApiToken(token: string): Promise<boolean> {
-	try {
-		const client = new ShortcutClient(token);
-		// Validate by attempting to get current user info
-		await client.getCurrentMemberInfo();
-		return true;
-	} catch (error) {
-		logger.debug(
-			{ error: error instanceof Error ? error.message : error },
-			"API token validation failed",
-		);
-		return false;
-	}
-}
-
-// ============================================================================
 // Error Responses
 // ============================================================================
 
@@ -261,30 +272,6 @@ interface JsonRpcError {
 		message: string;
 	};
 	id: unknown;
-}
-
-function sendUnauthorizedError(res: Response, message?: string): void {
-	res.status(401).json({
-		jsonrpc: "2.0",
-		error: {
-			...JSON_RPC_ERRORS.UNAUTHORIZED,
-			message:
-				message ||
-				"API token required. Provide via Authorization: Bearer <token> or X-Shortcut-API-Token: <token>",
-		},
-		id: null,
-	} satisfies JsonRpcError);
-}
-
-function sendInvalidTokenError(res: Response, requestId?: unknown): void {
-	res.status(401).json({
-		jsonrpc: "2.0",
-		error: {
-			...JSON_RPC_ERRORS.INVALID_TOKEN,
-			message: "Invalid or expired API token. Please check your credentials.",
-		},
-		id: requestId || null,
-	} satisfies JsonRpcError);
 }
 
 function sendSessionNotFoundError(res: Response, sessionId: string, requestId?: unknown): void {
@@ -320,32 +307,107 @@ function sendInternalError(res: Response, requestId?: unknown): void {
 	}
 }
 
+function sendUnauthorizedError(res: Response, requestId?: unknown): void {
+	res.status(401).json({
+		jsonrpc: "2.0",
+		error: JSON_RPC_ERRORS.UNAUTHORIZED,
+		id: requestId || null,
+	} satisfies JsonRpcError);
+}
+
+function extractBearerToken(req: Request): string | undefined {
+	const authHeader = req.headers[HEADERS.AUTHORIZATION];
+	if (typeof authHeader !== "string") {
+		return undefined;
+	}
+	const [type, token] = authHeader.split(" ");
+	if (type?.toLowerCase() !== "bearer" || !token) {
+		return undefined;
+	}
+	return token;
+}
+
+function isAuthorizedForSession(
+	req: Request,
+	session: SessionData,
+	warn: (message: string) => void,
+): boolean {
+	const presentedBearerToken = extractBearerToken(req);
+	if (!presentedBearerToken) {
+		warn("Missing bearer token for session-bound request");
+		return false;
+	}
+
+	// Accept the original bound token and the current active client token.
+	// The latter lets clients continue after refresh if they begin sending
+	// the refreshed token explicitly.
+	const tokenMatchesSession =
+		presentedBearerToken === session.sessionToken || presentedBearerToken === session.accessToken;
+	if (!tokenMatchesSession) {
+		warn("Bearer token does not match session binding");
+		return false;
+	}
+
+	return true;
+}
+
 // ============================================================================
 // MCP Server Creation
 // ============================================================================
 
-function createServerInstance(apiToken: string, config: ServerConfig): CustomMcpServer {
+const API_BASE_URL = `https://${process.env.AUTH_SERVER ?? "api.app.shortcut.com"}`;
+
+/**
+ * Creates a ShortcutClient configured for OAuth Bearer tokens.
+ * - Sends Authorization: Bearer instead of Shortcut-Token
+ * - Uses the correct base URL (staging vs production) based on AUTH_SERVER
+ */
+function createOAuthShortcutClient(accessToken: string): ShortcutClient {
+	const client = new ShortcutClient("_placeholder_", {
+		baseURL: API_BASE_URL,
+		headers: {
+			Authorization: `Bearer ${accessToken}`,
+		},
+	});
+	// Remove the Shortcut-Token header set by the constructor --
+	// the Shortcut API rejects requests with an invalid Shortcut-Token
+	// even when a valid Authorization: Bearer header is present.
+	// biome-ignore lint/suspicious/noExplicitAny: accessing axios internals
+	const instance = (client as any).instance;
+	if (instance?.defaults?.headers) {
+		delete instance.defaults.headers["Shortcut-Token"];
+		if (instance.defaults.headers.common) {
+			delete instance.defaults.headers.common["Shortcut-Token"];
+		}
+	}
+	return client;
+}
+
+function createServerInstance(
+	accessToken: string,
+	config: ServerConfig,
+): { server: CustomMcpServer; clientWrapper: ShortcutClientWrapper } {
 	const server = new CustomMcpServer({
 		readonly: config.isReadonly,
 		tools: config.enabledTools,
 	});
-	const client = new ShortcutClientWrapper(new ShortcutClient(apiToken));
+	const clientWrapper = new ShortcutClientWrapper(createOAuthShortcutClient(accessToken));
 
 	// The order these are created impacts the order they are listed to the LLM
 	// Most important tools should be at the top
-	UserTools.create(client, server);
-	StoryTools.create(client, server);
-	IterationTools.create(client, server);
-	EpicTools.create(client, server);
-	ObjectiveTools.create(client, server);
-	TeamTools.create(client, server);
-	WorkflowTools.create(client, server);
-	DocumentTools.create(client, server);
-	LabelTools.create(client, server);
-	ProjectTools.create(client, server);
-	CustomFieldTools.create(client, server);
+	UserTools.create(clientWrapper, server);
+	StoryTools.create(clientWrapper, server);
+	IterationTools.create(clientWrapper, server);
+	EpicTools.create(clientWrapper, server);
+	ObjectiveTools.create(clientWrapper, server);
+	TeamTools.create(clientWrapper, server);
+	WorkflowTools.create(clientWrapper, server);
+	DocumentTools.create(clientWrapper, server);
+	LabelTools.create(clientWrapper, server);
+	ProjectTools.create(clientWrapper, server);
+	CustomFieldTools.create(clientWrapper, server);
 
-	return server;
+	return { server, clientWrapper };
 }
 
 // ============================================================================
@@ -353,17 +415,18 @@ function createServerInstance(apiToken: string, config: ServerConfig): CustomMcp
 // ============================================================================
 
 async function createTransport(
-	apiToken: string,
+	accessToken: string,
 	config: ServerConfig,
 	sessionManager: SessionManager,
 ): Promise<StreamableHTTPServerTransport> {
 	let transport: StreamableHTTPServerTransport | null = null;
+	const { server, clientWrapper } = createServerInstance(accessToken, config);
 
 	transport = new StreamableHTTPServerTransport({
 		sessionIdGenerator: () => randomUUID(),
 		onsessioninitialized: (sid): void => {
 			if (transport) {
-				sessionManager.add(sid, transport, apiToken);
+				sessionManager.add(sid, transport, accessToken, clientWrapper);
 			}
 		},
 	});
@@ -378,8 +441,6 @@ async function createTransport(
 		}
 	};
 
-	// Create server instance with the API token and connect
-	const server = createServerInstance(apiToken, config);
 	await server.connect(transport);
 
 	return transport;
@@ -396,50 +457,56 @@ async function handleMcpPost(
 	config: ServerConfig,
 ): Promise<void> {
 	const sessionId = req.headers[HEADERS.MCP_SESSION_ID] as string | undefined;
-	const apiToken = extractApiToken(req);
+	const accessToken = req.auth?.token;
 	const requestId = req.body?.id;
 
 	const reqLogger = logger.child({ sessionId: sessionId || "new", method: "POST" });
-	reqLogger.debug({ hasToken: !!apiToken }, "Received POST request");
+	reqLogger.debug({ hasAccessToken: !!accessToken }, "Received POST request");
 
 	try {
 		// Scenario 1: Existing session
 		if (sessionId && sessionManager.has(sessionId)) {
-			if (!apiToken) {
-				sendUnauthorizedError(res);
+			// Token is already verified by requireBearerAuth middleware
+			// (which also auto-refreshes expired tokens). The token in req.auth
+			// may differ from the session's original token due to refresh --
+			// that's OK, we trust the middleware's verification.
+			if (!accessToken) {
+				reqLogger.warn("Missing access token for session");
+				sendUnauthorizedError(res, requestId);
 				return;
 			}
 
-			// Validate that the provided token matches the session's token
-			if (!sessionManager.validateToken(sessionId, apiToken)) {
-				reqLogger.warn("Token mismatch for session");
-				sendUnauthorizedError(res, "API token does not match the session");
+			const session = sessionManager.get(sessionId);
+			if (!session) {
+				sendSessionNotFoundError(res, sessionId, requestId);
+				return;
+			}
+			if (!isAuthorizedForSession(req, session, (message) => reqLogger.warn(message))) {
+				sendUnauthorizedError(res, requestId);
 				return;
 			}
 
-			const session = sessionManager.get(sessionId)!;
+			// If the token was refreshed by the auth middleware, update the
+			// session's ShortcutClient so tools use the fresh token.
+			if (accessToken !== session.accessToken) {
+				reqLogger.info("Token refreshed, updating session client");
+				session.accessToken = accessToken;
+				session.clientWrapper.updateClient(createOAuthShortcutClient(accessToken));
+			}
+
 			await session.transport.handleRequest(req, res, req.body);
 			return;
 		}
 
 		// Scenario 2: Initialization request
 		if (isInitializeRequest(req.body)) {
-			if (!apiToken) {
-				sendUnauthorizedError(res);
+			if (!accessToken) {
+				sendUnauthorizedError(res, requestId);
 				return;
 			}
 
-			// Validate the API token before creating a session
-			reqLogger.info("Validating API token");
-			const isValid = await validateApiToken(apiToken);
-			if (!isValid) {
-				reqLogger.warn("API token validation failed");
-				sendInvalidTokenError(res, requestId);
-				return;
-			}
-
-			reqLogger.info("API token validated, creating session");
-			const transport = await createTransport(apiToken, config, sessionManager);
+			reqLogger.info("Creating session");
+			const transport = await createTransport(accessToken, config, sessionManager);
 			await transport.handleRequest(req, res, req.body);
 			return;
 		}
@@ -464,7 +531,7 @@ async function handleMcpGet(
 	sessionManager: SessionManager,
 ): Promise<void> {
 	const sessionId = req.headers[HEADERS.MCP_SESSION_ID] as string | undefined;
-	const apiToken = extractApiToken(req);
+	const accessToken = req.auth?.token;
 
 	const reqLogger = logger.child({ sessionId, method: "GET" });
 
@@ -473,15 +540,11 @@ async function handleMcpGet(
 		return;
 	}
 
-	// Validate token for SSE stream establishment
-	if (!apiToken) {
+	// Token is already verified by requireBearerAuth middleware
+	// (which also auto-refreshes expired tokens).
+	if (!accessToken) {
+		reqLogger.warn("Missing access token for GET request");
 		sendUnauthorizedError(res);
-		return;
-	}
-
-	if (!sessionManager.validateToken(sessionId, apiToken)) {
-		reqLogger.warn("Token mismatch for GET request");
-		sendUnauthorizedError(res, "API token does not match the session");
 		return;
 	}
 
@@ -493,7 +556,15 @@ async function handleMcpGet(
 	}
 
 	try {
-		const session = sessionManager.get(sessionId)!;
+		const session = sessionManager.get(sessionId);
+		if (!session) {
+			res.status(400).send("Invalid or missing session ID");
+			return;
+		}
+		if (!isAuthorizedForSession(req, session, (message) => reqLogger.warn(message))) {
+			sendUnauthorizedError(res);
+			return;
+		}
 		await session.transport.handleRequest(req, res);
 	} catch (error) {
 		reqLogger.error({ error }, "Error handling MCP GET request");
@@ -509,7 +580,7 @@ async function handleMcpDelete(
 	sessionManager: SessionManager,
 ): Promise<void> {
 	const sessionId = req.headers[HEADERS.MCP_SESSION_ID] as string | undefined;
-	const apiToken = extractApiToken(req);
+	const accessToken = req.auth?.token;
 
 	const reqLogger = logger.child({ sessionId, method: "DELETE" });
 
@@ -518,22 +589,26 @@ async function handleMcpDelete(
 		return;
 	}
 
-	// Validate token for session termination
-	if (!apiToken) {
+	// Token is already verified by requireBearerAuth middleware
+	// (which also auto-refreshes expired tokens).
+	if (!accessToken) {
+		reqLogger.warn("Missing access token for DELETE request");
 		sendUnauthorizedError(res);
-		return;
-	}
-
-	if (!sessionManager.validateToken(sessionId, apiToken)) {
-		reqLogger.warn("Token mismatch for DELETE request");
-		sendUnauthorizedError(res, "API token does not match the session");
 		return;
 	}
 
 	reqLogger.info("Terminating session");
 
 	try {
-		const session = sessionManager.get(sessionId)!;
+		const session = sessionManager.get(sessionId);
+		if (!session) {
+			res.status(400).send("Invalid or missing session ID");
+			return;
+		}
+		if (!isAuthorizedForSession(req, session, (message) => reqLogger.warn(message))) {
+			sendUnauthorizedError(res);
+			return;
+		}
 		await session.transport.handleRequest(req, res);
 		// The session will be removed via the onclose handler
 	} catch (error) {
@@ -553,7 +628,7 @@ function corsMiddleware(req: Request, res: Response, next: NextFunction): void {
 	res.header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
 	res.header(
 		"Access-Control-Allow-Headers",
-		"Content-Type, Authorization, X-Shortcut-API-Token, Mcp-Session-Id, Last-Event-Id",
+		"Content-Type, Authorization, Mcp-Session-Id, Last-Event-Id",
 	);
 	res.header("Access-Control-Expose-Headers", "Mcp-Session-Id");
 
@@ -570,14 +645,14 @@ function corsMiddleware(req: Request, res: Response, next: NextFunction): void {
  */
 function loggingMiddleware(req: Request, _res: Response, next: NextFunction): void {
 	const sessionId = req.headers[HEADERS.MCP_SESSION_ID];
-	const hasToken = !!extractApiToken(req);
+	const hasAccessToken = !!req.headers[HEADERS.AUTHORIZATION];
 
 	logger.debug(
 		{
 			method: req.method,
 			path: req.path,
 			sessionId: sessionId || "none",
-			hasToken,
+			hasAccessToken,
 		},
 		"Incoming request",
 	);
@@ -588,21 +663,27 @@ function loggingMiddleware(req: Request, _res: Response, next: NextFunction): vo
 function httpDebugRequestMiddleware(req: Request, _res: Response, next: NextFunction): void {
 	const headers = { ...req.headers };
 	delete headers[HEADERS.AUTHORIZATION];
-	delete headers[HEADERS.X_SHORTCUT_API_TOKEN];
 	delete headers.cookie;
 
-	logger.info(
-		JSON.stringify({
-			event: "http_request",
-			method: req.method,
-			path: req.path,
-			url: req.originalUrl,
-			query: req.query,
-			headers,
-			body: req.body,
-		}),
-	);
+	logEvent("http_request", {
+		method: req.method,
+		path: req.path,
+		url: req.originalUrl,
+		query: req.query,
+		headers,
+		body: req.body,
+	});
 
+	next();
+}
+
+function httpDebugResponseMiddleware(req: Request, res: Response, next: NextFunction): void {
+	const originalJson = res.json.bind(res);
+	res.json = (body: unknown) => {
+		logEvent("http_response", { method: req.method, path: req.path, status: res.statusCode, body });
+		logEvent("http_response", { method: req.method, path: req.path, status: res.statusCode, body });
+		return originalJson(body);
+	  };
 	next();
 }
 
@@ -612,31 +693,91 @@ function httpDebugRequestMiddleware(req: Request, _res: Response, next: NextFunc
 
 async function startServer() {
 	const config = loadConfig();
+	httpDebugVerbose = config.httpDebugVerbose;
 	const sessionManager = new SessionManager(config.sessionTimeoutMs);
 	const app = express();
+
+	// OAuth provider and resource metadata URL
+	const oauthProvider = createOAuthProvider({ mcpServerUrl: MCP_SERVER_URL });
+	const mcpResourceUrl = new URL(`${MCP_SERVER_URL}/mcp`);
+	const resourceMetadataUrl = getOAuthProtectedResourceMetadataUrl(mcpResourceUrl);
+
+	// Bearer auth middleware for protecting /mcp routes
+	const bearerAuth = requireBearerAuth({
+		verifier: oauthProvider,
+		resourceMetadataUrl,
+	});
 
 	// Middleware
 	app.use(express.json());
 	if (config.httpDebug) app.use(httpDebugRequestMiddleware);
+	if (config.httpDebug) app.use(httpDebugResponseMiddleware);
 	app.use(corsMiddleware);
 	app.use(loggingMiddleware);
+	app.set("trust proxy", 1); // Required when behind ALB/Load Balancer // Required when behind ALB/Load Balancer
 
 	app.use((req, res, next) => {
 		const start = Date.now();
 		res.on("finish", () => {
+			const ms = Date.now() - start;
 			if (res.statusCode >= 400) {
-				logger.info(
-					JSON.stringify({
-						event: "http_request_failed",
-						method: req.method,
-						path: req.path,
-						status: res.statusCode,
-						ms: Date.now() - start,
-					}),
-				);
+				const headers = { ...req.headers };
+				logEvent("http_request_failed", {
+					method: req.method,
+					path: req.path,
+					url: req.originalUrl,
+					query: req.query,
+					headers,
+					body: req.body,
+					ms: ms,
+				});
 			}
 		});
 		next();
+	});
+
+	// OAuth auth router: installs /.well-known/oauth-protected-resource/mcp,
+	// /.well-known/oauth-authorization-server, /authorize, /token, /register
+	app.use(
+		mcpAuthRouter({
+			provider: oauthProvider,
+			issuerUrl: new URL(MCP_SERVER_URL),
+			baseUrl: new URL(MCP_SERVER_URL),
+			resourceServerUrl: mcpResourceUrl,
+			scopesSupported: ["openid"],
+		}),
+	);
+
+	// OAuth callback: relays the authorization code from the upstream auth server
+	// back to the original MCP client's redirect_uri.
+	app.get(oauthProvider.callbackPath, (req: Request, res: Response) => {
+		const { code, state, error, error_description } = req.query as Record<string, string>;
+
+		if (!state) {
+			res.status(400).send("Missing state parameter");
+			return;
+		}
+
+		const originalRedirectUri = oauthProvider.pendingAuthorizations.get(state);
+		if (!originalRedirectUri) {
+			res.status(400).send("Unknown or expired authorization state");
+			return;
+		}
+
+		// Clean up the pending authorization
+		oauthProvider.pendingAuthorizations.delete(state);
+
+		// Build the redirect back to the original client
+		const redirectUrl = new URL(originalRedirectUri);
+		if (code) redirectUrl.searchParams.set("code", code);
+		if (state) redirectUrl.searchParams.set("state", state);
+		if (error) redirectUrl.searchParams.set("error", error);
+		if (error_description) {
+			redirectUrl.searchParams.set("error_description", error_description);
+		}
+
+		logger.info({ state, hasCode: !!code, hasError: !!error }, "OAuth callback relay");
+		res.redirect(redirectUrl.toString());
 	});
 
 	// Routes
@@ -650,9 +791,10 @@ async function startServer() {
 		});
 	});
 
-	app.post("/mcp", (req, res) => handleMcpPost(req, res, sessionManager, config));
-	app.get("/mcp", (req, res) => handleMcpGet(req, res, sessionManager));
-	app.delete("/mcp", (req, res) => handleMcpDelete(req, res, sessionManager));
+	// MCP routes protected by bearer auth
+	app.post("/mcp", bearerAuth, (req, res) => handleMcpPost(req, res, sessionManager, config));
+	app.get("/mcp", bearerAuth, (req, res) => handleMcpGet(req, res, sessionManager));
+	app.delete("/mcp", bearerAuth, (req, res) => handleMcpDelete(req, res, sessionManager));
 
 	// Start server
 	app.listen(config.port, () => {

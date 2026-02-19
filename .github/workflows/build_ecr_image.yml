@@ -2,8 +2,10 @@ name: Build and push Docker image to ECR
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
   workflow_dispatch:
+  workflow_call:
 
 env:
   BUILDER_ROLE: arn:aws:iam::048776562964:role/shortcut_mcp/shortcut-mcp-staging-builds

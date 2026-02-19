@@ -25,16 +25,8 @@ export class TeamTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"teams-list",
-			"List Shortcut teams",
-			{
-				includeArchived: z
-					.boolean()
-					.describe("True to include archived teams.")
-					.optional()
-					.default(false),
-			},
-			async ({ includeArchived }: { includeArchived: boolean }) =>
-				await tools.getTeams(includeArchived),
+			"List all Shortcut teams",
+			async () => await tools.getTeams(),
 		);
 
 		return tools;
@@ -51,16 +43,14 @@ export class TeamTools extends BaseTools {
 		);
 	}
 
-	async getTeams(includeArchived: boolean) {
+	async getTeams() {
 		const teams = await this.client.getTeams();
 
 		if (!teams.length) return this.toResult(`No teams found.`);
 
-		const filteredTeams = includeArchived ? teams : teams.filter((team) => !team.archived);
-
 		return this.toResult(
-			`Result (first ${filteredTeams.length} shown of ${filteredTeams.length} total teams found):`,
-			await this.entitiesWithRelatedEntities(filteredTeams, "teams"),
+			`Result (first ${teams.length} shown of ${teams.length} total teams found):`,
+			await this.entitiesWithRelatedEntities(teams, "teams"),
 		);
 	}
 }
