@@ -8,9 +8,9 @@
 [![PRs welcome!](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![X](https://img.shields.io/twitter/follow/shortcut.svg?label=Follow%20@shortcut)](https://twitter.com/intent/follow?screen_name=shortcut)
 
-The MCP server for [Shortcut](https://shortcut.com).
+MCP Server for [Shortcut](https://shortcut.com) users.
 
-<br />
+Links: [Local Installations](docs/local-server.md) | [ Server Developers](docs/developer.md)
 
 ## Usage
 
