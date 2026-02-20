@@ -453,7 +453,6 @@ describe("EpicTools", () => {
 			});
 			const epicTools = new EpicTools(mockClient);
 
-			// @ts-expect-error - Testing runtime check for missing ID
 			await expect(() => epicTools.deleteEpic(0)).toThrow(
 				"Failed to retrieve Shortcut epic with public ID: 0",
 			);
