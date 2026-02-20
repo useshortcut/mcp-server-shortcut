@@ -192,6 +192,7 @@ export class StoryTools extends BaseTools {
 			"Add a comment to a story.",
 			{
 				storyPublicId: z.number().positive().describe("Story ID"),
+				replyToCommentId: z.number().positive().optional().describe("Comment ID to reply to"),
 				text: z.string().min(1).describe("Comment text"),
 			},
 			async (params) => await tools.createStoryComment(params),
@@ -555,7 +556,15 @@ export class StoryTools extends BaseTools {
 		);
 	}
 
-	async createStoryComment({ storyPublicId, text }: { storyPublicId: number; text: string }) {
+	async createStoryComment({
+		storyPublicId,
+		replyToCommentId,
+		text,
+	}: {
+		storyPublicId: number;
+		replyToCommentId?: number;
+		text: string;
+	}) {
 		if (!storyPublicId) throw new Error("Story public ID is required");
 		if (!text) throw new Error("Story comment text is required");
 
@@ -563,7 +572,10 @@ export class StoryTools extends BaseTools {
 		if (!story)
 			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
 
-		const storyComment = await this.client.createStoryComment(storyPublicId, { text });
+		const storyComment = await this.client.createStoryComment(storyPublicId, {
+			text,
+			parent_id: replyToCommentId,
+		});
 
 		return this.toResult(
 			`Created comment on story sc-${storyPublicId}. Comment URL: ${storyComment.app_url}.`,
