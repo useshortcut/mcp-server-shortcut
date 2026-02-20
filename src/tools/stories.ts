@@ -14,23 +14,17 @@ export class StoryTools extends BaseTools {
 			"stories-get-by-id",
 			"Get a Shortcut story by public ID.",
 			{
-				storyPublicId: z.number().positive().describe("The public ID of the story to get"),
-				full: z
-					.boolean()
-					.optional()
-					.default(false)
-					.describe(
-						"True to return all story fields from the API. False to return a slim version that excludes uncommon fields",
-					),
+				storyPublicId: z.number().positive().describe("The story ID"),
+				full: z.boolean().optional().default(false).describe("Return all fields (default: slim)"),
 			},
 			async ({ storyPublicId, full }) => await tools.getStory(storyPublicId, full),
 		);
 
 		server.addToolWithReadAccess(
 			"stories-get-history",
-			"Get the change history for a Shortcut story. Shows what changed, when, and by whom.",
+			"Get the change history for a Shortcut story.",
 			{
-				storyPublicId: z.number().positive().describe("The public ID of the story"),
+				storyPublicId: z.number().positive().describe("The story ID"),
 			},
 			async ({ storyPublicId }) => await tools.getStoryHistory(storyPublicId),
 		);
@@ -39,66 +33,29 @@ export class StoryTools extends BaseTools {
 			"stories-search",
 			"Find Shortcut stories.",
 			{
-				nextPageToken: z
-					.string()
-					.optional()
-					.describe(
-						"If a next_page_token was returned from the search result, pass it in to get the next page of results. Should be combined with the original search parameters.",
-					),
-				id: z.number().optional().describe("Find only stories with the specified public ID"),
-				name: z.string().optional().describe("Find only stories matching the specified name"),
-				description: z
-					.string()
-					.optional()
-					.describe("Find only stories matching the specified description"),
-				comment: z.string().optional().describe("Find only stories matching the specified comment"),
-				type: z
-					.enum(["feature", "bug", "chore"])
-					.optional()
-					.describe("Find only stories of the specified type"),
-				estimate: z
-					.number()
-					.optional()
-					.describe("Find only stories matching the specified estimate"),
-				branch: z.string().optional().describe("Find only stories matching the specified branch"),
-				commit: z.string().optional().describe("Find only stories matching the specified commit"),
-				pr: z.number().optional().describe("Find only stories matching the specified pull request"),
-				project: z.number().optional().describe("Find only stories matching the specified project"),
-				epic: z.number().optional().describe("Find only stories matching the specified epic"),
-				objective: z
-					.number()
-					.optional()
-					.describe("Find only stories matching the specified objective"),
-				state: z.string().optional().describe("Find only stories matching the specified state"),
-				label: z.string().optional().describe("Find only stories matching the specified label"),
+				nextPageToken: z.string().optional().describe("Pagination token from previous search"),
+				id: z.number().optional().describe("Story ID"),
+				name: z.string().optional().describe("Name contains"),
+				description: z.string().optional().describe("Description contains"),
+				comment: z.string().optional().describe("Comment contains"),
+				type: z.enum(["feature", "bug", "chore"]).optional().describe("Story type"),
+				estimate: z.number().optional().describe("Point estimate"),
+				branch: z.string().optional().describe("Branch name"),
+				commit: z.string().optional().describe("Commit SHA"),
+				pr: z.number().optional().describe("PR number"),
+				project: z.number().optional().describe("Project ID"),
+				epic: z.number().optional().describe("Epic ID"),
+				objective: z.number().optional().describe("Objective ID"),
+				state: z.string().optional().describe("Workflow state name"),
+				label: z.string().optional().describe("Label name"),
 				owner: user("owner"),
 				requester: user("requester"),
-				team: z
-					.string()
-					.optional()
-					.describe(
-						"Find only stories matching the specified team. This can be a team mention name or team name.",
-					),
-				skillSet: z
-					.string()
-					.optional()
-					.describe("Find only stories matching the specified skill set"),
-				productArea: z
-					.string()
-					.optional()
-					.describe("Find only stories matching the specified product area"),
-				technicalArea: z
-					.string()
-					.optional()
-					.describe("Find only stories matching the specified technical area"),
-				priority: z
-					.string()
-					.optional()
-					.describe("Find only stories matching the specified priority"),
-				severity: z
-					.string()
-					.optional()
-					.describe("Find only stories matching the specified severity"),
+				team: z.string().optional().describe("Team name or mention"),
+				skillSet: z.string().optional().describe("Skill set"),
+				productArea: z.string().optional().describe("Product area"),
+				technicalArea: z.string().optional().describe("Technical area"),
+				priority: z.string().optional().describe("Priority level"),
+				severity: z.string().optional().describe("Severity level"),
 				isDone: is("completed"),
 				isStarted: is("started"),
 				isUnstarted: is("unstarted"),
@@ -107,16 +64,16 @@ export class StoryTools extends BaseTools {
 				isArchived: is("archived").default(false),
 				isBlocker: is("blocking"),
 				isBlocked: is("blocked"),
-				hasComment: has("a comment"),
-				hasLabel: has("a label"),
-				hasDeadline: has("a deadline"),
-				hasOwner: has("an owner"),
-				hasPr: has("a pr"),
-				hasCommit: has("a commit"),
-				hasBranch: has("a branch"),
-				hasEpic: has("an epic"),
-				hasTask: has("a task"),
-				hasAttachment: has("an attachment"),
+				hasComment: has("comment"),
+				hasLabel: has("label"),
+				hasDeadline: has("deadline"),
+				hasOwner: has("owner"),
+				hasPr: has("PR"),
+				hasCommit: has("commit"),
+				hasBranch: has("branch"),
+				hasEpic: has("epic"),
+				hasTask: has("task"),
+				hasAttachment: has("attachment"),
 				created: date(),
 				updated: date(),
 				completed: date(),
@@ -127,44 +84,25 @@ export class StoryTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"stories-get-branch-name",
-			"Get a valid branch name for a specific story.",
+			"Get a valid git branch name for a story.",
 			{
-				storyPublicId: z.number().positive().describe("The public Id of the story"),
+				storyPublicId: z.number().positive().describe("The story ID"),
 			},
 			async ({ storyPublicId }) => await tools.getStoryBranchName(storyPublicId),
 		);
 
 		server.addToolWithWriteAccess(
 			"stories-create",
-			`Create a new Shortcut story. 
-Name is required, and either a Team or Workflow must be specified:
-- If only Team is specified, we will use the default workflow for that team.
-- If Workflow is specified, it will be used regardless of Team.
-The story will be added to the default state for the workflow.
-`,
+			"Create a new Shortcut story. Requires name and either team or workflow.",
 			{
-				name: z.string().min(1).max(512).describe("The name of the story. Required."),
-				description: z.string().max(10_000).optional().describe("The description of the story"),
-				type: z
-					.enum(["feature", "bug", "chore"])
-					.default("feature")
-					.describe("The type of the story"),
-				owner: z.string().optional().describe("The user id of the owner of the story"),
-				epic: z.number().optional().describe("The epic id of the epic the story belongs to"),
-				iteration: z
-					.number()
-					.optional()
-					.describe("The iteration id of the iteration the story belongs to"),
-				team: z
-					.string()
-					.optional()
-					.describe(
-						"The team ID or mention name of the team the story belongs to. Required unless a workflow is specified.",
-					),
-				workflow: z
-					.number()
-					.optional()
-					.describe("The workflow ID to add the story to. Required unless a team is specified."),
+				name: z.string().min(1).max(512).describe("Story name (required)"),
+				description: z.string().max(10_000).optional().describe("Story description"),
+				type: z.enum(["feature", "bug", "chore"]).default("feature").describe("Story type"),
+				owner: z.string().optional().describe("Owner user ID"),
+				epic: z.number().optional().describe("Epic ID"),
+				iteration: z.number().optional().describe("Iteration ID"),
+				team: z.string().optional().describe("Team ID or mention (required if no workflow)"),
+				workflow: z.number().optional().describe("Workflow ID (required if no team)"),
 			},
 			async ({ name, description, type, owner, epic, iteration, team, workflow }) =>
 				await tools.createStory({
@@ -181,164 +119,121 @@ The story will be added to the default state for the workflow.
 
 		server.addToolWithWriteAccess(
 			"stories-update",
-			"Update an existing Shortcut story. Only provide fields you want to update. The story public ID will always be included in updates.",
+			"Update a Shortcut story. Only provide fields to update.",
 			{
-				storyPublicId: z.number().positive().describe("The public ID of the story to update"),
-				name: z.string().max(512).optional().describe("The name of the story"),
-				description: z.string().max(10_000).optional().describe("The description of the story"),
-				type: z.enum(["feature", "bug", "chore"]).optional().describe("The type of the story"),
-				epic: z
-					.number()
-					.nullable()
-					.optional()
-					.describe("The epic id of the epic the story belongs to, or null to unset"),
-				estimate: z
-					.number()
-					.nullable()
-					.optional()
-					.describe("The point estimate of the story, or null to unset"),
-				iteration: z
-					.number()
-					.nullable()
-					.optional()
-					.describe("The iteration id of the iteration the story belongs to, or null to unset"),
-				owner_ids: z
-					.array(z.string())
-					.optional()
-					.describe("Array of user UUIDs to assign as owners of the story"),
-				workflow_state_id: z
-					.number()
-					.optional()
-					.describe("The workflow state ID to move the story to"),
+				storyPublicId: z.number().positive().describe("Story ID (required)"),
+				name: z.string().max(512).optional().describe("Story name"),
+				description: z.string().max(10_000).optional().describe("Story description"),
+				type: z.enum(["feature", "bug", "chore"]).optional().describe("Story type"),
+				epic: z.number().nullable().optional().describe("Epic ID (null to unset)"),
+				estimate: z.number().nullable().optional().describe("Point estimate (null to unset)"),
+				iteration: z.number().nullable().optional().describe("Iteration ID (null to unset)"),
+				owner_ids: z.array(z.string()).optional().describe("Owner user UUIDs"),
+				workflow_state_id: z.number().optional().describe("Workflow state ID"),
 				labels: z
 					.array(
 						z.object({
-							name: z.string().describe("The name of the label"),
-							color: z.string().optional().describe("The color of the label"),
-							description: z.string().optional().describe("The description of the label"),
+							name: z.string().describe("Label name"),
+							color: z.string().optional().describe("Hex color"),
+							description: z.string().optional().describe("Label description"),
 						}),
 					)
 					.optional()
-					.describe("Labels to assign to the story"),
+					.describe("Labels to assign"),
 				custom_fields: z
 					.array(
 						z.object({
-							field_id: z.string().uuid().describe("The UUID of the custom field"),
-							value_id: z.string().uuid().describe("The UUID of the custom field value"),
+							field_id: z.string().uuid().describe("Custom field UUID"),
+							value_id: z.string().uuid().describe("Value UUID"),
 						}),
 					)
 					.optional()
-					.describe(
-						"Custom field values to set on the story. Use custom-fields-list to discover available fields and their value IDs.",
-					),
-				team_id: z
-					.string()
-					.nullable()
-					.optional()
-					.describe("The team (group) UUID to assign the story to, or null to unset"),
-				project_id: z
-					.number()
-					.nullable()
-					.optional()
-					.describe("The project ID to assign the story to, or null to unset"),
-				deadline: z
-					.string()
-					.nullable()
-					.optional()
-					.describe(
-						"The due date for the story in ISO 8601 datetime format (e.g., 2025-01-31T00:00:00Z), or null to unset",
-					),
-				follower_ids: z
-					.array(z.string())
-					.optional()
-					.describe("Array of user UUIDs to add as followers of the story"),
-				requested_by_id: z
-					.string()
-					.optional()
-					.describe("The UUID of the user who requested the story"),
-				archived: z.boolean().optional().describe("Whether to archive the story"),
+					.describe("Custom field values"),
+				team_id: z.string().nullable().optional().describe("Team UUID (null to unset)"),
+				project_id: z.number().nullable().optional().describe("Project ID (null to unset)"),
+				deadline: z.string().nullable().optional().describe("Due date ISO 8601 (null to unset)"),
+				follower_ids: z.array(z.string()).optional().describe("Follower user UUIDs"),
+				requested_by_id: z.string().optional().describe("Requester user UUID"),
+				archived: z.boolean().optional().describe("Archive the story"),
 			},
 			async (params) => await tools.updateStory(params),
 		);
 
 		server.addToolWithWriteAccess(
 			"stories-upload-file",
-			"Upload a file and link it to a story.",
+			"Upload a file and attach it to a story.",
 			{
-				storyPublicId: z.number().positive().describe("The public ID of the story"),
-				filePath: z.string().describe("The path to the file to upload"),
+				storyPublicId: z.number().positive().describe("Story ID"),
+				filePath: z.string().describe("File path to upload"),
 			},
 			async ({ storyPublicId, filePath }) => await tools.uploadFileToStory(storyPublicId, filePath),
 		);
 
 		server.addToolWithWriteAccess(
 			"stories-assign-current-user",
-			"Assign the current user as the owner of a story.",
+			"Assign current user as story owner.",
 			{
-				storyPublicId: z.number().positive().describe("The public ID of the story"),
+				storyPublicId: z.number().positive().describe("Story ID"),
 			},
 			async ({ storyPublicId }) => await tools.assignCurrentUserAsOwner(storyPublicId),
 		);
 
 		server.addToolWithWriteAccess(
 			"stories-unassign-current-user",
-			"Unassign the current user as the owner of a story.",
+			"Remove current user as story owner.",
 			{
-				storyPublicId: z.number().positive().describe("The public ID of the story"),
+				storyPublicId: z.number().positive().describe("Story ID"),
 			},
 			async ({ storyPublicId }) => await tools.unassignCurrentUserAsOwner(storyPublicId),
 		);
 
 		server.addToolWithWriteAccess(
 			"stories-create-comment",
-			"Create a comment on a story.",
+			"Add a comment to a story.",
 			{
-				storyPublicId: z.number().positive().describe("The public ID of the story"),
-				text: z.string().min(1).describe("The text of the comment"),
+				storyPublicId: z.number().positive().describe("Story ID"),
+				text: z.string().min(1).describe("Comment text"),
 			},
 			async (params) => await tools.createStoryComment(params),
 		);
 
 		server.addToolWithWriteAccess(
 			"stories-create-subtask",
-			"Create a new story as a sub-task.",
+			"Create a new sub-task story.",
 			{
-				parentStoryPublicId: z.number().positive().describe("The public ID of the parent story"),
-				name: z.string().min(1).max(512).describe("The name of the sub-task. Required."),
-				description: z.string().max(10_000).optional().describe("The description of the sub-task"),
+				parentStoryPublicId: z.number().positive().describe("Parent story ID"),
+				name: z.string().min(1).max(512).describe("Sub-task name"),
+				description: z.string().max(10_000).optional().describe("Sub-task description"),
 			},
 			async (params) => await tools.createSubTask(params),
 		);
 
 		server.addToolWithWriteAccess(
 			"stories-add-subtask",
-			"Add an existing story as a sub-task.",
+			"Add existing story as a sub-task.",
 			{
-				parentStoryPublicId: z.number().positive().describe("The public ID of the parent story"),
-				subTaskPublicId: z.number().positive().describe("The public ID of the sub-task story"),
+				parentStoryPublicId: z.number().positive().describe("Parent story ID"),
+				subTaskPublicId: z.number().positive().describe("Sub-task story ID"),
 			},
 			async (params) => await tools.addStoryAsSubTask(params),
 		);
 
 		server.addToolWithWriteAccess(
 			"stories-remove-subtask",
-			"Remove a story from its parent. The sub-task will become a regular story.",
+			"Remove sub-task from parent (becomes regular story).",
 			{
-				subTaskPublicId: z.number().positive().describe("The public ID of the sub-task story"),
+				subTaskPublicId: z.number().positive().describe("Sub-task story ID"),
 			},
 			async (params) => await tools.removeSubTaskFromParent(params),
 		);
 
 		server.addToolWithWriteAccess(
 			"stories-add-task",
-			"Add a task to a story.",
+			"Add a task (checklist item) to a story.",
 			{
-				storyPublicId: z.number().positive().describe("The public ID of the story"),
-				taskDescription: z.string().min(1).describe("The description of the task"),
-				taskOwnerIds: z
-					.array(z.string())
-					.optional()
-					.describe("Array of user IDs to assign as owners of the task"),
+				storyPublicId: z.number().positive().describe("Story ID"),
+				taskDescription: z.string().min(1).describe("Task description"),
+				taskOwnerIds: z.array(z.string()).optional().describe("Owner user IDs"),
 			},
 			async (params) => await tools.addTaskToStory(params),
 		);
@@ -347,39 +242,36 @@ The story will be added to the default state for the workflow.
 			"stories-update-task",
 			"Update a task in a story.",
 			{
-				storyPublicId: z.number().positive().describe("The public ID of the story"),
-				taskPublicId: z.number().positive().describe("The public ID of the task"),
-				taskDescription: z.string().optional().describe("The description of the task"),
-				taskOwnerIds: z
-					.array(z.string())
-					.optional()
-					.describe("Array of user IDs to assign as owners of the task"),
-				isCompleted: z.boolean().optional().describe("Whether the task is completed or not"),
+				storyPublicId: z.number().positive().describe("Story ID"),
+				taskPublicId: z.number().positive().describe("Task ID"),
+				taskDescription: z.string().optional().describe("Task description"),
+				taskOwnerIds: z.array(z.string()).optional().describe("Owner user IDs"),
+				isCompleted: z.boolean().optional().describe("Mark as completed"),
 			},
 			async (params) => await tools.updateTask(params),
 		);
 
 		server.addToolWithWriteAccess(
 			"stories-add-relation",
-			"Add a story relationship to a story.",
+			"Add a relationship between stories.",
 			{
-				storyPublicId: z.number().positive().describe("The public ID of the story"),
-				relatedStoryPublicId: z.number().positive().describe("The public ID of the related story"),
+				storyPublicId: z.number().positive().describe("Story ID"),
+				relatedStoryPublicId: z.number().positive().describe("Related story ID"),
 				relationshipType: z
 					.enum(["relates to", "blocks", "blocked by", "duplicates", "duplicated by"])
 					.optional()
 					.default("relates to")
-					.describe("The type of relationship"),
+					.describe("Relationship type"),
 			},
 			async (params) => await tools.addRelationToStory(params),
 		);
 
 		server.addToolWithWriteAccess(
 			"stories-add-external-link",
-			"Add an external link to a Shortcut story.",
+			"Add an external link to a story.",
 			{
-				storyPublicId: z.number().positive().describe("The public ID of the story"),
-				externalLink: z.string().url().max(2048).describe("The external link URL to add"),
+				storyPublicId: z.number().positive().describe("Story ID"),
+				externalLink: z.string().url().max(2048).describe("URL to add"),
 			},
 			async ({ storyPublicId, externalLink }) =>
 				await tools.addExternalLinkToStory(storyPublicId, externalLink),
@@ -387,10 +279,10 @@ The story will be added to the default state for the workflow.
 
 		server.addToolWithWriteAccess(
 			"stories-remove-external-link",
-			"Remove an external link from a Shortcut story.",
+			"Remove an external link from a story.",
 			{
-				storyPublicId: z.number().positive().describe("The public ID of the story"),
-				externalLink: z.string().url().max(2048).describe("The external link URL to remove"),
+				storyPublicId: z.number().positive().describe("Story ID"),
+				externalLink: z.string().url().max(2048).describe("URL to remove"),
 			},
 			async ({ storyPublicId, externalLink }) =>
 				await tools.removeExternalLinkFromStory(storyPublicId, externalLink),
@@ -398,12 +290,10 @@ The story will be added to the default state for the workflow.
 
 		server.addToolWithWriteAccess(
 			"stories-set-external-links",
-			"Replace all external links on a story with a new set of links.",
+			"Replace all external links on a story.",
 			{
-				storyPublicId: z.number().positive().describe("The public ID of the story"),
-				externalLinks: z
-					.array(z.string().url().max(2048))
-					.describe("Array of external link URLs to set (replaces all existing links)"),
+				storyPublicId: z.number().positive().describe("Story ID"),
+				externalLinks: z.array(z.string().url().max(2048)).describe("URLs to set (replaces all)"),
 			},
 			async ({ storyPublicId, externalLinks }) =>
 				await tools.setStoryExternalLinks(storyPublicId, externalLinks),
@@ -411,9 +301,9 @@ The story will be added to the default state for the workflow.
 
 		server.addToolWithReadAccess(
 			"stories-get-by-external-link",
-			"Find all stories that contain a specific external link.",
+			"Find stories containing a specific external link.",
 			{
-				externalLink: z.string().url().max(2048).describe("The external link URL to search for"),
+				externalLink: z.string().url().max(2048).describe("URL to search for"),
 			},
 			async ({ externalLink }) => await tools.getStoriesByExternalLink(externalLink),
 		);

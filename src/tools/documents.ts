@@ -9,28 +9,21 @@ export class DocumentTools extends BaseTools {
 
 		server.addToolWithWriteAccess(
 			"documents-create",
-			"Create a new document in Shortcut with a title and content. Returns the document's id, title, and app_url. Note: Use Markdown format for the content.",
+			"Create a new document (Markdown format).",
 			{
-				title: z.string().max(256).describe("The title for the new document (max 256 characters)"),
-				content: z.string().describe("The content for the new document in Markdown format."),
+				title: z.string().max(256).describe("Document title"),
+				content: z.string().describe("Content in Markdown"),
 			},
 			async ({ title, content }) => await tools.createDocument(title, content),
 		);
 
 		server.addToolWithWriteAccess(
 			"documents-update",
-			"Update the content and/or title of an existing document in Shortcut.",
+			"Update a document's title or content.",
 			{
-				docId: z.string().describe("The ID of the document to retrieve"),
-				title: z
-					.string()
-					.max(256)
-					.describe("The title for the document (max 256 characters)")
-					.optional(),
-				content: z
-					.string()
-					.describe("The updated content for the document in Markdown format")
-					.optional(),
+				docId: z.string().describe("Document ID"),
+				title: z.string().max(256).optional().describe("Document title"),
+				content: z.string().optional().describe("Content in Markdown"),
 			},
 			async ({ docId, content, title }: { docId: string; content?: string; title?: string }) =>
 				await tools.updateDocument(docId, title, content),
@@ -38,33 +31,19 @@ export class DocumentTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"documents-list",
-			"List all documents in Shortcut.",
+			"List all documents.",
 			async () => await tools.listDocuments(),
 		);
 
 		server.addToolWithReadAccess(
 			"documents-search",
-			"Find documents.",
+			"Search for documents.",
 			{
-				nextPageToken: z
-					.string()
-					.optional()
-					.describe(
-						"If a next_page_token was returned from the search result, pass it in to get the next page of results. Should be combined with the original search parameters.",
-					),
-				title: z.string().describe("Find documents matching the specified name"),
-				archived: z
-					.boolean()
-					.optional()
-					.describe("Find only documents matching the specified archived status"),
-				createdByCurrentUser: z
-					.boolean()
-					.optional()
-					.describe("Find only documents created by current user"),
-				followedByCurrentUser: z
-					.boolean()
-					.optional()
-					.describe("Find only documents followed by current user"),
+				nextPageToken: z.string().optional().describe("Pagination token from previous search"),
+				title: z.string().describe("Title contains"),
+				archived: z.boolean().optional().describe("Filter by archived status"),
+				createdByCurrentUser: z.boolean().optional().describe("Created by me"),
+				followedByCurrentUser: z.boolean().optional().describe("Followed by me"),
 			},
 			async ({ nextPageToken, title, archived, createdByCurrentUser, followedByCurrentUser }) =>
 				await tools.searchDocuments(
@@ -75,9 +54,9 @@ export class DocumentTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"documents-get-by-id",
-			"Get a document as markdown by its ID.",
+			"Get a document by ID (returns Markdown).",
 			{
-				docId: z.string().describe("The ID of the document to retrieve"),
+				docId: z.string().describe("Document ID"),
 			},
 			async ({ docId }: { docId: string }) => await tools.getDocumentById(docId),
 		);

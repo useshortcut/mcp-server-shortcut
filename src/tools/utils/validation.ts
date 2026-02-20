@@ -31,29 +31,13 @@ export const date = () =>
 		.regex(DATE_REGEXP)
 		.optional()
 		.describe(
-			'The date in "YYYY-MM-DD" format, or one of the keywords: "yesterday", "today", "tomorrow", or a date range in the format "YYYY-MM-DD..YYYY-MM-DD". The date range can also be open ended by using "*" for one of the bounds. Examples: "2023-01-01", "today", "2023-01-01..*" (from Jan 1, 2023 to any future date), "*.2023-01-31" (any date up to Jan 31, 2023), "today..*" (from today onwards), "*.yesterday" (any date up to yesterday). The keywords cannot be used to calculate relative dates (e.g. the following are not valid: "today-1" or "tomorrow+1").',
+			'Date filter: "YYYY-MM-DD", "today", "yesterday", "tomorrow", or range "YYYY-MM-DD..YYYY-MM-DD" (use * for open bounds)',
 		);
 
-export const is = (field: string) =>
-	z
-		.boolean()
-		.optional()
-		.describe(
-			`Find only entities that are ${field} when true, or only entities that are not ${field} when false.`,
-		);
+export const is = (field: string) => z.boolean().optional().describe(`Filter by ${field} status`);
 
 export const has = (field: string) =>
-	z
-		.boolean()
-		.optional()
-		.describe(
-			`Find only entities that have ${field} when true, or only entities that do not have ${field} when false. Example: hasOwner: true will find stories with an owner, hasOwner: false will find stories without an owner.`,
-		);
+	z.boolean().optional().describe(`Filter by presence of ${field}`);
 
 export const user = (field: string) =>
-	z
-		.string()
-		.optional()
-		.describe(
-			`Find entities where the ${field} match the specified user. This must either be the user's mention name or the keyword "me" for the current user.`,
-		);
+	z.string().optional().describe(`Filter by ${field} (use mention name or "me")`);

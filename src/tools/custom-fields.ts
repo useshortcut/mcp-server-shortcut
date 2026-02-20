@@ -14,13 +14,9 @@ export class CustomFieldTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"custom-fields-list",
-			"List all custom fields in the Shortcut workspace, including their possible values. Use this to discover field IDs and value IDs needed for setting custom fields on stories.",
+			"List custom fields and their values (for setting on stories).",
 			{
-				includeDisabled: z
-					.boolean()
-					.optional()
-					.describe("Whether to include disabled custom fields in the list.")
-					.default(false),
+				includeDisabled: z.boolean().optional().default(false).describe("Include disabled fields"),
 			},
 			async (params) => await tools.listCustomFields(params),
 		);

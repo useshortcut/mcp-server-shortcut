@@ -9,28 +9,19 @@ export class WorkflowTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"workflows-get-default",
-			"Get the default workflow for a specific team or the global default if no team is specified.",
+			"Get the default workflow for a team or workspace.",
 			{
-				teamPublicId: z
-					.string()
-					.optional()
-					.describe("The public ID of the team to get the default workflow for."),
+				teamPublicId: z.string().optional().describe("Team ID (omit for workspace default)"),
 			},
 			async ({ teamPublicId }) => await tools.getDefaultWorkflow(teamPublicId),
 		);
 
 		server.addToolWithReadAccess(
 			"workflows-get-by-id",
-			"Get a Shortcut workflow by public ID.",
+			"Get a Shortcut workflow by ID.",
 			{
-				workflowPublicId: z.number().positive().describe("The public ID of the workflow to get"),
-				full: z
-					.boolean()
-					.optional()
-					.default(false)
-					.describe(
-						"True to return all workflow fields from the API. False to return a slim version that excludes uncommon fields",
-					),
+				workflowPublicId: z.number().positive().describe("Workflow ID"),
+				full: z.boolean().optional().default(false).describe("Return all fields (default: slim)"),
 			},
 			async ({ workflowPublicId, full }) => await tools.getWorkflow(workflowPublicId, full),
 		);

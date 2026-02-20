@@ -9,29 +9,19 @@ export class TeamTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"teams-get-by-id",
-			"Get a Shortcut team by public ID.",
+			"Get a Shortcut team by ID.",
 			{
-				teamPublicId: z.string().describe("The public ID of the team to get"),
-				full: z
-					.boolean()
-					.optional()
-					.default(false)
-					.describe(
-						"True to return all team fields from the API. False to return a slim version that excludes uncommon fields",
-					),
+				teamPublicId: z.string().describe("Team ID"),
+				full: z.boolean().optional().default(false).describe("Return all fields (default: slim)"),
 			},
 			async ({ teamPublicId, full }) => await tools.getTeam(teamPublicId, full),
 		);
 
 		server.addToolWithReadAccess(
 			"teams-list",
-			"List Shortcut teams",
+			"List all Shortcut teams.",
 			{
-				includeArchived: z
-					.boolean()
-					.describe("True to include archived teams.")
-					.optional()
-					.default(false),
+				includeArchived: z.boolean().optional().default(false).describe("Include archived teams"),
 			},
 			async ({ includeArchived }: { includeArchived: boolean }) =>
 				await tools.getTeams(includeArchived),
