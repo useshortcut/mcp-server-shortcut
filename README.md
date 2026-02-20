@@ -64,26 +64,28 @@ If your IDE doesn't support HTTP-based MCP servers, or you'd prefer to run the s
 
 ### Stories
 
-- **stories-get-by-id** - Get a single Shortcut story by ID
-- **stories-get-history** - Get the change history for a story 
-- **stories-search** - Find Shortcut stories with filtering and search options
-- **stories-get-branch-name** - Get the recommended branch name (based on workspace settings) for a specific story.
-- **stories-create** - Create a new Shortcut story
-- **stories-update** - Update an existing Shortcut story
-- **stories-upload-file** - Upload a file and link it to a story
-- **stories-assign-current-user** - Assign the current user as the owner of a story
-- **stories-unassign-current-user** - Unassign the current user as the owner of a story
-- **stories-create-comment** - Create a comment on a story
-- **stories-create-subtask** - Add a new sub-task to a story
-- **stories-add-subtask** - Add an existing story as a sub-task
-- **stories-remove-subtask** - Remove a sub-task from a story.
-- **stories-add-task** - Add a task to a story
-- **stories-update-task** - Update a task in a story
-- **stories-add-relation** - Add a story relationship (relates to, blocks, duplicates, etc.)
-- **stories-add-external-link** - Add an external link to a Shortcut story
-- **stories-remove-external-link** - Remove an external link from a Shortcut story
-- **stories-set-external-links** - Replace all external links on a story with a new set of links
-- **stories-get-by-external-link** - Find all stories that contain a specific external link
+| Tool | Description |
+|------|-------------|
+| `stories-get-by-id` | Get a single Shortcut story by ID |
+| `stories-get-history` | Get the change history for a story |
+| `stories-search` | Find Shortcut stories with filtering and search options |
+| `stories-get-branch-name` | Get the recommended branch name (based on workspace settings) for a specific story |
+| `stories-create` | Create a new Shortcut story |
+| `stories-update` | Update an existing Shortcut story |
+| `stories-upload-file` | Upload a file and link it to a story |
+| `stories-assign-current-user` | Assign the current user as the owner of a story |
+| `stories-unassign-current-user` | Unassign the current user as the owner of a story |
+| `stories-create-comment` | Create a comment on a story |
+| `stories-create-subtask` | Add a new sub-task to a story |
+| `stories-add-subtask` | Add an existing story as a sub-task |
+| `stories-remove-subtask` | Remove a sub-task from a story |
+| `stories-add-task` | Add a task to a story |
+| `stories-update-task` | Update a task in a story |
+| `stories-add-relation` | Add a story relationship (relates to, blocks, duplicates, etc.) |
+| `stories-add-external-link` | Add an external link to a Shortcut story |
+| `stories-remove-external-link` | Remove an external link from a Shortcut story |
+| `stories-set-external-links` | Replace all external links on a story with a new set of links |
+| `stories-get-by-external-link` | Find all stories that contain a specific external link |
 
 ### Labels
 
@@ -94,26 +96,32 @@ If your IDE doesn't support HTTP-based MCP servers, or you'd prefer to run the s
 
 ### Custom Fields
 
-- **custom-fields-list** - List all custom fields in the workspace with their possible values
+| Tool | Description |
+|------|-------------|
+| `custom-fields-list` | List all custom fields in the workspace with their possible values |
 
 ### Epics
 
-- **epics-get-by-id** - Get a Shortcut epic by ID
-- **epics-search** - Find Shortcut epics with filtering and search options
-- **epics-create** - Create a new Shortcut epic
-- **epics-update** - Update an existing Shortcut epic
-- **epics-delete** - Delete a Shortcut epic
+| Tool | Description |
+|------|-------------|
+| `epics-get-by-id` | Get a Shortcut epic by ID |
+| `epics-search` | Find Shortcut epics with filtering and search options |
+| `epics-create` | Create a new Shortcut epic |
+| `epics-update` | Update an existing Shortcut epic |
+| `epics-delete` | Delete a Shortcut epic |
   
 ### Iterations
 
-- **iterations-get-stories** - Get stories in a specific iteration by iteration ID
-- **iterations-get-by-id** - Get a Shortcut iteration by ID
-- **iterations-search** - Find Shortcut iterations with filtering and search options
-- **iterations-create** - Create a new Shortcut iteration with start/end dates
-- **iterations-update** - Update an existing Shortcut iteration
-- **iterations-delete** - Delete a Shortcut iteration 
-- **iterations-get-active** - Get active iterations for the current user based on team memberships
-- **iterations-get-upcoming** - Get upcoming iterations for the current user based on team memberships
+| Tool | Description |
+|------|-------------|
+| `iterations-get-stories` | Get stories in a specific iteration by iteration ID |
+| `iterations-get-by-id` | Get a Shortcut iteration by ID |
+| `iterations-search` | Find Shortcut iterations with filtering and search options |
+| `iterations-create` | Create a new Shortcut iteration with start/end dates |
+| `iterations-update` | Update an existing Shortcut iteration |
+| `iterations-delete` | Delete a Shortcut iteration |
+| `iterations-get-active` | Get active iterations for the current user based on team memberships |
+| `iterations-get-upcoming` | Get upcoming iterations for the current user based on team memberships |
 
 ### Objectives
 
@@ -131,9 +139,11 @@ If your IDE doesn't support HTTP-based MCP servers, or you'd prefer to run the s
 
 ### Projects
 
-- **projects-list** - List all projects in the Shortcut workspace
-- **projects-get-by-id** - Get a Shortcut project by public ID
-- **projects-get-stories** - Get all stories in a specific project
+| Tool | Description |
+|------|-------------|
+| `projects-list` | List all projects in the Shortcut workspace |
+| `projects-get-by-id` | Get a Shortcut project by public ID |
+| `projects-get-stories` | Get all stories in a specific project |
 
 ### Workflows
 
@@ -153,11 +163,13 @@ If your IDE doesn't support HTTP-based MCP servers, or you'd prefer to run the s
 
 ### Documents
 
-- **documents-create** - Create a new document in Shortcut with Markdown content
-- **documents-update** - Update content of an existing document by its IDExpand commentComment on line L306 
-- **documents-list** - List all documents in Shortcut
-- **documents-search** - Search for documents
-- **documents-get-by-id** - Retrieve a specific document in markdown format by its ID
+| Tool | Description |
+|------|-------------|
+| `documents-create` | Create a new document in Shortcut with Markdown content |
+| `documents-update` | Update content of an existing document by its ID |
+| `documents-list` | List all documents in Shortcut |
+| `documents-search` | Search for documents |
+| `documents-get-by-id` | Retrieve a specific document in markdown format by its ID |
 
 ## Limit tools
 
@@ -232,5 +244,7 @@ Before doing anything else, please make sure you are running the latest version!
 
 If you run into problems using this MCP server, you have a couple of options:
 
-- Open an issue on [GitHub](https://github.com/useshortcut/mcp-server-shortcut/issues)
-- Ask for help in the community [Slack](https://shortcut.com/join-slack)
+| Option | Link |
+|--------|------|
+| Open an issue | [GitHub](https://github.com/useshortcut/mcp-server-shortcut/issues) |
+| Ask for help | [Slack](https://shortcut.com/join-slack) |
