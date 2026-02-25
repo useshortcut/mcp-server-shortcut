@@ -1,7 +1,6 @@
 {
 	"name": "@shortcut/mcp",
-	"author": "Shortcut (https://www.shortcut.com)",
-	"version": "0.21.0",
+	"version": "0.22.0",
 	"description": "Shortcut MCP Server",
 	"repository": {
 		"type": "git",

@@ -14,31 +14,31 @@ export class ProjectTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"projects-list",
-			"List all projects in the Shortcut workspace.",
+			"List all projects in the workspace.",
 			{
 				includeArchived: z
 					.boolean()
 					.optional()
-					.describe("Whether to include archived projects in the list.")
-					.default(false),
+					.default(false)
+					.describe("Include archived projects"),
 			},
 			async (params) => await tools.listProjects(params),
 		);
 
 		server.addToolWithReadAccess(
 			"projects-get-by-id",
-			"Get a Shortcut project by public ID.",
+			"Get a Shortcut project by ID.",
 			{
-				projectPublicId: z.number().positive().describe("The public ID of the project to get"),
+				projectPublicId: z.number().positive().describe("Project ID"),
 			},
 			async ({ projectPublicId }) => await tools.getProject(projectPublicId),
 		);
 
 		server.addToolWithReadAccess(
 			"projects-get-stories",
-			"Get all stories in a specific project.",
+			"Get all stories in a project.",
 			{
-				projectPublicId: z.number().positive().describe("The public ID of the project"),
+				projectPublicId: z.number().positive().describe("Project ID"),
 			},
 			async ({ projectPublicId }) => await tools.getProjectStories(projectPublicId),
 		);

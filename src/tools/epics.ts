@@ -14,14 +14,8 @@ export class EpicTools extends BaseTools {
 			"epics-get-by-id",
 			"Get a Shortcut epic by public ID.",
 			{
-				epicPublicId: z.number().positive().describe("The public ID of the epic to get"),
-				full: z
-					.boolean()
-					.optional()
-					.default(false)
-					.describe(
-						"True to return all epic fields from the API. False to return a slim version that excludes uncommon fields",
-					),
+				epicPublicId: z.number().positive().describe("Epic ID"),
+				full: z.boolean().optional().default(false).describe("Return all fields (default: slim)"),
 			},
 			async ({ epicPublicId, full }) => await tools.getEpic(epicPublicId, full),
 		);
@@ -30,44 +24,25 @@ export class EpicTools extends BaseTools {
 			"epics-search",
 			"Find Shortcut epics.",
 			{
-				nextPageToken: z
-					.string()
-					.optional()
-					.describe(
-						"If a next_page_token was returned from the search result, pass it in to get the next page of results.  Should be combined with the original search parameters.",
-					),
-				id: z.number().optional().describe("Find only epics with the specified public ID"),
-				name: z.string().optional().describe("Find only epics matching the specified name"),
-				description: z
-					.string()
-					.optional()
-					.describe("Find only epics matching the specified description"),
-				state: z
-					.enum(["unstarted", "started", "done"])
-					.optional()
-					.describe("Find only epics matching the specified state"),
-				objective: z
-					.number()
-					.optional()
-					.describe("Find only epics matching the specified objective"),
+				nextPageToken: z.string().optional().describe("Pagination token from previous search"),
+				id: z.number().optional().describe("Epic ID"),
+				name: z.string().optional().describe("Name contains"),
+				description: z.string().optional().describe("Description contains"),
+				state: z.enum(["unstarted", "started", "done"]).optional().describe("Epic state"),
+				objective: z.number().optional().describe("Objective ID"),
 				owner: user("owner"),
 				requester: user("requester"),
-				team: z
-					.string()
-					.optional()
-					.describe(
-						"Find only epics matching the specified team. Should be a team's mention name.",
-					),
-				comment: z.string().optional().describe("Find only epics matching the specified comment"),
+				team: z.string().optional().describe("Team mention name"),
+				comment: z.string().optional().describe("Comment contains"),
 				isUnstarted: is("unstarted"),
 				isStarted: is("started"),
 				isDone: is("completed"),
 				isArchived: is("archived").default(false),
 				isOverdue: is("overdue"),
-				hasOwner: has("an owner"),
-				hasComment: has("a comment"),
-				hasDeadline: has("a deadline"),
-				hasLabel: has("a label"),
+				hasOwner: has("owner"),
+				hasComment: has("comment"),
+				hasDeadline: has("deadline"),
+				hasLabel: has("label"),
 				created: date(),
 				updated: date(),
 				completed: date(),
@@ -80,80 +55,49 @@ export class EpicTools extends BaseTools {
 			"epics-create",
 			"Create a new Shortcut epic.",
 			{
-				name: z.string().describe("The name of the epic"),
-				owner: z.string().optional().describe("The user ID of the owner of the epic"),
-				description: z.string().optional().describe("A description of the epic"),
-				teamId: z.string().optional().describe("The ID of a team to assign the epic to"),
+				name: z.string().describe("Epic name"),
+				owner: z.string().optional().describe("Owner user ID"),
+				description: z.string().optional().describe("Epic description"),
+				teamId: z.string().optional().describe("Team ID"),
 			},
 			async (params) => await tools.createEpic(params),
 		);
 
 		server.addToolWithWriteAccess(
 			"epics-update",
-			"Update an existing Shortcut epic. Only provide fields you want to update.",
+			"Update an epic. Only provide fields to update.",
 			{
-				epicPublicId: z.number().positive().describe("The public ID of the epic to update"),
-				name: z.string().max(256).optional().describe("The name of the epic"),
-				description: z.string().max(100000).optional().describe("The description of the epic"),
-				state: z
-					.enum(["to do", "in progress", "done"])
-					.optional()
-					.describe("The state of the epic (deprecated, use epic_state_id if possible)"),
-				epic_state_id: z.number().optional().describe("The ID of the epic state"),
-				team_id: z
-					.string()
-					.nullable()
-					.optional()
-					.describe("The team (group) UUID to assign the epic to, or null to unset"),
-				owner_ids: z
-					.array(z.string())
-					.optional()
-					.describe("Array of user UUIDs to assign as owners of the epic"),
-				follower_ids: z
-					.array(z.string())
-					.optional()
-					.describe("Array of user UUIDs to add as followers of the epic"),
-				deadline: z
-					.string()
-					.nullable()
-					.optional()
-					.describe(
-						"The due date in ISO 8601 datetime format (e.g., 2025-01-31T00:00:00Z), or null to unset",
-					),
-				planned_start_date: z
-					.string()
-					.nullable()
-					.optional()
-					.describe("The planned start date in ISO 8601 format, or null to unset"),
-				archived: z.boolean().optional().describe("Whether to archive the epic"),
+				epicPublicId: z.number().positive().describe("Epic ID (required)"),
+				name: z.string().max(256).optional().describe("Epic name"),
+				description: z.string().max(100000).optional().describe("Epic description"),
+				state: z.enum(["to do", "in progress", "done"]).optional().describe("State (deprecated)"),
+				epic_state_id: z.number().optional().describe("Epic state ID"),
+				team_id: z.string().nullable().optional().describe("Team UUID (null to unset)"),
+				owner_ids: z.array(z.string()).optional().describe("Owner user UUIDs"),
+				follower_ids: z.array(z.string()).optional().describe("Follower user UUIDs"),
+				deadline: z.string().nullable().optional().describe("Due date ISO 8601 (null to unset)"),
+				planned_start_date: z.string().nullable().optional().describe("Start date (null to unset)"),
+				archived: z.boolean().optional().describe("Archive the epic"),
 				labels: z
 					.array(
 						z.object({
-							name: z.string().describe("The name of the label"),
-							color: z.string().optional().describe("The color of the label"),
+							name: z.string().describe("Label name"),
+							color: z.string().optional().describe("Hex color"),
 						}),
 					)
 					.optional()
-					.describe("Labels to assign to the epic"),
-				objective_ids: z
-					.array(z.number())
-					.optional()
-					.describe("Array of objective IDs to associate with the epic"),
-				external_id: z
-					.string()
-					.optional()
-					.describe(
-						"An external identifier for the epic (for integrations). Use empty string to clear.",
-					),
+					.describe("Labels to assign"),
+				objective_ids: z.array(z.number()).optional().describe("Objective IDs"),
+				external_id: z.string().optional().describe("External ID (empty to clear)"),
 			},
 			async (params) => await tools.updateEpic(params),
 		);
 
 		server.addToolWithWriteAccess(
 			"epics-delete",
-			"Delete a Shortcut epic. This action cannot be undone.",
+			"Delete an epic (cannot be undone).",
 			{
-				epicPublicId: z.number().positive().describe("The public ID of the epic to delete"),
+				epicPublicId: z.number().positive().describe("Epic ID"),
 			},
 			async ({ epicPublicId }) => await tools.deleteEpic(epicPublicId),
 		);

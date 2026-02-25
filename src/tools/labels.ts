@@ -14,28 +14,24 @@ export class LabelTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"labels-list",
-			"List all labels in the Shortcut workspace.",
+			"List all labels in the workspace.",
 			{
-				includeArchived: z
-					.boolean()
-					.optional()
-					.describe("Whether to include archived labels in the list.")
-					.default(false),
+				includeArchived: z.boolean().optional().default(false).describe("Include archived labels"),
 			},
 			async (params) => await tools.listLabels(params),
 		);
 
 		server.addToolWithWriteAccess(
 			"labels-create",
-			"Create a new label in Shortcut.",
+			"Create a new label.",
 			{
-				name: z.string().min(1).max(128).describe("The name of the new label. Required."),
+				name: z.string().min(1).max(128).describe("Label name"),
 				color: z
 					.string()
 					.regex(/^#[a-fA-F0-9]{6}$/)
 					.optional()
-					.describe('The hex color to be displayed with the label (e.g., "#ff0000").'),
-				description: z.string().max(1024).optional().describe("A description of the label."),
+					.describe("Hex color (#ff0000)"),
+				description: z.string().max(1024).optional().describe("Label description"),
 			},
 			async (params) => await tools.createLabel(params),
 		);

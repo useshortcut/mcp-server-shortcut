@@ -12,16 +12,14 @@ export class IterationTools extends BaseTools {
 
 		server.addToolWithReadAccess(
 			"iterations-get-stories",
-			"Get stories in a specific iteration by iteration public ID.",
+			"Get all stories in an iteration.",
 			{
-				iterationPublicId: z.number().positive().describe("The public ID of the iteration"),
+				iterationPublicId: z.number().positive().describe("Iteration ID"),
 				includeStoryDescriptions: z
 					.boolean()
 					.optional()
 					.default(false)
-					.describe(
-						"Indicate whether story descriptions should be included. Including descriptions may take longer and will increase the size of the response.",
-					),
+					.describe("Include story descriptions (slower)"),
 			},
 			async ({ iterationPublicId, includeStoryDescriptions }) =>
 				await tools.getIterationStories(iterationPublicId, includeStoryDescriptions),
@@ -31,14 +29,8 @@ export class IterationTools extends BaseTools {
 			"iterations-get-by-id",
 			"Get a Shortcut iteration by public ID.",
 			{
-				iterationPublicId: z.number().positive().describe("The public ID of the iteration to get"),
-				full: z
-					.boolean()
-					.optional()
-					.default(false)
-					.describe(
-						"True to return all iteration fields from the API. False to return a slim version that excludes uncommon fields",
-					),
+				iterationPublicId: z.number().positive().describe("Iteration ID"),
+				full: z.boolean().optional().default(false).describe("Return all fields (default: slim)"),
 			},
 			async ({ iterationPublicId, full }) => await tools.getIteration(iterationPublicId, full),
 		);
@@ -47,28 +39,12 @@ export class IterationTools extends BaseTools {
 			"iterations-search",
 			"Find Shortcut iterations.",
 			{
-				nextPageToken: z
-					.string()
-					.optional()
-					.describe(
-						"If a next_page_token was returned from the search result, pass it in to get the next page of results. Should be combined with the original search parameters.",
-					),
-				id: z.number().optional().describe("Find only iterations with the specified public ID"),
-				name: z.string().optional().describe("Find only iterations matching the specified name"),
-				description: z
-					.string()
-					.optional()
-					.describe("Find only iterations matching the specified description"),
-				state: z
-					.enum(["started", "unstarted", "done"])
-					.optional()
-					.describe("Find only iterations matching the specified state"),
-				team: z
-					.string()
-					.optional()
-					.describe(
-						"Find only iterations matching the specified team. This can be a team ID or mention name.",
-					),
+				nextPageToken: z.string().optional().describe("Pagination token from previous search"),
+				id: z.number().optional().describe("Iteration ID"),
+				name: z.string().optional().describe("Name contains"),
+				description: z.string().optional().describe("Description contains"),
+				state: z.enum(["started", "unstarted", "done"]).optional().describe("Iteration state"),
+				team: z.string().optional().describe("Team ID or mention name"),
 				created: date(),
 				updated: date(),
 				startDate: date(),
@@ -81,80 +57,62 @@ export class IterationTools extends BaseTools {
 			"iterations-create",
 			"Create a new Shortcut iteration.",
 			{
-				name: z.string().describe("The name of the iteration"),
-				startDate: z.string().describe("The start date of the iteration in YYYY-MM-DD format"),
-				endDate: z.string().describe("The end date of the iteration in YYYY-MM-DD format"),
-				teamId: z.string().optional().describe("The ID of a team to assign the iteration to"),
-				description: z.string().optional().describe("A description of the iteration"),
+				name: z.string().describe("Iteration name"),
+				startDate: z.string().describe("Start date (YYYY-MM-DD)"),
+				endDate: z.string().describe("End date (YYYY-MM-DD)"),
+				teamId: z.string().optional().describe("Team ID"),
+				description: z.string().optional().describe("Iteration description"),
 			},
 			async (params) => await tools.createIteration(params),
 		);
 
 		server.addToolWithWriteAccess(
 			"iterations-update",
-			"Update an existing Shortcut iteration. Only provide fields you want to update. Note: iteration status (unstarted/started/done) is calculated based on dates.",
+			"Update an iteration. Only provide fields to update.",
 			{
-				iterationPublicId: z
-					.number()
-					.positive()
-					.describe("The public ID of the iteration to update"),
-				name: z.string().max(256).optional().describe("The name of the iteration"),
-				description: z.string().max(100000).optional().describe("A description of the iteration"),
-				startDate: z
-					.string()
-					.optional()
-					.describe("The start date of the iteration in YYYY-MM-DD format"),
-				endDate: z
-					.string()
-					.optional()
-					.describe("The end date of the iteration in YYYY-MM-DD format"),
-				team_ids: z
-					.array(z.string())
-					.optional()
-					.describe("Array of team (group) UUIDs to associate with the iteration"),
-				follower_ids: z
-					.array(z.string())
-					.optional()
-					.describe("Array of user UUIDs to add as followers of the iteration"),
+				iterationPublicId: z.number().positive().describe("Iteration ID (required)"),
+				name: z.string().max(256).optional().describe("Iteration name"),
+				description: z.string().max(100000).optional().describe("Iteration description"),
+				startDate: z.string().optional().describe("Start date (YYYY-MM-DD)"),
+				endDate: z.string().optional().describe("End date (YYYY-MM-DD)"),
+				team_ids: z.array(z.string()).optional().describe("Team UUIDs"),
+				follower_ids: z.array(z.string()).optional().describe("Follower user UUIDs"),
 				labels: z
 					.array(
 						z.object({
-							name: z.string().describe("The name of the label"),
-							color: z.string().optional().describe("The color of the label"),
+							name: z.string().describe("Label name"),
+							color: z.string().optional().describe("Hex color"),
 						}),
 					)
 					.optional()
-					.describe("Labels to assign to the iteration"),
+					.describe("Labels to assign"),
 			},
 			async (params) => await tools.updateIteration(params),
 		);
 
 		server.addToolWithWriteAccess(
 			"iterations-delete",
-			"Delete a Shortcut iteration. This action cannot be undone. Stories in the iteration will be unassigned from it.",
+			"Delete an iteration (cannot be undone).",
 			{
-				iterationPublicId: z
-					.number()
-					.positive()
-					.describe("The public ID of the iteration to delete"),
+				iterationPublicId: z.number().positive().describe("Iteration ID"),
 			},
 			async ({ iterationPublicId }) => await tools.deleteIteration(iterationPublicId),
 		);
 
 		server.addToolWithReadAccess(
 			"iterations-get-active",
-			"Get the active Shortcut iterations for the current user based on their team memberships.",
+			"Get active iterations for current user's teams.",
 			{
-				teamId: z.string().optional().describe("The ID of a team to filter iterations by"),
+				teamId: z.string().optional().describe("Team ID to filter by"),
 			},
 			async ({ teamId }) => await tools.getActiveIterations(teamId),
 		);
 
 		server.addToolWithReadAccess(
 			"iterations-get-upcoming",
-			"Get the upcoming Shortcut iterations for the current user based on their team memberships.",
+			"Get upcoming iterations for current user's teams.",
 			{
-				teamId: z.string().optional().describe("The ID of a team to filter iterations by"),
+				teamId: z.string().optional().describe("Team ID to filter by"),
 			},
 			async ({ teamId }) => await tools.getUpcomingIterations(teamId),
 		);
