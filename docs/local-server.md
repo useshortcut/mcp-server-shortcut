@@ -123,3 +123,7 @@ Or you can edit the local JSON file directly:
 ### NPX command not working when using MISE for version management
 
 If you are using MISE for managing Node and NPM versions, you may encounter a "Client closed" error when trying to run the MCP server. Installing this extension into your IDE might help: https://github.com/hverlin/mise-vscode/.
+
+### MCP fails on startup in Gemini CLI
+
+If you are using the Gemini CLI and the MCP fails with the following error: `✕ Error during discovery for MCP server 'shortcut': MCP error -32000: Connection closed`, it might be due to an issue in Gemini where it redacts environment variables that contain the word `token`. You can either pass the Shortcut token as a CLI argument, or use the alternative name `SHORTCUT_API_TKN` instead of `SHORTCUT_API_TOKEN`. See the [Usage section](#usage) for more information.
