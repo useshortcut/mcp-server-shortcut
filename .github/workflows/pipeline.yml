@@ -1,24 +1,32 @@
 name: Pipeline - MCP Server
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
-  workflow_dispatch:
-
+      - backup/token-refresh-redo
+      
 jobs:
-  build:
+  build-docker:
+    uses: ./.github/workflows/build_ecr_image.yml
+    permissions:
+      contents: read
+      id-token: write
+      
+  build-scripts:
+    needs: build-docker
     uses: ./.github/workflows/codedeploy_build.yml
     permissions:
       contents: read
       id-token: write
 
   deploy-staging:
-    needs: build
+    needs: build-scripts
     uses: ./.github/workflows/codedeploy_deploy.yml
     with:
       environment: staging
-      sha: ${{ needs.build.outputs.sha }}
+      sha: ${{ needs.build-scripts.outputs.sha }}
     permissions:
       contents: read
       id-token: write
@@ -39,11 +47,11 @@ jobs:
           echo "✅ Integration tests passed"
 
   deploy-production:
-    needs: [build, test-staging]
+    needs: [build-docker, build-scripts, test-staging]
     uses: ./.github/workflows/codedeploy_deploy.yml
     with:
       environment: production
-      sha: ${{ needs.build.outputs.sha }}
+      sha: ${{ needs.build-scripts.outputs.sha }}
     permissions:
       contents: read
       id-token: write

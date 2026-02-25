@@ -16,7 +16,6 @@ const mockGetCurrentMemberInfo = mock(async () => ({
 mock.module("@shortcut/client", () => {
 	return {
 		ShortcutClient: class {
-			constructor(_token: string) {}
 			getCurrentMemberInfo = mockGetCurrentMemberInfo;
 		},
 	};
@@ -337,14 +336,16 @@ describe("Server-HTTP Security Tests", () => {
 			manager.add("session-1", "token");
 
 			const session1 = manager.get("session-1");
+			expect(session1).toBeDefined();
 			const firstAccessTime = session1?.lastAccessedAt.getTime();
+			expect(firstAccessTime).toBeDefined();
 
 			await new Promise((resolve) => setTimeout(resolve, 50));
 
 			const session2 = manager.get("session-1");
 			const secondAccessTime = session2?.lastAccessedAt.getTime();
 
-			expect(secondAccessTime).toBeGreaterThan(firstAccessTime!);
+			expect(secondAccessTime).toBeGreaterThan(firstAccessTime as number);
 		});
 	});
 
@@ -524,7 +525,7 @@ describe("Server-HTTP Security Tests", () => {
 			const apiToken = extractApiToken();
 
 			if (!apiToken) {
-				(res.status as any)(401).json({
+				(res.status as Response["status"])(401).json({
 					jsonrpc: "2.0",
 					error: { code: -32000, message: "Unauthorized" },
 					id: null,
@@ -532,7 +533,7 @@ describe("Server-HTTP Security Tests", () => {
 			}
 
 			expect(res.statusCode).toBe(401);
-			expect((res._data as any).error.message).toBe("Unauthorized");
+			expect((res._data as { error: { message: string } }).error.message).toBe("Unauthorized");
 		});
 
 		test("POST - should reject existing session with wrong token", () => {
@@ -546,7 +547,7 @@ describe("Server-HTTP Security Tests", () => {
 
 			if (sessionId && manager.has(sessionId)) {
 				if (!manager.validateToken(sessionId, apiToken)) {
-					(res.status as any)(401).json({
+					(res.status as Response["status"])(401).json({
 						jsonrpc: "2.0",
 						error: { code: -32000, message: "Token mismatch" },
 						id: null,
@@ -567,9 +568,9 @@ describe("Server-HTTP Security Tests", () => {
 			const apiToken = null;
 
 			if (!sessionId || !manager.has(sessionId)) {
-				(res.status as any)(400).send("Invalid or missing session ID");
+				(res.status as Response["status"])(400).send("Invalid or missing session ID");
 			} else if (!apiToken) {
-				(res.status as any)(401).json({
+				(res.status as Response["status"])(401).json({
 					jsonrpc: "2.0",
 					error: { code: -32000, message: "Unauthorized" },
 					id: null,
@@ -589,15 +590,15 @@ describe("Server-HTTP Security Tests", () => {
 			const apiToken = "wrong-token";
 
 			if (!sessionId || !manager.has(sessionId)) {
-				(res.status as any)(400).send("Invalid or missing session ID");
+				(res.status as Response["status"])(400).send("Invalid or missing session ID");
 			} else if (!apiToken) {
-				(res.status as any)(401).json({
+				(res.status as Response["status"])(401).json({
 					jsonrpc: "2.0",
 					error: { code: -32000, message: "Unauthorized" },
 					id: null,
 				});
 			} else if (!manager.validateToken(sessionId, apiToken)) {
-				(res.status as any)(401).json({
+				(res.status as Response["status"])(401).json({
 					jsonrpc: "2.0",
 					error: { code: -32000, message: "Token mismatch" },
 					id: null,

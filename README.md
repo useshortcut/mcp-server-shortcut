@@ -8,305 +8,168 @@
 [![PRs welcome!](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![X](https://img.shields.io/twitter/follow/shortcut.svg?label=Follow%20@shortcut)](https://twitter.com/intent/follow?screen_name=shortcut)
 
-The MCP server for [Shortcut](https://shortcut.com).
+MCP Server for [Shortcut](https://shortcut.com) users.
 
-<br />
+Links: [Local Installations](docs/local-server.md) | [ Server Developers](docs/developer.md)
 
 ## Usage
 
-The only required input is your Shortcut API token. You can find it in your [Shortcut account settings](https://app.shortcut.com/settings/account/api-tokens).
-
-Once you have a valid token, you can pass it to the MCP server as an environement variable or a CLI argument.
-
-Examples:
-
-```json
-"shortcut": {
-  "command": "npx",
-  "args": [
-    "-y",
-    "@shortcut/mcp@latest"
-  ],
-  "env": {
-    "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
-  }
-}
-```
-
-```json
-"shortcut": {
-  "command": "npx",
-  "args": [
-    "-y",
-    "@shortcut/mcp@latest",
-    "SHORTCUT_API_TOKEN=<YOUR_SHORTCUT_API_TOKEN>"
-  ]
-}
-```
-
-Due to an issue in `gemini-cli` that redacts environment variables that contain the word "token", you can also use the alternative name `SHORTCUT_API_TKN` instead of `SHORTCUT_API_TOKEN`. This works for both the environment variable and the CLI argument:
-
-```json
-"shortcut": {
-  "command": "npx",
-  "args": [
-    "-y",
-    "@shortcut/mcp@latest"
-  ],
-  "env": {
-    "SHORTCUT_API_TKN": "<YOUR_SHORTCUT_API_TOKEN>"
-  }
-}
-```
-
-```json
-"shortcut": {
-  "command": "npx",
-  "args": [
-    "-y",
-    "@shortcut/mcp@latest",
-    "SHORTCUT_API_TKN=<YOUR_SHORTCUT_API_TOKEN>"
-  ]
-}
-```
-
-For more information on how to setup the MCP for your tool of choice, see below.
-
-### Windsurf
-
-See the [official Windsurf docs](https://docs.windsurf.com/windsurf/cascade/mcp) for more information.
-
-1. Open the MCP configuration by clicking the `MCPs` icon in the Cascade panel, or navigate to `Windsurf Settings` > `Cascade` > `MCP Servers`.
-2. Click `Add Custom Server` to edit the raw `mcp_config.json` file (located at `~/.codeium/windsurf/mcp_config.json`).
-3. Add the following details and save the file:
-
-```json
-{
-  "mcpServers": {
-    "shortcut": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@shortcut/mcp@latest"
-      ],
-      "env": {
-        "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
-      }
-    }
-  }
-}
-```
-
 ### Cursor
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en-US/install-mcp?name=shortcut&config=eyJlbnYiOnsiU0hPUlRDVVRfQVBJX1RPS0VOIjoiWU9VUl9UT0tFTiJ9LCJjb21tYW5kIjoibnB4IC15IEBzaG9ydGN1dC9tY3AifQ%3D%3D)
 
-See the [official Cursor docs](https://docs.cursor.com/context/model-context-protocol) for more information.
+The fastest way to get started is to connect to Shortcut's hosted MCP server. No API token or local setup required — authentication is handled via OAuth.
 
-1. Open (or create) the `mcp.json` file (it should be in `~/.cursor/mcp.json` or `<project-root>/.cursor/mcp.json`, but see Cursor docs for more details).
+1. Open (or create) the `mcp.json` file (it should be in `~/.cursor/mcp.json` or `<project-root>/.cursor/mcp.json`, but see [Cursor docs](https://docs.cursor.com/context/model-context-protocol) for more details).
 2. Add the following details and save the file:
 
 ```json
 {
   "mcpServers": {
     "shortcut": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@shortcut/mcp@latest"
-      ],
-      "env": {
-        "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
-      }
+      "url": "https://mcp.shortcut.com/mcp"
     }
   }
 }
 ```
 
-### Claude Code
-
-See the [official Claude Code docs](https://docs.anthropic.com/en/docs/claude-code/mcp) for more information.
-
-Add the MCP server from the command line:
-
-```shell
-claude mcp add shortcut --transport stdio -e SHORTCUT_API_TOKEN=$SHORTCUT_API_TOKEN -- npx -y @shortcut/mcp@latest
-```
-
-Or you can create a `.mcp.json` file in your project root to share with your team:
-
-```json
-{
-  "mcpServers": {
-    "shortcut": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@shortcut/mcp@latest"
-      ],
-      "env": {
-        "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
-      }
-    }
-  }
-}
-```
-
-### Zed
-
-See the [official Zed MCP docs](https://zed.dev/docs/ai/mcp) for more information.
-
-1. Open your `settings.json` file. Instructions [here](https://zed.dev/docs/configuring-zed#settings-files).
-2. Add the following to the `context_servers` section and save the file:
-
-```json
-{
-  "context_servers": {
-    "shortcut": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@shortcut/mcp@latest"
-      ],
-      "env": {
-        "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
-      }
-    }
-  }
-}
-```
+3. Restart Cursor. You will be prompted to authorize with your Shortcut account on first use.
 
 ### VS Code
 
-See the [official VS Code MCP docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers) for more information.
+If all you need need the configuration for the mcp.json file use this. You will be prompted to authorize with your Shortcut account on first use.
 
-1. Create (or open) the `.vscode/mcp.json` file in your workspace.
-2. Add the following details and save the file:
 
 ```json
 {
   "servers": {
-    "shortcut": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@shortcut/mcp@latest"
-      ],
-      "env": {
-        "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
-      }
+    "github-mcp": {
+      "type": "http",
+      "url": "https://mcp.shortcut.com/mcp"
     }
   }
 }
 ```
 
-### OpenCode
+For more detail on installing MCP services in VSCode see the [official VS Code MCP docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers) for more information.
 
-See the [official OpenCode MCP docs](https://opencode.ai/docs/mcp-servers/) for more information.
+### Claude Desktop
 
-Add the following to your `opencode.json` configuration file:
+<!-- TODO: Replace with actual MCPB package URL -->
+Install the Shortcut MCP package directly from the [Anthropic MCP package registry](https://github.com/anthropics/mcp-bridge-packages). Download, install, and you're ready to go.
 
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "shortcut": {
-      "type": "local",
-      "command": ["npx", "-y", "@shortcut/mcp@latest"],
-      "environment": {
-        "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
-      }
-    }
-  }
-}
-```
+### Other IDEs / Running Locally
+
+If your IDE doesn't support HTTP-based MCP servers, or you'd prefer to run the server locally, see the [Local Server Setup](docs/local-server.md) guide. This covers setup for **Windsurf**, **Zed**, **Claude Code**, and any IDE that supports stdio-based MCP servers.
 
 ## Available Tools
 
 ### Stories
 
-- **stories-get-by-id** - Get a single Shortcut story by ID
-- **stories-get-history** - Get the change history for a story
-- **stories-search** - Find Shortcut stories with filtering and search options
-- **stories-get-branch-name** - Get the recommended branch name (based on workspace settings) for a specific story.
-- **stories-create** - Create a new Shortcut story
-- **stories-update** - Update an existing Shortcut story
-- **stories-upload-file** - Upload a file and link it to a story
-- **stories-assign-current-user** - Assign the current user as the owner of a story
-- **stories-unassign-current-user** - Unassign the current user as the owner of a story
-- **stories-create-comment** - Create a comment on a story
-- **stories-create-subtask** - Add a new sub-task to a story
-- **stories-add-subtask** - Add an existing story as a sub-task
-- **stories-remove-subtask** - Remove a sub-task from a story.
-- **stories-add-task** - Add a task to a story
-- **stories-update-task** - Update a task in a story
-- **stories-add-relation** - Add a story relationship (relates to, blocks, duplicates, etc.)
-- **stories-add-external-link** - Add an external link to a Shortcut story
-- **stories-remove-external-link** - Remove an external link from a Shortcut story
-- **stories-set-external-links** - Replace all external links on a story with a new set of links
-- **stories-get-by-external-link** - Find all stories that contain a specific external link
+| Tool | Description |
+|------|-------------|
+| `stories-get-by-id` | Get a single Shortcut story by ID |
+| `stories-get-history` | Get the change history for a story |
+| `stories-search` | Find Shortcut stories with filtering and search options |
+| `stories-get-branch-name` | Get the recommended branch name (based on workspace settings) for a specific story |
+| `stories-create` | Create a new Shortcut story |
+| `stories-update` | Update an existing Shortcut story |
+| `stories-upload-file` | Upload a file and link it to a story |
+| `stories-assign-current-user` | Assign the current user as the owner of a story |
+| `stories-unassign-current-user` | Unassign the current user as the owner of a story |
+| `stories-create-comment` | Create a comment on a story |
+| `stories-create-subtask` | Add a new sub-task to a story |
+| `stories-add-subtask` | Add an existing story as a sub-task |
+| `stories-remove-subtask` | Remove a sub-task from a story |
+| `stories-add-task` | Add a task to a story |
+| `stories-update-task` | Update a task in a story |
+| `stories-add-relation` | Add a story relationship (relates to, blocks, duplicates, etc.) |
+| `stories-add-external-link` | Add an external link to a Shortcut story |
+| `stories-remove-external-link` | Remove an external link from a Shortcut story |
+| `stories-set-external-links` | Replace all external links on a story with a new set of links |
+| `stories-get-by-external-link` | Find all stories that contain a specific external link |
 
 ### Labels
-- **labels-list** - List all labels in the Shortcut workspace.
-- **labels-create** - Create a new label in Shortcut.
+
+| Tool | Description |
+|------|-------------|
+| `labels-list` | List all labels in the Shortcut workspace |
+| `labels-create` | Create a new label in Shortcut |
 
 ### Custom Fields
 
-- **custom-fields-list** - List all custom fields in the workspace with their possible values
+| Tool | Description |
+|------|-------------|
+| `custom-fields-list` | List all custom fields in the workspace with their possible values |
 
 ### Epics
 
-- **epics-get-by-id** - Get a Shortcut epic by ID
-- **epics-search** - Find Shortcut epics with filtering and search options
-- **epics-create** - Create a new Shortcut epic
-- **epics-update** - Update an existing Shortcut epic
-- **epics-delete** - Delete a Shortcut epic
-
+| Tool | Description |
+|------|-------------|
+| `epics-get-by-id` | Get a Shortcut epic by ID |
+| `epics-search` | Find Shortcut epics with filtering and search options |
+| `epics-create` | Create a new Shortcut epic |
+| `epics-update` | Update an existing Shortcut epic |
+| `epics-delete` | Delete a Shortcut epic |
+  
 ### Iterations
 
-- **iterations-get-stories** - Get stories in a specific iteration by iteration ID
-- **iterations-get-by-id** - Get a Shortcut iteration by ID
-- **iterations-search** - Find Shortcut iterations with filtering and search options
-- **iterations-create** - Create a new Shortcut iteration with start/end dates
-- **iterations-update** - Update an existing Shortcut iteration
-- **iterations-delete** - Delete a Shortcut iteration
-- **iterations-get-active** - Get active iterations for the current user based on team memberships
-- **iterations-get-upcoming** - Get upcoming iterations for the current user based on team memberships
+| Tool | Description |
+|------|-------------|
+| `iterations-get-stories` | Get stories in a specific iteration by iteration ID |
+| `iterations-get-by-id` | Get a Shortcut iteration by ID |
+| `iterations-search` | Find Shortcut iterations with filtering and search options |
+| `iterations-create` | Create a new Shortcut iteration with start/end dates |
+| `iterations-update` | Update an existing Shortcut iteration |
+| `iterations-delete` | Delete a Shortcut iteration |
+| `iterations-get-active` | Get active iterations for the current user based on team memberships |
+| `iterations-get-upcoming` | Get upcoming iterations for the current user based on team memberships |
 
 ### Objectives
 
-- **objectives-get-by-id** - Get a Shortcut objective by ID
-- **objectives-search** - Find Shortcut objectives with filtering and search options
+| Tool | Description |
+|------|-------------|
+| `objectives-get-by-id` | Get a Shortcut objective by ID |
+| `objectives-search` | Find Shortcut objectives with filtering and search options |
 
 ### Teams
 
-- **teams-get-by-id** - Get a Shortcut team by ID
-- **teams-list** - List all Shortcut teams
+| Tool | Description |
+|------|-------------|
+| `teams-get-by-id` | Get a Shortcut team by ID |
+| `teams-list` | List all Shortcut teams |
 
 ### Projects
 
-- **projects-list** - List all projects in the Shortcut workspace
-- **projects-get-by-id** - Get a Shortcut project by public ID
-- **projects-get-stories** - Get all stories in a specific project
+| Tool | Description |
+|------|-------------|
+| `projects-list` | List all projects in the Shortcut workspace |
+| `projects-get-by-id` | Get a Shortcut project by public ID |
+| `projects-get-stories` | Get all stories in a specific project |
 
 ### Workflows
 
-- **workflows-get-default** - Get the default workflow for a specific team or the workspace default
-- **workflows-get-by-id** - Get a Shortcut workflow by ID
-- **workflows-list** - List all Shortcut workflows
+| Tool | Description |
+|------|-------------|
+| `workflows-get-default` | Get the default workflow for a specific team or the workspace default |
+| `workflows-get-by-id` | Get a Shortcut workflow by ID |
+| `workflows-list` | List all Shortcut workflows |
 
 ### Users
 
-- **users-get-current** - Get the current user information
-- **users-get-current-teams** - Get a list of teams where the current user is a member
-- **users-list** - Get all workspace users
+| Tool | Description |
+|------|-------------|
+| `users-get-current` | Get the current user information |
+| `users-get-current-teams` | Get a list of teams where the current user is a member |
+| `users-list` | Get all workspace users |
 
 ### Documents
 
-- **documents-create** - Create a new document in Shortcut with Markdown content
-- **documents-update** - Update content of an existing document by its ID
-- **documents-list** - List all documents in Shortcut
-- **documents-search** - Search for documents
-- **documents-get-by-id** - Retrieve a specific document in markdown format by its ID
+| Tool | Description |
+|------|-------------|
+| `documents-create` | Create a new document in Shortcut with Markdown content |
+| `documents-update` | Update content of an existing document by its ID |
+| `documents-list` | List all documents in Shortcut |
+| `documents-search` | Search for documents |
+| `documents-get-by-id` | Retrieve a specific document in markdown format by its ID |
 
 ## Limit tools
 
@@ -315,10 +178,9 @@ You can limit the tools available to the LLM by setting the `SHORTCUT_TOOLS` env
 - Tools can be limited by entity type by just adding the entity, eg `stories` or `epics`.
 - Individual tools can also be limitied by their full name, eg `stories-get-by-id` or `epics-search`.
 
-> [!NOTE]
-> By default, all tools are enabled.
+By default, all tools are enabled.
 
-Example:
+Example (when running locally):
 
 ```json
 {
@@ -356,10 +218,7 @@ The following values are accepted in addition to the full tool names listed abov
 
 You can run the MCP server in read-only mode by setting the `SHORTCUT_READONLY` environment variable to `true`. This will disable all tools that modify data in Shortcut.
 
-> [!TIP]
-> Shortcut supports **read-only API tokens**, which you can use to ensure that the MCP server is limited to read-only operations at the API level. This provides an additional layer of security since the restriction is enforced by the Shortcut API itself, not just the MCP server. You can create a read-only token from your [Shortcut API tokens settings](https://app.shortcut.com/settings/account/api-tokens).
-
-Example:
+Example (when running locally):
 
 ```json
 {
@@ -381,70 +240,11 @@ Example:
 
 ## Issues and Troubleshooting
 
-> [!IMPORTANT]
-> Before doing anything else, please make sure you are running the latest version!
+Before doing anything else, please make sure you are running the latest version!
 
 If you run into problems using this MCP server, you have a couple of options:
 
-- Open an issue on [GitHub](https://github.com/useshortcut/mcp-server-shortcut/issues)
-- Ask for help in the community [Slack](https://shortcut.com/join-slack)
-
-You can also check the list of [common issues](#common-issues) below to see if there is a known solution already.
-
-### Common Issues and Solutions
-
-#### MCP fails on startup in Gemini CLI
-
-If you are using the Gemini CLI and the MCP fails with the following error: `✕ Error during discovery for MCP server 'shortcut': MCP error -32000: Connection closed`, it might be due to an issue in Gemini where it redacts environment variables that contain the word `token`. You can either pass the Shortcut token as a CLI argument, or use the alternative name `SHORTCUT_API_TKN` instead of `SHORTCUT_API_TOKEN`. See the [Usage section](#usage) for more information.
-
-#### NPX command not working when using MISE for version management
-
-If you are using MISE for managing Node and NPM versions, you may encounter a "Client closed" error when trying to run the MCP server. Installing this extension into your IDE might help: https://github.com/hverlin/mise-vscode/.
-
-## Development
-
-### Installation
-
-```bash
-npm install
-```
-
-### Build
-
-```bash
-npm run build
-```
-
-### Running the Development Server Locally
-
-To test your local development version of the MCP server rather than using the published package, follow these steps:
-
-1. Build the project:
-   ```bash
-   npm run build
-   ```
-
-2. Create or modify your `mcp.json` file to reference your local build:
-   ```json
-   {
-     "mcpServers": {
-       "shortcut": {
-         "command": "node",
-         "args": [
-           "/path/to/your/local/mcp-server-shortcut/dist/index.js"
-         ],
-         "env": {
-           "SHORTCUT_API_TOKEN": "<YOUR_SHORTCUT_API_TOKEN>"
-         }
-       }
-     }
-   }
-   ```
-
-3. Place this `mcp.json` file in one of the following locations:
-   - For Cursor: In your home directory (`~/.cursor/mcp.json`) or in your project directory (`.cursor/mcp.json`)
-   - For Windsurf: Use the MCP Configuration Panel to add the custom server
-
-4. Restart your AI assistant (Cursor or Windsurf) to load the new configuration.
-
-This allows you to instantly test changes to the MCP server without having to publish a new version.
+| Option | Link |
+|--------|------|
+| Open an issue | [GitHub](https://github.com/useshortcut/mcp-server-shortcut/issues) |
+| Ask for help | [Slack](https://shortcut.com/join-slack) |
