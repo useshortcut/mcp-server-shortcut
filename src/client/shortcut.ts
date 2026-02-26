@@ -483,6 +483,11 @@ export class ShortcutClientWrapper {
 		return response?.data ?? [];
 	}
 
+	async listLabelStories(labelPublicId: number): Promise<StorySlim[]> {
+		const response = await this.client.listLabelStories(labelPublicId);
+		return response?.data ?? [];
+	}
+
 	async addTaskToStory(
 		storyPublicId: number,
 		taskParams: {
