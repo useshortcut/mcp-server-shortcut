@@ -21,6 +21,15 @@ export class LabelTools extends BaseTools {
 			async (params) => await tools.listLabels(params),
 		);
 
+		server.addToolWithReadAccess(
+			"labels-get-stories",
+			"Get all stories with a specific label.",
+			{
+				labelPublicId: z.number().positive().describe("Label ID"),
+			},
+			async ({ labelPublicId }) => await tools.getLabelStories(labelPublicId),
+		);
+
 		server.addToolWithWriteAccess(
 			"labels-create",
 			"Create a new label.",
@@ -96,5 +105,18 @@ export class LabelTools extends BaseTools {
 		return this.toResult(`Label created with ID: ${label.id}.`, {
 			label: this.formatLabel(label, { includeDescription: true }),
 		});
+	}
+
+	async getLabelStories(labelPublicId: number): Promise<CallToolResult> {
+		const stories = await this.client.listLabelStories(labelPublicId);
+
+		if (!stories.length) {
+			return this.toResult(`Result: No stories found for label ${labelPublicId}.`);
+		}
+
+		return this.toResult(
+			`Result (${stories.length} stories found for label ${labelPublicId}):`,
+			await this.entitiesWithRelatedEntities(stories, "stories"),
+		);
 	}
 }

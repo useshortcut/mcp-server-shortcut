@@ -92,6 +92,7 @@ If your IDE doesn't support HTTP-based MCP servers, or you'd prefer to run the s
 | Tool | Description |
 |------|-------------|
 | `labels-list` | List all labels in the Shortcut workspace |
+| `labels-get-stories` | Get all stories with a specific label |
 | `labels-create` | Create a new label in Shortcut |
 
 ### Custom Fields

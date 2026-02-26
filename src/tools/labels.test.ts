@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import type { CreateLabelParams, Label } from "@shortcut/client";
+import type { CreateLabelParams, Label, Story } from "@shortcut/client";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
 import { LabelTools } from "./labels";
@@ -69,6 +69,41 @@ describe("LabelTools", () => {
 		} as unknown as Label,
 	];
 
+	const mockStories: Story[] = [
+		{
+			entity_type: "story",
+			id: 123,
+			name: "Story with label one",
+			story_type: "feature",
+			owner_ids: ["user1"],
+			group_id: null,
+			epic_id: null,
+			iteration_id: null,
+			workflow_id: null,
+			workflow_state_id: 1,
+			requested_by_id: null,
+			follower_ids: [],
+			app_url: "https://app.shortcut.com/test/story/123",
+			archived: false,
+		} as unknown as Story,
+		{
+			entity_type: "story",
+			id: 456,
+			name: "Story with label two",
+			story_type: "bug",
+			owner_ids: ["user2"],
+			group_id: null,
+			epic_id: null,
+			iteration_id: null,
+			workflow_id: null,
+			workflow_state_id: 2,
+			requested_by_id: null,
+			follower_ids: [],
+			app_url: "https://app.shortcut.com/test/story/456",
+			archived: false,
+		} as unknown as Story,
+	];
+
 	const createMockClient = (methods?: object) =>
 		({
 			...methods,
@@ -86,11 +121,52 @@ describe("LabelTools", () => {
 
 			LabelTools.create(mockClient, mockServer);
 
-			expect(mockToolRead).toHaveBeenCalledTimes(1);
+			expect(mockToolRead).toHaveBeenCalledTimes(2);
 			expect(mockToolRead.mock.calls?.[0]?.[0]).toBe("labels-list");
+			expect(mockToolRead.mock.calls?.[1]?.[0]).toBe("labels-get-stories");
 
 			expect(mockToolWrite).toHaveBeenCalledTimes(1);
 			expect(mockToolWrite.mock.calls?.[0]?.[0]).toBe("labels-create");
+		});
+	});
+
+	describe("getLabelStories method", () => {
+		const listLabelStoriesMock = mock(async () => mockStories);
+
+		beforeEach(() => {
+			listLabelStoriesMock.mockClear();
+		});
+
+		test("should return formatted stories for a label", async () => {
+			const mockClient = createMockClient({
+				listLabelStories: listLabelStoriesMock,
+				getUserMap: mock(async () => new Map()),
+				getWorkflowMap: mock(async () => new Map()),
+				getTeamMap: mock(async () => new Map()),
+				getMilestone: mock(async () => null),
+				getIteration: mock(async () => null),
+				getEpic: mock(async () => null),
+				getCustomFieldMap: mock(async () => new Map()),
+			});
+			const labelTools = new LabelTools(mockClient);
+			const result = await labelTools.getLabelStories(42);
+
+			expect(listLabelStoriesMock).toHaveBeenCalledWith(42);
+
+			const textContent = getTextContent(result);
+			expect(textContent).toContain("Result (2 stories found for label 42):");
+			expect(textContent).toContain('"name": "Story with label one"');
+			expect(textContent).toContain('"name": "Story with label two"');
+		});
+
+		test("should return no stories found message when label has no stories", async () => {
+			const mockClient = createMockClient({
+				listLabelStories: mock(async () => []),
+			});
+			const labelTools = new LabelTools(mockClient);
+			const result = await labelTools.getLabelStories(42);
+
+			expect(getTextContent(result)).toBe("Result: No stories found for label 42.");
 		});
 	});
 

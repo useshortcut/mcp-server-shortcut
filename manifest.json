@@ -75,6 +75,7 @@
 		{ "name": "documents-search", "description": "Find documents" },
 		{ "name": "documents-get-by-id", "description": "Get a document as markdown by its ID" },
 		{ "name": "labels-list", "description": "List all labels in the Shortcut workspace" },
+		{ "name": "labels-get-stories", "description": "Get all stories with a specific label" },
 		{ "name": "labels-create", "description": "Create a new label in Shortcut" }
 	],
 	"keywords": ["shortcut", "mcp", "project-management", "stories", "epics", "iterations", "agile"],
