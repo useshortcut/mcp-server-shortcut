@@ -113,10 +113,11 @@ describe("EpicTools", () => {
 			expect(mockToolRead.mock.calls?.[0]?.[0]).toBe("epics-get-by-id");
 			expect(mockToolRead.mock.calls?.[1]?.[0]).toBe("epics-search");
 
-			expect(mockToolWrite).toHaveBeenCalledTimes(3);
+			expect(mockToolWrite).toHaveBeenCalledTimes(4);
 			expect(mockToolWrite.mock.calls?.[0]?.[0]).toBe("epics-create");
 			expect(mockToolWrite.mock.calls?.[1]?.[0]).toBe("epics-update");
-			expect(mockToolWrite.mock.calls?.[2]?.[0]).toBe("epics-delete");
+			expect(mockToolWrite.mock.calls?.[2]?.[0]).toBe("epics-create-comment");
+			expect(mockToolWrite.mock.calls?.[3]?.[0]).toBe("epics-delete");
 		});
 	});
 
@@ -422,6 +423,70 @@ describe("EpicTools", () => {
 			expect(updateEpicMock.mock.calls?.[0]?.[1]).toMatchObject({
 				external_id: "ext-123",
 			});
+		});
+	});
+
+	describe("createEpicComment method", () => {
+		const getEpicMock = mock(async (id: number) => mockEpics.find((epic) => epic.id === id));
+		const createEpicCommentMock = mock(async (_id: number, _params: { text: string }) => ({
+			id: 100,
+			text: "Test comment",
+			app_url: "https://app.shortcut.com/test/epic/1/comments/100",
+		}));
+
+		beforeEach(() => {
+			createEpicCommentMock.mockClear();
+		});
+
+		test("should create a comment on an epic", async () => {
+			const mockClient = createMockClient({
+				getEpic: getEpicMock,
+				createEpicComment: createEpicCommentMock,
+			});
+			const epicTools = new EpicTools(mockClient);
+			const result = await epicTools.createEpicComment({
+				epicPublicId: 1,
+				text: "Test comment",
+			});
+
+			expect(getTextContent(result)).toBe(
+				"Created comment on epic 1. Comment URL: https://app.shortcut.com/test/epic/1/comments/100.",
+			);
+			expect(createEpicCommentMock).toHaveBeenCalledTimes(1);
+			expect(createEpicCommentMock.mock.calls?.[0]?.[0]).toBe(1);
+			expect(createEpicCommentMock.mock.calls?.[0]?.[1]).toMatchObject({
+				text: "Test comment",
+			});
+		});
+
+		test("should throw error when epic is not found", async () => {
+			const mockClient = createMockClient({
+				getEpic: mock(async () => null),
+				createEpicComment: createEpicCommentMock,
+			});
+			const epicTools = new EpicTools(mockClient);
+
+			await expect(() =>
+				epicTools.createEpicComment({
+					epicPublicId: 999,
+					text: "Test comment",
+				}),
+			).toThrow("Failed to retrieve Shortcut epic with public ID: 999");
+		});
+
+		test("should throw error when text is empty", async () => {
+			const mockClient = createMockClient({
+				getEpic: getEpicMock,
+				createEpicComment: createEpicCommentMock,
+			});
+			const epicTools = new EpicTools(mockClient);
+
+			await expect(() =>
+				epicTools.createEpicComment({
+					epicPublicId: 1,
+					text: "",
+				}),
+			).toThrow("Epic comment text is required");
 		});
 	});
 
