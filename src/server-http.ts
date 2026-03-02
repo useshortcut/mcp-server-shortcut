@@ -191,12 +191,13 @@ class SessionManager {
 	add(
 		sessionId: string,
 		transport: StreamableHTTPServerTransport,
+		sessionToken: string,
 		accessToken: string,
 		clientWrapper: ShortcutClientWrapper,
 	): void {
 		this.sessions.set(sessionId, {
 			transport,
-			sessionToken: accessToken,
+			sessionToken,
 			accessToken,
 			clientWrapper,
 			createdAt: new Date(),
@@ -414,6 +415,7 @@ function createServerInstance(
 // ============================================================================
 
 async function createTransport(
+	sessionToken: string,
 	accessToken: string,
 	config: ServerConfig,
 	sessionManager: SessionManager,
@@ -425,7 +427,7 @@ async function createTransport(
 		sessionIdGenerator: () => randomUUID(),
 		onsessioninitialized: (sid): void => {
 			if (transport) {
-				sessionManager.add(sid, transport, accessToken, clientWrapper);
+				sessionManager.add(sid, transport, sessionToken, accessToken, clientWrapper);
 			}
 		},
 	});
@@ -493,14 +495,6 @@ async function handleMcpPost(
 				session.clientWrapper.updateClient(createOAuthShortcutClient(accessToken));
 			}
 
-			// If the token was refreshed by the auth middleware, update the
-			// session's ShortcutClient so tools use the fresh token.
-			if (accessToken !== session.accessToken) {
-				reqLogger.info("Token refreshed, updating session client");
-				session.accessToken = accessToken;
-				session.clientWrapper.updateClient(createOAuthShortcutClient(accessToken));
-			}
-
 			await session.transport.handleRequest(req, res, req.body);
 			return;
 		}
@@ -511,9 +505,15 @@ async function handleMcpPost(
 				sendUnauthorizedError(res, requestId);
 				return;
 			}
+			const sessionToken = extractBearerToken(req);
+			if (!sessionToken) {
+				reqLogger.warn("Missing bearer token for initialization");
+				sendUnauthorizedError(res, requestId);
+				return;
+			}
 
 			reqLogger.info("Creating session");
-			const transport = await createTransport(accessToken, config, sessionManager);
+			const transport = await createTransport(sessionToken, accessToken, config, sessionManager);
 			await transport.handleRequest(req, res, req.body);
 			return;
 		}

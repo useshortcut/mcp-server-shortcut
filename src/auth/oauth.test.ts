@@ -627,6 +627,26 @@ describe("OAuth Flow Tests", () => {
 				}),
 			});
 			expect(mcpRes.status).toBe(200);
+			const sessionId = mcpRes.headers.get("mcp-session-id");
+			expect(sessionId).toBeDefined();
+
+			// Step 7: Send initialized notification using the same bearer token.
+			// This verifies the server accepts follow-up session messages even if
+			// middleware refreshes token metadata internally.
+			const initializedRes = await fetch(`${baseUrl}/mcp`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${tokens.access_token}`,
+					"Mcp-Session-Id": sessionId ?? "",
+				},
+				body: JSON.stringify({
+					jsonrpc: "2.0",
+					method: "notifications/initialized",
+					params: {},
+				}),
+			});
+			expect([200, 202, 204]).toContain(initializedRes.status);
 		});
 	});
 });

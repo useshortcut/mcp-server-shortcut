@@ -1,5 +1,11 @@
 import type { OAuthRegisteredClientsStore } from "@modelcontextprotocol/sdk/server/auth/clients.js";
-import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
+import {
+	InvalidClientError,
+	InvalidGrantError,
+	InvalidRequestError,
+	InvalidTokenError,
+	ServerError,
+} from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import type {
 	AuthorizationParams,
 	OAuthServerProvider,
@@ -29,6 +35,10 @@ function getUpstreamEndpoints() {
 	};
 }
 
+function getApiBaseUrl(): string {
+	return `https://${getAuthServer()}`;
+}
+
 function getMcpServerUrl(): string {
 	const defaultPort = process.env.PORT ?? "9292";
 	return process.env.MCP_SERVER_URL ?? `http://localhost:${defaultPort}`;
@@ -47,6 +57,7 @@ function getDefaultRedirectUris(): string[] {
 }
 
 const DEFAULT_AUTHORIZATION_SCOPES = ["openid"] as const;
+const DEFAULT_CLIENT_EXPIRES_IN_SECONDS = 3600;
 
 function getStaticClientInfo(): OAuthClientInformationFull | undefined {
 	const clientId = process.env.SHORTCUT_OAUTH_CLIENT_ID;
@@ -70,31 +81,101 @@ function toPublicClientInfo(client: OAuthClientInformationFull): OAuthClientInfo
 	return publicClient as OAuthClientInformationFull;
 }
 
+function normalizeTokensForClient(tokens: OAuthTokens): OAuthTokens {
+	return {
+		...tokens,
+		token_type: tokens.token_type || "Bearer",
+		expires_in:
+			tokens.expires_in && tokens.expires_in > 0
+				? tokens.expires_in
+				: DEFAULT_CLIENT_EXPIRES_IN_SECONDS,
+	};
+}
+
+function throwMappedUpstreamOAuthError(status: number, body: string): never {
+	let upstreamError: { error?: string; error_description?: string } | undefined;
+	try {
+		upstreamError = JSON.parse(body) as { error?: string; error_description?: string };
+	} catch {
+		upstreamError = undefined;
+	}
+
+	const description =
+		upstreamError?.error_description || body || `OAuth upstream error (${status})`;
+	switch (upstreamError?.error) {
+		case "invalid_request":
+			throw new InvalidRequestError(description);
+		case "invalid_client":
+			throw new InvalidClientError(description);
+		case "invalid_grant":
+			throw new InvalidGrantError(description);
+		case "server_error":
+			throw new ServerError(description);
+		default:
+			if (status >= 500) {
+				throw new ServerError(description);
+			}
+			throw new InvalidGrantError(description);
+	}
+}
+
 // ============================================================================
 // Default Token Verification
 // ============================================================================
 
 /**
  * Verifies an access token by calling the Shortcut API directly.
- * Used as a fallback for legacy Shortcut API tokens (not OAuth tokens).
+ * Supports both:
+ * - OAuth access tokens via Authorization: Bearer
+ * - Legacy Shortcut API tokens via Shortcut-Token header (fallback)
  */
 async function defaultVerifyAccessToken(token: string): Promise<AuthInfo> {
-	try {
-		const client = new ShortcutClient(token);
-		const response = await client.getCurrentMemberInfo();
+	const clientId = process.env.SHORTCUT_OAUTH_CLIENT_ID ?? "unknown";
+	const baseURL = getApiBaseUrl();
 
-		if (!response.data) {
+	// First, try OAuth bearer-token validation. This handles uncached tokens
+	// after server restarts or requests routed to a different server instance.
+	try {
+		const oauthClient = createOAuthVerificationClient(token, baseURL);
+		const oauthResponse = await oauthClient.getCurrentMemberInfo();
+
+		if (!oauthResponse.data) {
 			throw new InvalidTokenError("No member data returned");
 		}
 
+		const member = oauthResponse.data as { id: string | number; mention_name?: string };
 		return {
 			token,
-			clientId: process.env.SHORTCUT_OAUTH_CLIENT_ID ?? "unknown",
+			clientId,
 			scopes: ["openid"],
 			expiresAt: Math.floor(Date.now() / 1000) + 3600,
 			extra: {
-				memberId: response.data.id,
-				mentionName: response.data.mention_name,
+				memberId: String(member.id),
+				mentionName: member.mention_name,
+			},
+		};
+	} catch {
+		// Fall through to legacy token verification below.
+	}
+
+	// Fallback: legacy Shortcut API token in Shortcut-Token header.
+	try {
+		const legacyClient = new ShortcutClient(token, { baseURL });
+		const legacyResponse = await legacyClient.getCurrentMemberInfo();
+
+		if (!legacyResponse.data) {
+			throw new InvalidTokenError("No member data returned");
+		}
+
+		const member = legacyResponse.data as { id: string | number; mention_name?: string };
+		return {
+			token,
+			clientId,
+			scopes: ["openid"],
+			expiresAt: Math.floor(Date.now() / 1000) + 3600,
+			extra: {
+				memberId: String(member.id),
+				mentionName: member.mention_name,
 			},
 		};
 	} catch (error) {
@@ -103,6 +184,27 @@ async function defaultVerifyAccessToken(token: string): Promise<AuthInfo> {
 		}
 		throw new InvalidTokenError("Invalid or expired access token");
 	}
+}
+
+function createOAuthVerificationClient(accessToken: string, baseURL: string): ShortcutClient {
+	const client = new ShortcutClient("_placeholder_", {
+		baseURL,
+		headers: {
+			Authorization: `Bearer ${accessToken}`,
+		},
+	});
+
+	// Remove Shortcut-Token header so Shortcut API only sees Bearer auth.
+	// biome-ignore lint/suspicious/noExplicitAny: accessing axios internals
+	const instance = (client as any).instance;
+	if (instance?.defaults?.headers) {
+		delete instance.defaults.headers["Shortcut-Token"];
+		if (instance.defaults.headers.common) {
+			delete instance.defaults.headers.common["Shortcut-Token"];
+		}
+	}
+
+	return client;
 }
 
 // ============================================================================
@@ -372,10 +474,10 @@ export function createOAuthProvider(
 			if (!response.ok) {
 				const body = await response.text();
 				console.error("Token exchange failed", { status: response.status, body });
-				throw new Error(`Token exchange failed: ${response.status} ${body}`);
+				throwMappedUpstreamOAuthError(response.status, body);
 			}
 
-			const tokens = (await response.json()) as OAuthTokens;
+			const tokens = normalizeTokensForClient((await response.json()) as OAuthTokens);
 			cacheIssuedToken(tokens, client.client_id);
 			return tokens;
 		},
@@ -406,10 +508,10 @@ export function createOAuthProvider(
 			if (!response.ok) {
 				const body = await response.text();
 				console.error("Token refresh failed", { status: response.status, body });
-				throw new Error(`Token refresh failed: ${response.status}`);
+				throwMappedUpstreamOAuthError(response.status, body);
 			}
 
-			const tokens = (await response.json()) as OAuthTokens;
+			const tokens = normalizeTokensForClient((await response.json()) as OAuthTokens);
 			cacheIssuedToken(tokens, client.client_id);
 			return tokens;
 		},
