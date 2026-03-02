@@ -1,4 +1,7 @@
 import { describe, expect, type Mock, mock, test } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type ShortcutClient from "@shortcut/client";
 import type { CreateStoryParams, Doc, DocSlim, UpdateStory } from "@shortcut/client";
 import { ShortcutClientWrapper } from "./shortcut";
@@ -459,6 +462,85 @@ describe("ShortcutClientWrapper", () => {
 				await expect(client.getDocById("doc-123")).rejects.toThrow(
 					"Docs feature disabled for this workspace.",
 				);
+			});
+		});
+
+		describe("File Upload Security", () => {
+			test("should allow uploads from configured allowed directories", async () => {
+				const allowedDir = mkdtempSync(join(tmpdir(), "shortcut-upload-"));
+				const filePath = join(allowedDir, "safe.txt");
+				writeFileSync(filePath, "safe upload content");
+
+				const mockClient = {
+					uploadFiles: mock(async () => ({ data: [{ id: 1, name: "safe.txt" }] })),
+				} as unknown as ShortcutClient;
+				const client = new ShortcutClientWrapper(mockClient);
+
+				const previousAllowedDirs = process.env.SHORTCUT_UPLOAD_ALLOWED_DIRS;
+				const previousMaxBytes = process.env.SHORTCUT_UPLOAD_MAX_FILE_BYTES;
+				process.env.SHORTCUT_UPLOAD_ALLOWED_DIRS = allowedDir;
+				process.env.SHORTCUT_UPLOAD_MAX_FILE_BYTES = "1048576";
+
+				try {
+					const uploadedFile = await client.uploadFile(123, filePath);
+					expect(uploadedFile.id).toBe(1);
+					expect(mockClient.uploadFiles).toHaveBeenCalled();
+				} finally {
+					process.env.SHORTCUT_UPLOAD_ALLOWED_DIRS = previousAllowedDirs;
+					process.env.SHORTCUT_UPLOAD_MAX_FILE_BYTES = previousMaxBytes;
+					rmSync(allowedDir, { recursive: true, force: true });
+				}
+			});
+
+			test("should reject uploads outside allowed directories", async () => {
+				const allowedDir = mkdtempSync(join(tmpdir(), "shortcut-upload-allowed-"));
+				const blockedDir = mkdtempSync(join(tmpdir(), "shortcut-upload-blocked-"));
+				const blockedFile = join(blockedDir, "blocked.txt");
+				writeFileSync(blockedFile, "blocked upload content");
+
+				const mockClient = {
+					uploadFiles: mock(async () => ({ data: [{ id: 1, name: "blocked.txt" }] })),
+				} as unknown as ShortcutClient;
+				const client = new ShortcutClientWrapper(mockClient);
+
+				const previousAllowedDirs = process.env.SHORTCUT_UPLOAD_ALLOWED_DIRS;
+				process.env.SHORTCUT_UPLOAD_ALLOWED_DIRS = allowedDir;
+
+				try {
+					await expect(client.uploadFile(123, blockedFile)).rejects.toThrow(
+						"outside allowed upload directories",
+					);
+					expect(mockClient.uploadFiles).not.toHaveBeenCalled();
+				} finally {
+					process.env.SHORTCUT_UPLOAD_ALLOWED_DIRS = previousAllowedDirs;
+					rmSync(allowedDir, { recursive: true, force: true });
+					rmSync(blockedDir, { recursive: true, force: true });
+				}
+			});
+
+			test("should enforce max upload file size", async () => {
+				const allowedDir = mkdtempSync(join(tmpdir(), "shortcut-upload-size-"));
+				const filePath = join(allowedDir, "large.txt");
+				writeFileSync(filePath, "this file is larger than one byte");
+
+				const mockClient = {
+					uploadFiles: mock(async () => ({ data: [{ id: 1, name: "large.txt" }] })),
+				} as unknown as ShortcutClient;
+				const client = new ShortcutClientWrapper(mockClient);
+
+				const previousAllowedDirs = process.env.SHORTCUT_UPLOAD_ALLOWED_DIRS;
+				const previousMaxBytes = process.env.SHORTCUT_UPLOAD_MAX_FILE_BYTES;
+				process.env.SHORTCUT_UPLOAD_ALLOWED_DIRS = allowedDir;
+				process.env.SHORTCUT_UPLOAD_MAX_FILE_BYTES = "1";
+
+				try {
+					await expect(client.uploadFile(123, filePath)).rejects.toThrow("max upload size");
+					expect(mockClient.uploadFiles).not.toHaveBeenCalled();
+				} finally {
+					process.env.SHORTCUT_UPLOAD_ALLOWED_DIRS = previousAllowedDirs;
+					process.env.SHORTCUT_UPLOAD_MAX_FILE_BYTES = previousMaxBytes;
+					rmSync(allowedDir, { recursive: true, force: true });
+				}
 			});
 		});
 	});
