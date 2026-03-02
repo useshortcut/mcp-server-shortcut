@@ -1,5 +1,11 @@
 import type { OAuthRegisteredClientsStore } from "@modelcontextprotocol/sdk/server/auth/clients.js";
-import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
+import {
+	InvalidClientError,
+	InvalidGrantError,
+	InvalidRequestError,
+	InvalidTokenError,
+	ServerError,
+} from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import type {
 	AuthorizationParams,
 	OAuthServerProvider,
@@ -51,6 +57,7 @@ function getDefaultRedirectUris(): string[] {
 }
 
 const DEFAULT_AUTHORIZATION_SCOPES = ["openid"] as const;
+const DEFAULT_CLIENT_EXPIRES_IN_SECONDS = 3600;
 
 function getStaticClientInfo(): OAuthClientInformationFull | undefined {
 	const clientId = process.env.SHORTCUT_OAUTH_CLIENT_ID;
@@ -72,6 +79,44 @@ function toPublicClientInfo(client: OAuthClientInformationFull): OAuthClientInfo
 		...publicClient
 	} = client;
 	return publicClient as OAuthClientInformationFull;
+}
+
+function normalizeTokensForClient(tokens: OAuthTokens): OAuthTokens {
+	return {
+		...tokens,
+		token_type: tokens.token_type || "Bearer",
+		expires_in:
+			tokens.expires_in && tokens.expires_in > 0
+				? tokens.expires_in
+				: DEFAULT_CLIENT_EXPIRES_IN_SECONDS,
+	};
+}
+
+function throwMappedUpstreamOAuthError(status: number, body: string): never {
+	let upstreamError: { error?: string; error_description?: string } | undefined;
+	try {
+		upstreamError = JSON.parse(body) as { error?: string; error_description?: string };
+	} catch {
+		upstreamError = undefined;
+	}
+
+	const description =
+		upstreamError?.error_description || body || `OAuth upstream error (${status})`;
+	switch (upstreamError?.error) {
+		case "invalid_request":
+			throw new InvalidRequestError(description);
+		case "invalid_client":
+			throw new InvalidClientError(description);
+		case "invalid_grant":
+			throw new InvalidGrantError(description);
+		case "server_error":
+			throw new ServerError(description);
+		default:
+			if (status >= 500) {
+				throw new ServerError(description);
+			}
+			throw new InvalidGrantError(description);
+	}
 }
 
 // ============================================================================
@@ -429,10 +474,10 @@ export function createOAuthProvider(
 			if (!response.ok) {
 				const body = await response.text();
 				console.error("Token exchange failed", { status: response.status, body });
-				throw new Error(`Token exchange failed: ${response.status} ${body}`);
+				throwMappedUpstreamOAuthError(response.status, body);
 			}
 
-			const tokens = (await response.json()) as OAuthTokens;
+			const tokens = normalizeTokensForClient((await response.json()) as OAuthTokens);
 			cacheIssuedToken(tokens, client.client_id);
 			return tokens;
 		},
@@ -463,10 +508,10 @@ export function createOAuthProvider(
 			if (!response.ok) {
 				const body = await response.text();
 				console.error("Token refresh failed", { status: response.status, body });
-				throw new Error(`Token refresh failed: ${response.status}`);
+				throwMappedUpstreamOAuthError(response.status, body);
 			}
 
-			const tokens = (await response.json()) as OAuthTokens;
+			const tokens = normalizeTokensForClient((await response.json()) as OAuthTokens);
 			cacheIssuedToken(tokens, client.client_id);
 			return tokens;
 		},

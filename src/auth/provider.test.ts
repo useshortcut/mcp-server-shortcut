@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
+import {
+	InvalidGrantError,
+	InvalidTokenError,
+} from "@modelcontextprotocol/sdk/server/auth/errors.js";
 
 type HeadersMap = Record<string, unknown>;
 
@@ -130,3 +133,83 @@ describe("createOAuthProvider default verifier", () => {
 		expect(mockState.calls.length).toBe(2);
 	});
 });
+
+describe("createOAuthProvider token exchange behavior", () => {
+	beforeEach(() => {
+		process.env.SHORTCUT_OAUTH_CLIENT_ID = "test-client-id";
+		process.env.SHORTCUT_OAUTH_CLIENT_SECRET = "test-client-secret";
+		process.env.AUTH_SERVER = "api.app.shortcut-staging.com";
+	});
+
+	test("maps upstream invalid_grant refresh errors to InvalidGrantError", async () => {
+		const fetchMock = mock(async () => {
+			return new Response(
+				JSON.stringify({
+					error: "invalid_grant",
+					error_description: "Refresh token expired",
+				}),
+				{
+					status: 400,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		});
+
+		const provider = createOAuthProvider({
+			fetch: fetchMock as unknown as FetchLike,
+			endpoints: {
+				authorizationUrl: "https://example.com/oauth/code",
+				tokenUrl: "https://example.com/oauth/token",
+			},
+		});
+
+		await expect(
+			provider.exchangeRefreshToken(
+				{
+					client_id: "test-client-id",
+					redirect_uris: [],
+				} as never,
+				"expired-refresh-token",
+			),
+		).rejects.toBeInstanceOf(InvalidGrantError);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
+	test("normalizes refresh token responses without expires_in", async () => {
+		const fetchMock = mock(async () => {
+			return new Response(
+				JSON.stringify({
+					access_token: "new-access-token",
+					refresh_token: "new-refresh-token",
+					scope: "openid",
+				}),
+				{
+					status: 200,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		});
+
+		const provider = createOAuthProvider({
+			fetch: fetchMock as unknown as FetchLike,
+			endpoints: {
+				authorizationUrl: "https://example.com/oauth/code",
+				tokenUrl: "https://example.com/oauth/token",
+			},
+		});
+
+		const tokens = await provider.exchangeRefreshToken(
+			{
+				client_id: "test-client-id",
+				redirect_uris: [],
+			} as never,
+			"valid-refresh-token",
+		);
+
+		expect(tokens.token_type).toBe("Bearer");
+		expect(tokens.expires_in).toBe(3600);
+		expect(tokens.access_token).toBe("new-access-token");
+	});
+});
+
+type FetchLike = (url: string | URL, init?: RequestInit) => Promise<Response>;
