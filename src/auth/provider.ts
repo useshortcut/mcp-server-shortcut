@@ -46,6 +46,8 @@ function getDefaultRedirectUris(): string[] {
 		.filter((uri) => uri.length > 0);
 }
 
+const DEFAULT_AUTHORIZATION_SCOPES = ["openid"] as const;
+
 function getStaticClientInfo(): OAuthClientInformationFull | undefined {
 	const clientId = process.env.SHORTCUT_OAUTH_CLIENT_ID;
 	const clientSecret = process.env.SHORTCUT_OAUTH_CLIENT_SECRET;
@@ -327,7 +329,9 @@ export function createOAuthProvider(
 				code_challenge_method: "S256",
 			});
 			if (params.state) searchParams.set("state", params.state);
-			if (params.scopes?.length) searchParams.set("scope", params.scopes.join(" "));
+			const scopes =
+				params.scopes && params.scopes.length > 0 ? params.scopes : DEFAULT_AUTHORIZATION_SCOPES;
+			searchParams.set("scope", scopes.join(" "));
 			if (params.resource) searchParams.set("resource", params.resource.href);
 			targetUrl.search = searchParams.toString();
 			res.redirect(targetUrl.toString());

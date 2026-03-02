@@ -355,6 +355,36 @@ describe("OAuth Flow Tests", () => {
 			expect(location).toContain("redirect_uri=");
 		});
 
+		test("GET /authorize defaults scope to openid when client omits scope", async () => {
+			// First register the client to establish the redirect_uri
+			await fetch(`${baseUrl}/register`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					redirect_uris: ["http://localhost:6274/oauth/callback"],
+				}),
+			});
+
+			const params = new URLSearchParams({
+				client_id: TEST_CLIENT_ID,
+				response_type: "code",
+				redirect_uri: "http://localhost:6274/oauth/callback",
+				code_challenge: "test-code-challenge-value",
+				code_challenge_method: "S256",
+				state: "test-state-without-scope",
+			});
+
+			const res = await fetch(`${baseUrl}/authorize?${params}`, {
+				redirect: "manual",
+			});
+
+			expect(res.status).toBe(302);
+
+			const location = res.headers.get("location");
+			expect(location).toBeDefined();
+			expect(location).toContain("scope=openid");
+		});
+
 		test("GET /authorize without required params returns error", async () => {
 			const res = await fetch(`${baseUrl}/authorize`, {
 				redirect: "manual",
