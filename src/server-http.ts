@@ -68,16 +68,70 @@ const logger = pino({
 });
 
 const VERBOSE_KEYS = ["body", "headers", "query"] as const;
+const SENSITIVE_HEADER_KEYS = new Set([
+	"authorization",
+	"cookie",
+	"set-cookie",
+	"proxy-authorization",
+	"x-api-key",
+	"x-shortcut-api-token",
+]);
+const SENSITIVE_FIELD_PATTERN =
+	/(token|secret|password|authorization|cookie|access_token|refresh_token|id_token|code_verifier)/i;
 
 /** Set from config in startServer(); controls whether logEvent includes full body/headers/query. */
 let httpDebugVerbose = false;
 
+function sanitizeHeadersForLogging(value: unknown): unknown {
+	if (!value || typeof value !== "object" || Array.isArray(value)) {
+		return value;
+	}
+	const headers = value as Record<string, unknown>;
+	return Object.fromEntries(
+		Object.entries(headers).map(([key, headerValue]) => {
+			if (SENSITIVE_HEADER_KEYS.has(key.toLowerCase())) {
+				return [key, "[REDACTED]"];
+			}
+			return [key, headerValue];
+		}),
+	);
+}
+
+function sanitizeObjectForLogging(value: unknown): unknown {
+	if (Array.isArray(value)) {
+		return value.map((item) => sanitizeObjectForLogging(item));
+	}
+	if (!value || typeof value !== "object") {
+		return value;
+	}
+	const obj = value as Record<string, unknown>;
+	return Object.fromEntries(
+		Object.entries(obj).map(([key, val]) => {
+			if (SENSITIVE_FIELD_PATTERN.test(key)) {
+				return [key, "[REDACTED]"];
+			}
+			return [key, sanitizeObjectForLogging(val)];
+		}),
+	);
+}
+
 /** Log structured event for HTTP debug; use this instead of logger.info(JSON.stringify(...)) */
 function logEvent(event: string, data: Record<string, unknown>): void {
+	const sanitizedData: Record<string, unknown> = { ...data };
+	if ("headers" in sanitizedData) {
+		sanitizedData.headers = sanitizeHeadersForLogging(sanitizedData.headers);
+	}
+	if ("body" in sanitizedData) {
+		sanitizedData.body = sanitizeObjectForLogging(sanitizedData.body);
+	}
+	if ("query" in sanitizedData) {
+		sanitizedData.query = sanitizeObjectForLogging(sanitizedData.query);
+	}
+
 	const payload = httpDebugVerbose
-		? data
+		? sanitizedData
 		: Object.fromEntries(
-				Object.entries(data).map(([k, v]) =>
+				Object.entries(sanitizedData).map(([k, v]) =>
 					VERBOSE_KEYS.includes(k as (typeof VERBOSE_KEYS)[number]) ? [k, "[REDACTED]"] : [k, v],
 				),
 			);
@@ -688,7 +742,6 @@ function httpDebugResponseMiddleware(req: Request, res: Response, next: NextFunc
 	const originalJson = res.json.bind(res);
 	res.json = (body: unknown) => {
 		logEvent("http_response", { method: req.method, path: req.path, status: res.statusCode, body });
-		logEvent("http_response", { method: req.method, path: req.path, status: res.statusCode, body });
 		return originalJson(body);
 	};
 	next();
@@ -765,8 +818,8 @@ async function startServer() {
 			return;
 		}
 
-		const originalRedirectUri = oauthProvider.pendingAuthorizations.get(state);
-		if (!originalRedirectUri) {
+		const pendingAuthorization = oauthProvider.pendingAuthorizations.get(state);
+		if (!pendingAuthorization) {
 			res.status(400).send("Unknown or expired authorization state");
 			return;
 		}
@@ -775,15 +828,23 @@ async function startServer() {
 		oauthProvider.pendingAuthorizations.delete(state);
 
 		// Build the redirect back to the original client
-		const redirectUrl = new URL(originalRedirectUri);
+		const redirectUrl = new URL(pendingAuthorization.redirectUri);
 		if (code) redirectUrl.searchParams.set("code", code);
-		if (state) redirectUrl.searchParams.set("state", state);
+		if (state) redirectUrl.searchParams.set("state", pendingAuthorization.clientState);
 		if (error) redirectUrl.searchParams.set("error", error);
 		if (error_description) {
 			redirectUrl.searchParams.set("error_description", error_description);
 		}
 
-		logger.info({ state, hasCode: !!code, hasError: !!error }, "OAuth callback relay");
+		logger.info(
+			{
+				statePresent: !!state,
+				clientId: pendingAuthorization.clientId,
+				hasCode: !!code,
+				hasError: !!error,
+			},
+			"OAuth callback relay",
+		);
 		res.redirect(redirectUrl.toString());
 	});
 

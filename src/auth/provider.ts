@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import type { OAuthRegisteredClientsStore } from "@modelcontextprotocol/sdk/server/auth/clients.js";
 import {
 	InvalidClientError,
@@ -231,10 +232,23 @@ export interface CreateOAuthProviderOptions {
  * so the server can mount a `/oauth/callback` route.
  */
 export interface OAuthProviderWithCallback extends OAuthServerProvider {
-	/** Map of state → original client redirect_uri for pending authorizations */
-	pendingAuthorizations: Map<string, string>;
+	/** Map of proxy state → pending authorization details */
+	pendingAuthorizations: Map<string, PendingAuthorization>;
 	/** The path the callback route should be mounted at */
 	callbackPath: string;
+}
+
+export interface PendingAuthorization {
+	clientId: string;
+	clientState: string;
+	redirectUri: string;
+	createdAtMs: number;
+}
+
+interface RegisteredClientEntry {
+	clientId: string;
+	redirectUris: string[];
+	createdAtMs: number;
 }
 
 /**
@@ -262,8 +276,8 @@ export function createOAuthProvider(
 	const CALLBACK_PATH = "/oauth/callback";
 	const callbackUrl = `${mcpServerUrl}${CALLBACK_PATH}`;
 
-	// Store pending authorization requests: state → original client redirect_uri
-	const pendingAuthorizations = new Map<string, string>();
+	// Store pending authorization requests: proxyState → pending authorization details.
+	const pendingAuthorizations = new Map<string, PendingAuthorization>();
 
 	// Cache tokens issued through our token exchange so verifyAccessToken
 	// can trust them without calling the Shortcut API (which doesn't accept
@@ -273,17 +287,121 @@ export function createOAuthProvider(
 		refreshToken?: string;
 	}
 	const issuedTokens = new Map<string, TokenCacheEntry>();
+	const issuedTokenOrder: string[] = [];
+
+	// Keep in-memory stores bounded to reduce memory DoS risk.
+	const MAX_ISSUED_TOKENS = 10_000;
+	const MAX_PENDING_AUTHORIZATIONS = 2_000;
+	const PENDING_AUTH_TTL_MS = 10 * 60 * 1000;
+	const MAX_REGISTERED_CLIENTS = 10_000;
+	const REGISTERED_CLIENT_TTL_MS = 24 * 60 * 60 * 1000;
+	const MAX_REDIRECT_URIS_PER_CLIENT = 20;
 
 	// Short default TTL because Shortcut's token endpoint may not return
 	// expires_in, but the actual tokens expire quickly on the API side.
 	const DEFAULT_TOKEN_TTL_SECONDS = 120;
+
+	function normalizeClientState(state: string): string {
+		// Preserve client-supplied state exactly in callbacks.
+		return state;
+	}
+
+	function makeProxyState(clientState: string): string {
+		// Prefix client state with server entropy to avoid state collisions across clients.
+		const nonce = randomBytes(16).toString("hex");
+		return `${nonce}.${clientState}`;
+	}
+
+	function parseRedirectUri(uri: string): URL {
+		let parsed: URL;
+		try {
+			parsed = new URL(uri);
+		} catch {
+			throw new InvalidRequestError(`Invalid redirect_uri: ${uri}`);
+		}
+		if (parsed.hash) {
+			throw new InvalidRequestError("redirect_uri must not contain fragment");
+		}
+
+		// Permit https everywhere and loopback-only http for local IDE callbacks.
+		const isLoopbackHost =
+			parsed.hostname === "localhost" ||
+			parsed.hostname === "127.0.0.1" ||
+			parsed.hostname === "::1" ||
+			parsed.hostname === "[::1]";
+		if (parsed.protocol === "https:") {
+			return parsed;
+		}
+		if (parsed.protocol === "http:" && isLoopbackHost) {
+			return parsed;
+		}
+		throw new InvalidRequestError("redirect_uri must use https or loopback http");
+	}
+
+	function validateRedirectUris(
+		redirectUris: string[] | undefined,
+		options?: { allowEmpty?: boolean },
+	): string[] {
+		if (!redirectUris?.length) {
+			if (options?.allowEmpty) {
+				return [];
+			}
+			throw new InvalidRequestError("At least one redirect_uri is required");
+		}
+		if (redirectUris.length > MAX_REDIRECT_URIS_PER_CLIENT) {
+			throw new InvalidRequestError(
+				`Too many redirect_uris; max allowed is ${MAX_REDIRECT_URIS_PER_CLIENT}`,
+			);
+		}
+		return [...new Set(redirectUris.map((uri) => parseRedirectUri(uri).toString()))];
+	}
+
+	function evictOldestFromMap<T>(map: Map<string, T>): void {
+		const first = map.keys().next().value as string | undefined;
+		if (first) {
+			map.delete(first);
+		}
+	}
+
+	function cleanupPendingAuthorizations(nowMs: number): void {
+		for (const [state, pending] of pendingAuthorizations.entries()) {
+			if (nowMs - pending.createdAtMs > PENDING_AUTH_TTL_MS) {
+				pendingAuthorizations.delete(state);
+			}
+		}
+	}
+
+	function setIssuedToken(token: string, entry: TokenCacheEntry): void {
+		if (!issuedTokens.has(token)) {
+			issuedTokenOrder.push(token);
+		}
+		issuedTokens.set(token, entry);
+
+		while (issuedTokens.size > MAX_ISSUED_TOKENS) {
+			const oldest = issuedTokenOrder.shift();
+			if (!oldest) break;
+			if (issuedTokens.has(oldest)) {
+				issuedTokens.delete(oldest);
+			}
+		}
+	}
+
+	const registeredClients = new Map<string, RegisteredClientEntry>();
+
+	function cleanupRegisteredClients(nowMs: number): void {
+		for (const [clientId, entry] of registeredClients.entries()) {
+			if (nowMs - entry.createdAtMs > REGISTERED_CLIENT_TTL_MS) {
+				registeredClients.delete(clientId);
+			}
+		}
+	}
 
 	function cacheIssuedToken(tokens: OAuthTokens, clientId: string): void {
 		const expiresAt = tokens.expires_in
 			? Math.floor(Date.now() / 1000) + tokens.expires_in
 			: Math.floor(Date.now() / 1000) + DEFAULT_TOKEN_TTL_SECONDS;
 
-		issuedTokens.set(tokens.access_token, {
+		setIssuedToken(tokens.access_token, {
 			token: tokens.access_token,
 			clientId,
 			scopes: tokens.scope?.split(" ") ?? ["openid"],
@@ -340,35 +458,38 @@ export function createOAuthProvider(
 		};
 
 		// Cache the new token
-		issuedTokens.set(tokens.access_token, newEntry);
+		setIssuedToken(tokens.access_token, newEntry);
 		// Also keep the old token mapped to the new entry so the MCP client's
 		// stale token still resolves (until it re-auths or uses the new one).
-		issuedTokens.set(oldToken, newEntry);
+		setIssuedToken(oldToken, newEntry);
 
 		return newEntry;
 	}
 
-	// Track redirect_uris from registrations and optional env allowlist.
-	// The SDK will enforce exact membership via Array.includes().
-	const registeredRedirectUris = new Set<string>(getDefaultRedirectUris());
-
-	function buildRedirectUris(): string[] {
-		return [...registeredRedirectUris];
+	const defaultRedirectUris = validateRedirectUris(getDefaultRedirectUris(), { allowEmpty: true });
+	if (defaultRedirectUris.length > 0) {
+		const bootstrapClientId = randomBytes(16).toString("hex");
+		registeredClients.set(bootstrapClientId, {
+			clientId: bootstrapClientId,
+			redirectUris: defaultRedirectUris,
+			createdAtMs: Date.now(),
+		});
 	}
 
 	const getClient =
 		options?.getClient ??
 		(async (clientId: string): Promise<OAuthClientInformationFull | undefined> => {
-			if (!staticClient) {
+			cleanupRegisteredClients(Date.now());
+			const entry = registeredClients.get(clientId);
+			if (!entry) {
 				return undefined;
 			}
-			if (clientId === staticClient.client_id) {
-				return toPublicClientInfo({
-					...staticClient,
-					redirect_uris: buildRedirectUris(),
-				});
-			}
-			return undefined;
+			return {
+				client_id: entry.clientId,
+				client_id_issued_at: Math.floor(entry.createdAtMs / 1000),
+				redirect_uris: entry.redirectUris,
+				token_endpoint_auth_method: "none",
+			} as OAuthClientInformationFull;
 		});
 
 	const clientsStore: OAuthRegisteredClientsStore = {
@@ -376,29 +497,38 @@ export function createOAuthProvider(
 		registerClient: async (
 			clientMetadata: Omit<OAuthClientInformationFull, "client_id" | "client_id_issued_at">,
 		): Promise<OAuthClientInformationFull> => {
-			if (!staticClient) {
+			if (!staticClient?.client_id) {
 				throw new Error(
 					"OAuth client credentials not configured. " +
 						"Set SHORTCUT_OAUTH_CLIENT_ID and SHORTCUT_OAUTH_CLIENT_SECRET.",
 				);
 			}
 
-			// Track redirect_uris from this registration
-			const redirectUris = (clientMetadata as OAuthClientInformationFull).redirect_uris;
-			if (redirectUris) {
-				for (const uri of redirectUris) {
-					registeredRedirectUris.add(uri);
-				}
+			const redirectUris = validateRedirectUris(
+				(clientMetadata as OAuthClientInformationFull).redirect_uris,
+			);
+			const nowMs = Date.now();
+			cleanupRegisteredClients(nowMs);
+			while (registeredClients.size >= MAX_REGISTERED_CLIENTS) {
+				evictOldestFromMap(registeredClients);
 			}
+
+			const clientId = randomBytes(16).toString("hex");
+			const entry: RegisteredClientEntry = {
+				clientId,
+				redirectUris,
+				createdAtMs: nowMs,
+			};
+			registeredClients.set(clientId, entry);
 
 			const publicMetadata = toPublicClientInfo(clientMetadata as OAuthClientInformationFull);
 
-			// Return the static client_id but do not expose client_secret to callers.
+			// Return a per-registration client identifier with its own redirect URIs.
 			return {
 				...publicMetadata,
-				client_id: staticClient.client_id,
-				client_id_issued_at: Math.floor(Date.now() / 1000),
-				redirect_uris: [...registeredRedirectUris],
+				client_id: entry.clientId,
+				client_id_issued_at: Math.floor(entry.createdAtMs / 1000),
+				redirect_uris: entry.redirectUris,
 				token_endpoint_auth_method: "none",
 			} as OAuthClientInformationFull;
 		},
@@ -415,22 +545,43 @@ export function createOAuthProvider(
 			params: AuthorizationParams,
 			res: Response,
 		): Promise<void> {
-			// Save the client's original redirect_uri so our /oauth/callback
-			// can relay the auth code back to the client.
-			if (params.state) {
-				pendingAuthorizations.set(params.state, params.redirectUri);
+			const nowMs = Date.now();
+			cleanupPendingAuthorizations(nowMs);
+
+			if (!params.state) {
+				throw new InvalidRequestError("Missing state");
 			}
+
+			const registered = await getClient(client.client_id);
+			if (!registered) {
+				throw new InvalidClientError("Unknown client_id");
+			}
+			if (!registered.redirect_uris?.includes(params.redirectUri)) {
+				throw new InvalidRequestError("Unregistered redirect_uri");
+			}
+
+			// Save callback relay info under an internal proxy-state to avoid cross-client collisions.
+			const proxyState = makeProxyState(normalizeClientState(params.state));
+			while (pendingAuthorizations.size >= MAX_PENDING_AUTHORIZATIONS) {
+				evictOldestFromMap(pendingAuthorizations);
+			}
+			pendingAuthorizations.set(proxyState, {
+				clientId: client.client_id,
+				clientState: params.state,
+				redirectUri: params.redirectUri,
+				createdAtMs: nowMs,
+			});
 
 			const targetUrl = new URL(endpoints.authorizationUrl);
 			const searchParams = new URLSearchParams({
-				client_id: client.client_id,
+				client_id: staticClient?.client_id ?? client.client_id,
 				response_type: "code",
 				// Use OUR callback URL for the upstream server, not the client's
 				redirect_uri: callbackUrl,
 				code_challenge: params.codeChallenge,
 				code_challenge_method: "S256",
 			});
-			if (params.state) searchParams.set("state", params.state);
+			searchParams.set("state", proxyState);
 			const scopes =
 				params.scopes && params.scopes.length > 0 ? params.scopes : DEFAULT_AUTHORIZATION_SCOPES;
 			searchParams.set("scope", scopes.join(" "));
@@ -451,9 +602,12 @@ export function createOAuthProvider(
 			_redirectUri?: string,
 			resource?: URL,
 		): Promise<OAuthTokens> {
+			if (!staticClient?.client_id) {
+				throw new InvalidClientError("OAuth client credentials not configured");
+			}
 			const params = new URLSearchParams({
 				grant_type: "authorization_code",
-				client_id: client.client_id,
+				client_id: staticClient.client_id,
 				code: authorizationCode,
 			});
 			if (staticClient?.client_secret) {
@@ -488,9 +642,12 @@ export function createOAuthProvider(
 			scopes?: string[],
 			resource?: URL,
 		): Promise<OAuthTokens> {
+			if (!staticClient?.client_id) {
+				throw new InvalidClientError("OAuth client credentials not configured");
+			}
 			const params = new URLSearchParams({
 				grant_type: "refresh_token",
-				client_id: client.client_id,
+				client_id: staticClient.client_id,
 				refresh_token: refreshToken,
 			});
 			if (staticClient?.client_secret) {
@@ -517,6 +674,8 @@ export function createOAuthProvider(
 		},
 
 		async verifyAccessToken(token: string): Promise<AuthInfo> {
+			cleanupPendingAuthorizations(Date.now());
+
 			// First check if this is a token we issued through our proxy
 			const cached = issuedTokens.get(token);
 			if (cached) {

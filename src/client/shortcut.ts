@@ -1,6 +1,6 @@
 import { File } from "node:buffer";
-import { readFileSync } from "node:fs";
-import { basename } from "node:path";
+import { readFileSync, realpathSync, statSync } from "node:fs";
+import { basename, relative, resolve, sep } from "node:path";
 import type {
 	ShortcutClient as BaseClient,
 	CreateDoc,
@@ -33,6 +33,44 @@ import type {
 	Workflow,
 } from "@shortcut/client";
 import { Cache } from "./cache";
+
+const DEFAULT_MAX_UPLOAD_FILE_BYTES = 10 * 1024 * 1024; // 10 MiB
+
+function resolveExistingPath(path: string): string {
+	return realpathSync(path);
+}
+
+function getAllowedUploadDirectories(): string[] {
+	const configured = process.env.SHORTCUT_UPLOAD_ALLOWED_DIRS;
+	const rawDirs = configured
+		?.split(",")
+		.map((dir) => dir.trim())
+		.filter(Boolean) ?? [process.cwd()];
+
+	return rawDirs.map((dir) => {
+		const resolved = resolve(dir);
+		try {
+			return resolveExistingPath(resolved);
+		} catch {
+			return resolved;
+		}
+	});
+}
+
+function isPathInsideDirectory(path: string, directory: string): boolean {
+	const rel = relative(directory, path);
+	return rel === "" || (rel !== ".." && !rel.startsWith(`..${sep}`));
+}
+
+function assertUploadPathAllowed(path: string): void {
+	const allowedDirectories = getAllowedUploadDirectories();
+	const inAllowedDirectory = allowedDirectories.some((dir) => isPathInsideDirectory(path, dir));
+	if (!inAllowedDirectory) {
+		throw new Error(
+			`File path is outside allowed upload directories. Set SHORTCUT_UPLOAD_ALLOWED_DIRS to permit additional paths.`,
+		);
+	}
+}
 
 /**
  * This is a thin wrapper over the official Shortcut API client.
@@ -668,8 +706,27 @@ export class ShortcutClientWrapper {
 	}
 
 	async uploadFile(storyId: number, filePath: string) {
-		const fileContent = readFileSync(filePath);
-		const fileName = basename(filePath);
+		const resolvedFilePath = resolveExistingPath(resolve(filePath));
+		assertUploadPathAllowed(resolvedFilePath);
+
+		const fileStats = statSync(resolvedFilePath);
+		if (!fileStats.isFile()) {
+			throw new Error("Upload path must point to a regular file");
+		}
+
+		const configuredMaxUploadSizeBytes = Number.parseInt(
+			process.env.SHORTCUT_UPLOAD_MAX_FILE_BYTES ?? `${DEFAULT_MAX_UPLOAD_FILE_BYTES}`,
+			10,
+		);
+		const maxUploadSizeBytes = Number.isFinite(configuredMaxUploadSizeBytes)
+			? configuredMaxUploadSizeBytes
+			: DEFAULT_MAX_UPLOAD_FILE_BYTES;
+		if (Number.isFinite(maxUploadSizeBytes) && fileStats.size > maxUploadSizeBytes) {
+			throw new Error(`File exceeds max upload size of ${maxUploadSizeBytes} bytes`);
+		}
+
+		const fileContent = readFileSync(resolvedFilePath);
+		const fileName = basename(resolvedFilePath);
 		const file = new File([fileContent], fileName);
 		// biome-ignore lint/suspicious/noExplicitAny: I think the JS API expects a browser File.. but Node's File type is different, but compatible.
 		const response = await this.client.uploadFiles({ story_id: storyId, file0: file as any });
