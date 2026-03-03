@@ -53,8 +53,9 @@ For more detail on installing MCP services in VSCode see the [official VS Code M
 
 ### Claude Desktop
 
-<!-- TODO: Replace with actual MCPB package URL -->
-Install the Shortcut MCP package directly from the [Anthropic MCP package registry](https://github.com/anthropics/mcp-bridge-packages). Download, install, and you're ready to go.
+Download the package [from this repo](https://github.com/useshortcut/mcp-server-shortcut/raw/refs/heads/main/mcp-server-shortcut.mcpb)
+
+Then, either double-click the icon to install or drag the package onto the client window. It should trigger the installation.
 
 ### Other IDEs / Running Locally
 
