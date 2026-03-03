@@ -210,6 +210,90 @@ describe("createOAuthProvider token exchange behavior", () => {
 		expect(tokens.expires_in).toBe(3600);
 		expect(tokens.access_token).toBe("new-access-token");
 	});
+
+	test("accepts a previously issued refresh token after server-side rotation", async () => {
+		let oldRefreshTokenCalls = 0;
+		const fetchMock = mock(async (_url: string | URL, init?: RequestInit) => {
+			const body = typeof init?.body === "string" ? init.body : "";
+			const params = new URLSearchParams(body);
+			const refreshToken = params.get("refresh_token");
+
+			if (refreshToken === "old-refresh-token") {
+				oldRefreshTokenCalls += 1;
+				if (oldRefreshTokenCalls === 1) {
+					return new Response(
+						JSON.stringify({
+							access_token: "access-token-2",
+							refresh_token: "new-refresh-token",
+							scope: "openid",
+						}),
+						{
+							status: 200,
+							headers: { "Content-Type": "application/json" },
+						},
+					);
+				}
+				return new Response(
+					JSON.stringify({
+						error: "invalid_grant",
+						error_description: "Refresh token already used",
+					}),
+					{
+						status: 400,
+						headers: { "Content-Type": "application/json" },
+					},
+				);
+			}
+
+			if (refreshToken === "new-refresh-token") {
+				return new Response(
+					JSON.stringify({
+						access_token: "access-token-3",
+						refresh_token: "newer-refresh-token",
+						scope: "openid",
+					}),
+					{
+						status: 200,
+						headers: { "Content-Type": "application/json" },
+					},
+				);
+			}
+
+			return new Response(JSON.stringify({ error: "invalid_grant" }), {
+				status: 400,
+				headers: { "Content-Type": "application/json" },
+			});
+		});
+
+		const provider = createOAuthProvider({
+			fetch: fetchMock as unknown as FetchLike,
+			endpoints: {
+				authorizationUrl: "https://example.com/oauth/code",
+				tokenUrl: "https://example.com/oauth/token",
+			},
+		});
+
+		const firstTokens = await provider.exchangeRefreshToken(
+			{
+				client_id: "test-client-id",
+				redirect_uris: [],
+			} as never,
+			"old-refresh-token",
+		);
+		expect(firstTokens.refresh_token).toBe("new-refresh-token");
+
+		const secondTokens = await provider.exchangeRefreshToken(
+			{
+				client_id: "test-client-id",
+				redirect_uris: [],
+			} as never,
+			"old-refresh-token",
+		);
+
+		expect(secondTokens.access_token).toBe("access-token-3");
+		expect(secondTokens.refresh_token).toBe("newer-refresh-token");
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
 });
 
 type FetchLike = (url: string | URL, init?: RequestInit) => Promise<Response>;

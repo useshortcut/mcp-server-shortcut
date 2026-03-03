@@ -273,23 +273,37 @@ export function createOAuthProvider(
 		refreshToken?: string;
 	}
 	const issuedTokens = new Map<string, TokenCacheEntry>();
+	const issuedRefreshTokens = new Map<string, TokenCacheEntry>();
 
 	// Short default TTL because Shortcut's token endpoint may not return
 	// expires_in, but the actual tokens expire quickly on the API side.
 	const DEFAULT_TOKEN_TTL_SECONDS = 120;
 
-	function cacheIssuedToken(tokens: OAuthTokens, clientId: string): void {
+	function cacheIssuedToken(
+		tokens: OAuthTokens,
+		clientId: string,
+		previousRefreshToken?: string,
+	): TokenCacheEntry {
 		const expiresAt = tokens.expires_in
 			? Math.floor(Date.now() / 1000) + tokens.expires_in
 			: Math.floor(Date.now() / 1000) + DEFAULT_TOKEN_TTL_SECONDS;
 
-		issuedTokens.set(tokens.access_token, {
+		const entry: TokenCacheEntry = {
 			token: tokens.access_token,
 			clientId,
 			scopes: tokens.scope?.split(" ") ?? ["openid"],
 			expiresAt,
-			refreshToken: tokens.refresh_token,
-		});
+			refreshToken: tokens.refresh_token ?? previousRefreshToken,
+		};
+
+		issuedTokens.set(tokens.access_token, entry);
+		if (entry.refreshToken) {
+			issuedRefreshTokens.set(entry.refreshToken, entry);
+		}
+		if (previousRefreshToken) {
+			issuedRefreshTokens.set(previousRefreshToken, entry);
+		}
+		return entry;
 	}
 
 	/**
@@ -300,14 +314,15 @@ export function createOAuthProvider(
 		oldToken: string,
 		entry: TokenCacheEntry,
 	): Promise<TokenCacheEntry> {
-		if (!entry.refreshToken || !staticClient) {
+		const previousRefreshToken = entry.refreshToken;
+		if (!previousRefreshToken || !staticClient) {
 			throw new InvalidTokenError("Token expired and no refresh token available");
 		}
 
 		const params = new URLSearchParams({
 			grant_type: "refresh_token",
 			client_id: staticClient.client_id,
-			refresh_token: entry.refreshToken,
+			refresh_token: previousRefreshToken,
 		});
 		if (staticClient.client_secret) {
 			params.set("client_secret", staticClient.client_secret);
@@ -323,6 +338,7 @@ export function createOAuthProvider(
 			const body = await response.text();
 			console.error("Token refresh failed (expired-token flow)", { status: response.status, body });
 			issuedTokens.delete(oldToken);
+			issuedRefreshTokens.delete(previousRefreshToken);
 			throw new InvalidTokenError("Token refresh failed");
 		}
 
@@ -344,6 +360,10 @@ export function createOAuthProvider(
 		// Also keep the old token mapped to the new entry so the MCP client's
 		// stale token still resolves (until it re-auths or uses the new one).
 		issuedTokens.set(oldToken, newEntry);
+		if (newEntry.refreshToken) {
+			issuedRefreshTokens.set(newEntry.refreshToken, newEntry);
+		}
+		issuedRefreshTokens.set(previousRefreshToken, newEntry);
 
 		return newEntry;
 	}
@@ -488,10 +508,12 @@ export function createOAuthProvider(
 			scopes?: string[],
 			resource?: URL,
 		): Promise<OAuthTokens> {
+			const aliasedRefreshToken = issuedRefreshTokens.get(refreshToken)?.refreshToken;
+			const refreshTokenToUse = aliasedRefreshToken ?? refreshToken;
 			const params = new URLSearchParams({
 				grant_type: "refresh_token",
 				client_id: client.client_id,
-				refresh_token: refreshToken,
+				refresh_token: refreshTokenToUse,
 			});
 			if (staticClient?.client_secret) {
 				params.set("client_secret", staticClient.client_secret);
@@ -512,7 +534,7 @@ export function createOAuthProvider(
 			}
 
 			const tokens = normalizeTokensForClient((await response.json()) as OAuthTokens);
-			cacheIssuedToken(tokens, client.client_id);
+			cacheIssuedToken(tokens, client.client_id, refreshToken);
 			return tokens;
 		},
 
