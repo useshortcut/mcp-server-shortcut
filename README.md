@@ -10,7 +10,7 @@
 
 MCP Server for [Shortcut](https://shortcut.com) users.
 
-Links: [Local Installations](docs/local-server.md) | [ Server Developers](docs/developer.md)
+Links: [Local Installations](docs/local-server.md) | [ Server Developers](docs/developers.md)
 
 ## Usage
 
