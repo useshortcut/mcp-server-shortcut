@@ -10,7 +10,7 @@
 
 MCP Server for [Shortcut](https://shortcut.com) users.
 
-Links: [Local Installations](docs/local-server.md) | [ Server Developers](docs/developers.md)
+Links: [Local Installations](docs/local-server.md) | [Server Developers](docs/developers.md)
 
 ## Usage
 
@@ -60,13 +60,13 @@ The fastest way to get started is to connect to Shortcut's hosted MCP server. No
 3. Click **+** in the Connectors header and choose **Add custom connector** from the drop down.
 4. Configure the connector:
    1. Enter a name for your connector (e.g. "Shortcut MCP").
-   2. Paste the shortcut MCP server URL - `https://mcp.shortcut.com/mcp`
+   2. Paste the Shortcut MCP server URL: `https://mcp.shortcut.com/mcp`
    3. Click the Add button
 
    _note: you do not need to enter OAuth information in the advanced settings, this will happen automatically._
 5. Click "connect" to authenticate and use the connector.
 
-For additional help, consult Claude desktop's documentation: [Use connectors to extend Claude's capabilities](https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities).
+For more detail on installing MCP services in Claude desktop, see Anthropic's official documentation: [Use connectors to extend Claude's capabilities](https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities).
 
 ### Other IDEs / Running Locally
 
