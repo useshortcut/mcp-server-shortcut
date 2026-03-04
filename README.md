@@ -57,7 +57,7 @@ The fastest way to get started is to connect to Shortcut's hosted MCP server. No
 
 1. In the sidebar, click **Customize**.
 2. Click **Connectors**.
-3. Click **+** in the Connectors header and choose **Add custom connector** from the drop down.
+3. Click **+** in the Connectors header and choose **Add custom connector** from the drop-down.
 4. Configure the connector:
    1. Enter a name for your connector (e.g. "Shortcut MCP").
    2. Paste the Shortcut MCP server URL: `https://mcp.shortcut.com/mcp`
