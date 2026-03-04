@@ -66,7 +66,7 @@ The fastest way to get started is to connect to Shortcut's hosted MCP server. No
    _note: you do not need to enter OAuth information in the advanced settings, this will happen automatically._
 5. Click "connect" to authenticate and use the connector.
 
-For more detail on installing MCP services in Claude desktop, see Anthropic's official documentation: [Use connectors to extend Claude's capabilities](https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities).
+For more details on installing MCP services in Claude Desktop, see Anthropic's official documentation: [Use connectors to extend Claude's capabilities](https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities).
 
 ### Other IDEs / Running Locally
 
