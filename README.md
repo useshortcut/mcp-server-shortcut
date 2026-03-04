@@ -53,9 +53,20 @@ For more detail on installing MCP services in VSCode see the [official VS Code M
 
 ### Claude Desktop
 
-Download the package [from this repo](https://github.com/useshortcut/mcp-server-shortcut/raw/refs/heads/main/mcp-server-shortcut.mcpb)
+The fastest way to get started is to connect to Shortcut's hosted MCP server. No API token or local setup required — authentication is handled via OAuth.
 
-Then, either double-click the icon to install or drag the package onto the client window. It should trigger the installation.
+1. In the sidebar, click **Customize**.
+2. Click **Connectors**.
+3. Click **+** in the Connectors header and choose **Add custom connector** from the drop down.
+4. Configure the connector:
+   1. Enter a name for your connector (e.g. "Shortcut MCP").
+   2. Paste the shortcut MCP server URL - `https://mcp.shortcut.com/mcp`
+   3. Click the Add button
+
+   _note: you do not need to enter OAuth information in the advanced settings, this will happen automatically._
+5. Click "connect" to authenticate and use the connector.
+
+For additional help, consult Claude desktop's documentation: [Use connectors to extend Claude's capabilities](https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities).
 
 ### Other IDEs / Running Locally
 
