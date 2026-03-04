@@ -5,6 +5,7 @@ import type {
 	ShortcutClient as BaseClient,
 	CreateDoc,
 	CreateEpic,
+	CreateEpicComment,
 	CreateIteration,
 	CreateLabelParams,
 	CreateStoryComment,
@@ -26,6 +27,7 @@ import type {
 	StoryLink,
 	StorySlim,
 	Task,
+	ThreadedComment,
 	UpdateDoc,
 	UpdateEpic,
 	UpdateIteration,
@@ -444,6 +446,18 @@ export class ShortcutClientWrapper {
 
 	async deleteIteration(iterationPublicId: number): Promise<void> {
 		await this.client.deleteIteration(iterationPublicId);
+	}
+
+	async createEpicComment(
+		epicPublicId: number,
+		params: CreateEpicComment,
+	): Promise<ThreadedComment> {
+		const response = await this.client.createEpicComment(epicPublicId, params);
+		const epicComment = response?.data ?? null;
+
+		if (!epicComment) throw new Error(`Failed to create the comment: ${response.status}`);
+
+		return epicComment;
 	}
 
 	async createEpic(params: CreateEpic): Promise<Epic> {
