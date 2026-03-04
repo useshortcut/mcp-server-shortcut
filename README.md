@@ -63,8 +63,8 @@ The fastest way to get started is to connect to Shortcut's hosted MCP server. No
    2. Paste the Shortcut MCP server URL: `https://mcp.shortcut.com/mcp`
    3. Click the Add button
 
-   _note: you do not need to enter OAuth information in the advanced settings, this will happen automatically._
-5. Click "connect" to authenticate and use the connector.
+   _Note: You do not need to enter OAuth information in the advanced settings; this happens automatically._
+5. Click **Connect** to authenticate and use the connector.
 
 For more details on installing MCP services in Claude Desktop, see Anthropic's official documentation: [Use connectors to extend Claude's capabilities](https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities).
 
