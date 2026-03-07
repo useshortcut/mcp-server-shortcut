@@ -29,6 +29,32 @@ describe("CustomMcpServer", () => {
 		).not.toBeNull();
 	});
 
+	test("should allow configured read tools", () => {
+		const server = new CustomMcpServer({ readonly: false, tools: null });
+		expect(
+			server.addConfiguredToolWithReadAccess(
+				"configured-read",
+				{ description: "Configured read tool", inputSchema: {} },
+				async () => {
+					return { content: [] };
+				},
+			),
+		).not.toBeNull();
+	});
+
+	test("should block configured write tools when readonly is true", () => {
+		const server = new CustomMcpServer({ readonly: true, tools: null });
+		expect(
+			server.addConfiguredToolWithWriteAccess(
+				"configured-write",
+				{ description: "Configured write tool", inputSchema: {} },
+				async () => {
+					return { content: [] };
+				},
+			),
+		).toBeNull();
+	});
+
 	test("should only allow tools in the tools list", () => {
 		const server = new CustomMcpServer({ readonly: false, tools: ["test"] });
 		expect(

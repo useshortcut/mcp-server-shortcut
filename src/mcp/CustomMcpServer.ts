@@ -20,6 +20,8 @@ type WithArgsCallback<Args extends ZodRawShape> = (
 	args: ZodInfer<ZodObject<Args>>,
 	extra: ToolExtra,
 ) => CallToolResult | Promise<CallToolResult>;
+// biome-ignore lint/suspicious/noExplicitAny: Configured callbacks may have varying arg signatures
+type ConfiguredToolCallback = (...args: any[]) => CallToolResult | Promise<CallToolResult>;
 
 export class CustomMcpServer extends McpServer {
 	private readonly: boolean;
@@ -120,7 +122,30 @@ export class CustomMcpServer extends McpServer {
 		return (super.tool as any)(...args);
 	}
 
+	addConfiguredToolWithWriteAccess(
+		name: string,
+		config: Record<string, unknown>,
+		cb: ConfiguredToolCallback,
+	): RegisteredTool | null {
+		if (this.readonly) return null;
+		if (!this.shouldAddTool(name)) return null;
+		// biome-ignore lint/suspicious/noExplicitAny: Delegate to parent with proper type casting
+		return (super.registerTool as any)(name, config, cb);
+	}
+
+	addConfiguredToolWithReadAccess(
+		name: string,
+		config: Record<string, unknown>,
+		cb: ConfiguredToolCallback,
+	): RegisteredTool | null {
+		if (!this.shouldAddTool(name)) return null;
+		// biome-ignore lint/suspicious/noExplicitAny: Delegate to parent with proper type casting
+		return (super.registerTool as any)(name, config, cb);
+	}
+
 	tool(): never {
-		throw new Error("Call addToolWithReadAccess or addToolWithWriteAccess instead.");
+		throw new Error(
+			"Call addToolWithReadAccess, addToolWithWriteAccess, addConfiguredToolWithReadAccess, or addConfiguredToolWithWriteAccess instead.",
+		);
 	}
 }

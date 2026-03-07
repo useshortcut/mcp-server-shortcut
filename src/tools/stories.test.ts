@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type {
 	Branch,
 	CreateStoryCommentParams,
@@ -30,6 +30,9 @@ describe("StoryTools", () => {
 			profile: {
 				mention_name: mockCurrentUser.mention_name,
 				name: mockCurrentUser.name,
+				display_icon: {
+					url: "https://cdn.shortcut.com/avatar-user1.png",
+				},
 			},
 		} as Member,
 		{
@@ -146,20 +149,24 @@ describe("StoryTools", () => {
 		test("should register the correct tools with the server", () => {
 			const mockClient = createMockClient();
 			const mockToolRead = mock();
+			const mockConfiguredToolRead = mock();
 			const mockToolWrite = mock();
 			const mockServer = {
 				addToolWithReadAccess: mockToolRead,
+				addConfiguredToolWithReadAccess: mockConfiguredToolRead,
 				addToolWithWriteAccess: mockToolWrite,
 			} as unknown as CustomMcpServer;
 
 			StoryTools.create(mockClient, mockServer);
 
-			expect(mockToolRead).toHaveBeenCalledTimes(5);
-			expect(mockToolRead.mock.calls?.[0]?.[0]).toBe("stories-get-by-id");
-			expect(mockToolRead.mock.calls?.[1]?.[0]).toBe("stories-get-history");
-			expect(mockToolRead.mock.calls?.[2]?.[0]).toBe("stories-search");
-			expect(mockToolRead.mock.calls?.[3]?.[0]).toBe("stories-get-branch-name");
-			expect(mockToolRead.mock.calls?.[4]?.[0]).toBe("stories-get-by-external-link");
+			expect(mockConfiguredToolRead).toHaveBeenCalledTimes(1);
+			expect(mockConfiguredToolRead.mock.calls?.[0]?.[0]).toBe("stories-get-by-id");
+
+			expect(mockToolRead).toHaveBeenCalledTimes(4);
+			expect(mockToolRead.mock.calls?.[0]?.[0]).toBe("stories-get-history");
+			expect(mockToolRead.mock.calls?.[1]?.[0]).toBe("stories-search");
+			expect(mockToolRead.mock.calls?.[2]?.[0]).toBe("stories-get-branch-name");
+			expect(mockToolRead.mock.calls?.[3]?.[0]).toBe("stories-get-by-external-link");
 
 			expect(mockToolWrite).toHaveBeenCalledTimes(15);
 			expect(mockToolWrite.mock.calls?.[0]?.[0]).toBe("stories-create");
@@ -178,9 +185,48 @@ describe("StoryTools", () => {
 			expect(mockToolWrite.mock.calls?.[13]?.[0]).toBe("stories-remove-external-link");
 			expect(mockToolWrite.mock.calls?.[14]?.[0]).toBe("stories-set-external-links");
 		});
+
+		test("should attach MCP App metadata to stories-get-by-id", () => {
+			const mockClient = createMockClient();
+			const mockToolRead = mock();
+			const mockConfiguredToolRead = mock();
+			const mockToolWrite = mock();
+			const mockRegisterResource = mock();
+			const mockShouldAddTool = mock(() => true);
+			const mockServer = {
+				addToolWithReadAccess: mockToolRead,
+				addConfiguredToolWithReadAccess: mockConfiguredToolRead,
+				addToolWithWriteAccess: mockToolWrite,
+				registerResource: mockRegisterResource,
+				shouldAddTool: mockShouldAddTool,
+			} as unknown as CustomMcpServer;
+
+			StoryTools.create(mockClient, mockServer);
+
+			expect(mockShouldAddTool).toHaveBeenCalledWith("stories-get-by-id");
+			expect(mockRegisterResource).toHaveBeenCalledTimes(1);
+			expect(mockRegisterResource.mock.calls?.[0]?.[0]).toBe("stories-card-resource");
+			expect(mockConfiguredToolRead).toHaveBeenCalledTimes(1);
+			const toolConfig = mockConfiguredToolRead.mock.calls?.[0]?.[1] as {
+				_meta?: Record<string, unknown>;
+			};
+			expect(toolConfig._meta?.["ui/resourceUri"]).toBe("ui://stories/story-card.html");
+		});
 	});
 
 	describe("getStory method", () => {
+		const originalFetch = globalThis.fetch;
+
+		afterEach(() => {
+			globalThis.fetch = originalFetch;
+		});
+
+		beforeEach(() => {
+			globalThis.fetch = mock(
+				async () => new Response(null, { status: 404 }),
+			) as unknown as typeof fetch;
+		});
+
 		const getStoryMock = mock(async (id: number) => mockStories.find((story) => story.id === id));
 		const getUserMapMock = mock(async (ids: string[]) => {
 			const map = new Map<string, Member>();
@@ -216,6 +262,73 @@ describe("StoryTools", () => {
 			expect(textContent).toContain('"started": true');
 			expect(textContent).toContain('"deadline": "2023-12-31"');
 			expect(textContent).toContain('"app_url": "https://app.shortcut.com/test/story/123"');
+			expect(result.structuredContent).toMatchObject({
+				story: {
+					id: 123,
+					title: "Test Story 1",
+					type: "feature",
+					owner: {
+						name: "Test User",
+						avatarUrl: expect.stringContaining("https://cdn.shortcut.com/avatar-user1.png"),
+						avatarDataUrl: null,
+					},
+				},
+			});
+		});
+
+		test("should inline owner avatar as data URL when image download succeeds", async () => {
+			globalThis.fetch = mock(
+				async () =>
+					new Response(new Uint8Array([1, 2, 3]), {
+						status: 200,
+						headers: {
+							"content-type": "image/png",
+						},
+					}),
+			) as unknown as typeof fetch;
+
+			const storyTools = new StoryTools(mockClient);
+			const result = await storyTools.getStory(123, true);
+
+			expect(result.structuredContent).toMatchObject({
+				story: {
+					owner: {
+						avatarDataUrl: "data:image/png;base64,AQID",
+					},
+				},
+			});
+		});
+
+		test("should pass Shortcut API token as header when fetching owner avatar", async () => {
+			const previousToken = process.env.SHORTCUT_API_TOKEN;
+			process.env.SHORTCUT_API_TOKEN = "test-token";
+			const fetchMock = mock(async () => new Response(null, { status: 404 }));
+			globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+			try {
+				const storyTools = new StoryTools(mockClient);
+				const result = await storyTools.getStory(123, true);
+				expect(result.structuredContent).toEqual({
+					story: {
+						id: 123,
+						title: "Test Story 1",
+						type: "feature",
+						owner: {
+							name: "Test User",
+							avatarUrl: "https://cdn.shortcut.com/avatar-user1.png",
+							avatarDataUrl: null,
+						},
+					},
+				});
+				expect(fetchMock).toHaveBeenCalledWith("https://cdn.shortcut.com/avatar-user1.png", {
+					headers: {
+						"Shortcut-Token": "test-token",
+					},
+				});
+			} finally {
+				if (previousToken === undefined) delete process.env.SHORTCUT_API_TOKEN;
+				else process.env.SHORTCUT_API_TOKEN = previousToken;
+			}
 		});
 
 		test("should return simplified story when full = false", async () => {

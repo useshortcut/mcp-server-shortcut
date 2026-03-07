@@ -2,6 +2,13 @@ import type { CreateStoryParams, MemberInfo, Story } from "@shortcut/client";
 import { z } from "zod";
 import type { ShortcutClientWrapper } from "@/client/shortcut";
 import type { CustomMcpServer } from "@/mcp/CustomMcpServer";
+import {
+	STORY_CARD_CSP,
+	STORY_CARD_HTML,
+	STORY_CARD_LEGACY_META_KEY,
+	STORY_CARD_RESOURCE_MIME_TYPE,
+	STORY_CARD_RESOURCE_URI,
+} from "@/ui/story-card";
 import { BaseTools } from "./base";
 import { buildSearchQuery, type QueryParams } from "./utils/search";
 import { date, has, is, user } from "./utils/validation";
@@ -10,12 +17,57 @@ export class StoryTools extends BaseTools {
 	static create(client: ShortcutClientWrapper, server: CustomMcpServer) {
 		const tools = new StoryTools(client);
 
-		server.addToolWithReadAccess(
+		const shouldAddGetByIdTool =
+			typeof server.shouldAddTool === "function" ? server.shouldAddTool("stories-get-by-id") : true;
+		if (
+			shouldAddGetByIdTool &&
+			typeof server.registerResource === "function" &&
+			typeof server.addConfiguredToolWithReadAccess === "function"
+		) {
+			server.registerResource(
+				"stories-card-resource",
+				STORY_CARD_RESOURCE_URI,
+				{
+					title: "Shortcut Story Card",
+					mimeType: STORY_CARD_RESOURCE_MIME_TYPE,
+					_meta: {
+						ui: {
+							csp: STORY_CARD_CSP,
+						},
+					},
+				},
+				async () => ({
+					contents: [
+						{
+							uri: STORY_CARD_RESOURCE_URI,
+							mimeType: STORY_CARD_RESOURCE_MIME_TYPE,
+							text: STORY_CARD_HTML,
+							_meta: {
+								ui: {
+									csp: STORY_CARD_CSP,
+								},
+							},
+						},
+					],
+				}),
+			);
+		}
+
+		server.addConfiguredToolWithReadAccess(
 			"stories-get-by-id",
-			"Get a Shortcut story by public ID.",
 			{
-				storyPublicId: z.number().positive().describe("The story ID"),
-				full: z.boolean().optional().default(false).describe("Return all fields (default: slim)"),
+				title: "Get story by ID",
+				description: "Get a Shortcut story by public ID.",
+				inputSchema: {
+					storyPublicId: z.number().positive().describe("The story ID"),
+					full: z.boolean().optional().default(false).describe("Return all fields (default: slim)"),
+				},
+				_meta: {
+					ui: {
+						resourceUri: STORY_CARD_RESOURCE_URI,
+					},
+					[STORY_CARD_LEGACY_META_KEY]: STORY_CARD_RESOURCE_URI,
+				},
 			},
 			async ({ storyPublicId, full }) => await tools.getStory(storyPublicId, full),
 		);
@@ -513,10 +565,59 @@ export class StoryTools extends BaseTools {
 		if (!story)
 			throw new Error(`Failed to retrieve Shortcut story with public ID: ${storyPublicId}`);
 
-		return this.toResult(
+		const result = this.toResult(
 			`Story: sc-${storyPublicId}`,
 			await this.entityWithRelatedEntities(story, "story", full),
 		);
+
+		const primaryOwnerId = story.owner_ids?.[0] ?? null;
+		const primaryOwner = primaryOwnerId
+			? ((await this.client.getUserMap([primaryOwnerId])).get(primaryOwnerId) ?? null)
+			: null;
+		const ownerAvatarUrl = primaryOwner?.profile?.display_icon?.url ?? null;
+		const ownerAvatarDataUrl = await this.inlineImageAsDataUrl(ownerAvatarUrl);
+
+		return {
+			...result,
+			structuredContent: {
+				story: {
+					id: story.id,
+					title: story.name,
+					type: story.story_type,
+					owner: {
+						name:
+							primaryOwner?.profile?.name ?? primaryOwner?.profile?.mention_name ?? "Unassigned",
+						avatarUrl: ownerAvatarUrl,
+						avatarDataUrl: ownerAvatarDataUrl,
+					},
+				},
+			},
+		};
+	}
+
+	private async inlineImageAsDataUrl(url: string | null) {
+		if (!url) return null;
+
+		try {
+			const response = await fetch(url, {
+				headers: {
+					"Shortcut-Token": process.env.SHORTCUT_API_TOKEN ?? "",
+				},
+			});
+
+			if (!response.ok) return null;
+
+			const mimeType = response.headers.get("content-type") ?? "";
+			if (!mimeType.startsWith("image/")) return null;
+
+			const bytes = await response.arrayBuffer();
+			if (!bytes.byteLength || bytes.byteLength > 1024 * 1024) return null;
+
+			const base64 = Buffer.from(bytes).toString("base64");
+			return `data:${mimeType};base64,${base64}`;
+		} catch {
+			return null;
+		}
 	}
 
 	async getStoryHistory(storyPublicId: number) {
