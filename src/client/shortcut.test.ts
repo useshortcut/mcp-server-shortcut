@@ -164,6 +164,9 @@ describe("ShortcutClientWrapper", () => {
 			updateStory: mock(async (id: number, params: UpdateStory) => ({
 				data: { ...stories.find((s) => s.id === id), ...params },
 			})),
+			getExternalLinkStories: mock(async ({ external_link }: { external_link: string }) => ({
+				data: stories.filter((story) => story.name.includes(external_link)),
+			})),
 			searchStories: mock(async () => ({ data: { data: stories, total: stories.length } })),
 		} as unknown as ShortcutClient;
 		const client = new ShortcutClientWrapper(mockClient);
@@ -236,6 +239,48 @@ describe("ShortcutClientWrapper", () => {
 				const story = await client.getStory(1);
 				expect(story).not.toBeNull();
 				expect(mockClient.getStory).toHaveBeenCalledWith(1);
+			});
+		});
+
+		describe("external links", () => {
+			test("should look up stories by external link without changing URL casing", async () => {
+				const externalLink = "https://Example.com/Path/WithCaps?Ref=ABC123";
+
+				await client.getStoriesByExternalLink(externalLink);
+
+				expect(mockClient.getExternalLinkStories).toHaveBeenLastCalledWith({
+					external_link: externalLink,
+				});
+			});
+
+			test("should treat differently cased links as distinct when adding", async () => {
+				const existingLink = "https://Example.com/Path/WithCaps";
+				const newLink = "https://example.com/path/withcaps";
+
+				(mockClient.getStory as Mock<() => Promise<unknown>>).mockImplementationOnce(async () => ({
+					data: { id: 1, name: "Story 1", external_links: [existingLink] },
+				}));
+
+				await client.addExternalLinkToStory(1, newLink);
+
+				expect(mockClient.updateStory).toHaveBeenLastCalledWith(1, {
+					external_links: [existingLink, newLink],
+				});
+			});
+
+			test("should only remove exact-case matching links", async () => {
+				const existingLink = "https://Example.com/Path/WithCaps";
+				const removeAttempt = "https://example.com/path/withcaps";
+
+				(mockClient.getStory as Mock<() => Promise<unknown>>).mockImplementationOnce(async () => ({
+					data: { id: 1, name: "Story 1", external_links: [existingLink] },
+				}));
+
+				await client.removeExternalLinkFromStory(1, removeAttempt);
+
+				expect(mockClient.updateStory).toHaveBeenLastCalledWith(1, {
+					external_links: [existingLink],
+				});
 			});
 		});
 	});
