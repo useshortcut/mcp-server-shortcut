@@ -94,6 +94,16 @@ export class EpicTools extends BaseTools {
 		);
 
 		server.addToolWithWriteAccess(
+			"epics-create-comment",
+			"Add a comment to an epic.",
+			{
+				epicPublicId: z.number().positive().describe("Epic ID"),
+				text: z.string().min(1).describe("Comment text"),
+			},
+			async (params) => await tools.createEpicComment(params),
+		);
+
+		server.addToolWithWriteAccess(
 			"epics-delete",
 			"Delete an epic (cannot be undone).",
 			{
@@ -194,6 +204,29 @@ export class EpicTools extends BaseTools {
 		const updatedEpic = await this.client.updateEpic(epicPublicId, updateParams);
 
 		return this.toResult(`Updated epic ${epicPublicId}. Epic URL: ${updatedEpic.app_url}`);
+	}
+
+	async createEpicComment({
+		epicPublicId,
+		text,
+	}: {
+		epicPublicId: number;
+		text: string;
+	}): Promise<CallToolResult> {
+		if (!epicPublicId) throw new Error("Epic public ID is required");
+		if (!text) throw new Error("Epic comment text is required");
+
+		const epic = await this.client.getEpic(epicPublicId);
+		if (!epic)
+			throw new Error(`Failed to retrieve Shortcut epic with public ID: ${epicPublicId}`);
+
+		const epicComment = await this.client.createEpicComment(epicPublicId, {
+			text,
+		});
+
+		return this.toResult(
+			`Created comment on epic ${epicPublicId}. Comment URL: ${epicComment.app_url}.`,
+		);
 	}
 
 	async deleteEpic(epicPublicId: number): Promise<CallToolResult> {
