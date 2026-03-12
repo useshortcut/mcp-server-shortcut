@@ -53,6 +53,7 @@ const VERBOSE_KEYS = ["body", "headers", "query"] as const;
 interface ServerConfig {
 	port: number;
 	apiToken: string;
+	apiBaseUrl: string;
 	mcpServerUrl: string;
 	authServerIssuerUrl?: string;
 	enableOAuthProtectedResourceMetadata: boolean;
@@ -115,6 +116,8 @@ function loadConfig(): ServerConfig {
 	let apiToken = process.env.SHORTCUT_API_TKN || process.env.SHORTCUT_API_TOKEN;
 	let isReadonly = process.env.SHORTCUT_READONLY !== "false";
 	let enabledTools = parseToolsList(process.env.SHORTCUT_TOOLS || "");
+	let apiServer = process.env.API_SERVER ?? process.env.AUTH_SERVER ?? "api.app.shortcut.com";
+	let authServer = process.env.AUTH_SERVER;
 	let enableOAuthProtectedResourceMetadata = parseBoolean(
 		process.env.ENABLE_OAUTH_PROTECTED_RESOURCE_METADATA,
 		true,
@@ -130,6 +133,8 @@ function loadConfig(): ServerConfig {
 				if (name === "SHORTCUT_API_TOKEN") apiToken = value;
 				if (name === "SHORTCUT_READONLY") isReadonly = value !== "false";
 				if (name === "SHORTCUT_TOOLS") enabledTools = parseToolsList(value);
+				if (name === "API_SERVER") apiServer = value;
+				if (name === "AUTH_SERVER") authServer = value;
 				if (name === "ENABLE_OAUTH_PROTECTED_RESOURCE_METADATA") {
 					enableOAuthProtectedResourceMetadata = parseBoolean(value, true);
 				}
@@ -148,13 +153,15 @@ function loadConfig(): ServerConfig {
 
 	const port = Number.parseInt(process.env.PORT || String(DEFAULT_PORT), 10);
 	const mcpServerUrl = process.env.MCP_SERVER_URL ?? `http://localhost:${port}`;
+	const apiBaseUrl = toHttpsUrl(apiServer, "API_SERVER");
 	const authServerIssuerUrl = enableOAuthProtectedResourceMetadata
-		? toHttpsUrl(process.env.AUTH_SERVER ?? "api.app.shortcut.com", "AUTH_SERVER")
+		? toHttpsUrl(authServer ?? apiServer, "AUTH_SERVER")
 		: undefined;
 
 	return {
 		port,
 		apiToken,
+		apiBaseUrl,
 		mcpServerUrl,
 		authServerIssuerUrl,
 		enableOAuthProtectedResourceMetadata,
@@ -315,7 +322,9 @@ function createServerInstance(config: ServerConfig): CustomMcpServer {
 		tools: config.enabledTools,
 	});
 
-	const clientWrapper = new ShortcutClientWrapper(new ShortcutClient(config.apiToken));
+	const clientWrapper = new ShortcutClientWrapper(
+		new ShortcutClient(config.apiToken, { baseURL: config.apiBaseUrl }),
+	);
 
 	// Most important tools should be at the top.
 	UserTools.create(clientWrapper, server);
@@ -558,6 +567,7 @@ async function startServer() {
 				auth: "none",
 				oauthProtectedResourceMetadata: config.enableOAuthProtectedResourceMetadata,
 				authServer: config.authServerIssuerUrl ?? "disabled",
+				apiBaseUrl: config.apiBaseUrl,
 				debugLevel: process.env.DEBUG_LEVEL ?? "0",
 			},
 			"Shortcut MCP Server (No Auth) started",
