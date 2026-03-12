@@ -78,9 +78,11 @@ function parseBoolean(value: string | undefined, defaultValue: boolean): boolean
 }
 
 /** DEBUG_LEVEL: 0 = none, 1 = HTTP debug (redacted), 2 = verbose, 3 = dump everything */
-function parseDebugLevel(
-	value: string,
-): { httpDebug: boolean; httpDebugVerbose: boolean; httpDebugDumpAll: boolean } {
+function parseDebugLevel(value: string): {
+	httpDebug: boolean;
+	httpDebugVerbose: boolean;
+	httpDebugDumpAll: boolean;
+} {
 	const level = Number.parseInt(value, 10);
 	if (Number.isNaN(level) || level < 0) {
 		return { httpDebug: false, httpDebugVerbose: false, httpDebugDumpAll: false };
@@ -122,7 +124,9 @@ function loadConfig(): ServerConfig {
 		process.env.ENABLE_OAUTH_PROTECTED_RESOURCE_METADATA,
 		true,
 	);
-	let { httpDebug, httpDebugVerbose, httpDebugDumpAll } = parseDebugLevel(process.env.DEBUG_LEVEL ?? "0");
+	let { httpDebug, httpDebugVerbose, httpDebugDumpAll } = parseDebugLevel(
+		process.env.DEBUG_LEVEL ?? "0",
+	);
 
 	if (process.argv.length >= 3) {
 		process.argv
@@ -471,7 +475,10 @@ async function handleMcpDelete(
 function corsMiddleware(req: Request, res: Response, next: NextFunction): void {
 	res.header("Access-Control-Allow-Origin", "*");
 	res.header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
-	res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Mcp-Session-Id, Last-Event-Id");
+	res.header(
+		"Access-Control-Allow-Headers",
+		"Content-Type, Authorization, Mcp-Session-Id, Last-Event-Id",
+	);
 	res.header("Access-Control-Expose-Headers", "Mcp-Session-Id");
 
 	if (req.method === "OPTIONS") {

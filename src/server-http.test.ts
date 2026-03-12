@@ -93,7 +93,8 @@ describe("server-http (no-auth) smoke tests", () => {
 			expect(res.headers).toMatchObject({
 				"Access-Control-Allow-Origin": "*",
 				"Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-				"Access-Control-Allow-Headers": "Content-Type, Authorization, Mcp-Session-Id, Last-Event-Id",
+				"Access-Control-Allow-Headers":
+					"Content-Type, Authorization, Mcp-Session-Id, Last-Event-Id",
 				"Access-Control-Expose-Headers": "Mcp-Session-Id",
 			});
 			expect(nextCalled).toBe(true);
