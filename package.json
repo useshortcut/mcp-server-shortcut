@@ -52,8 +52,6 @@
 		"prepare": "husky",
 		"dev": "bun src/server.ts",
 		"dev:http": "bun run src/server-http.ts",
-		"dev:http:noauth": "bun run src/server-http-noauth.ts",
-		"prod:http": "node dist/server-http.js",
-		"prod:http:noauth": "node dist/server-http-noauth.js"
+		"prod:http": "node dist/server-http.js"
 	}
 }
