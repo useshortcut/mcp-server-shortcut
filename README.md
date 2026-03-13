@@ -41,7 +41,7 @@ If all you need need the configuration for the mcp.json file use this. You will 
 ```json
 {
   "servers": {
-    "github-mcp": {
+    "shortcut-mcp": {
       "type": "http",
       "url": "https://mcp.shortcut.com/mcp"
     }
