@@ -3,8 +3,10 @@ import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import type {
 	ShortcutClient as BaseClient,
+	CreateCommentComment,
 	CreateDoc,
 	CreateEpic,
+	CreateEpicComment,
 	CreateIteration,
 	CreateLabelParams,
 	CreateStoryComment,
@@ -26,6 +28,7 @@ import type {
 	StoryLink,
 	StorySlim,
 	Task,
+	ThreadedComment,
 	UpdateDoc,
 	UpdateEpic,
 	UpdateIteration,
@@ -444,6 +447,35 @@ export class ShortcutClientWrapper {
 
 	async deleteIteration(iterationPublicId: number): Promise<void> {
 		await this.client.deleteIteration(iterationPublicId);
+	}
+
+	async createEpicComment(
+		epicPublicId: number,
+		params: CreateEpicComment,
+	): Promise<ThreadedComment> {
+		const response = await this.client.createEpicComment(epicPublicId, params);
+		const epicComment = response?.data ?? null;
+
+		if (!epicComment) throw new Error(`Failed to create the comment: ${response.status}`);
+
+		return epicComment;
+	}
+
+	async createEpicCommentComment(
+		epicPublicId: number,
+		commentPublicId: number,
+		params: CreateCommentComment,
+	): Promise<ThreadedComment> {
+		const response = await this.client.createEpicCommentComment(
+			epicPublicId,
+			commentPublicId,
+			params,
+		);
+		const epicComment = response?.data ?? null;
+
+		if (!epicComment) throw new Error(`Failed to create the comment reply: ${response.status}`);
+
+		return epicComment;
 	}
 
 	async createEpic(params: CreateEpic): Promise<Epic> {
