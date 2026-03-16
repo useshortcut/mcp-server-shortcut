@@ -111,6 +111,7 @@ If your IDE doesn't support HTTP-based MCP servers, or you'd prefer to run the s
 | `epics-create` | Create a new Shortcut epic |
 | `epics-update` | Update an existing Shortcut epic |
 | `epics-delete` | Delete a Shortcut epic |
+| `epics-create-comment` | Create a comment on an epic |
   
 ### Iterations
 

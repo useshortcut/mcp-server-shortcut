@@ -220,8 +220,7 @@ export class EpicTools extends BaseTools {
 		if (!text) throw new Error("Epic comment text is required");
 
 		const epic = await this.client.getEpic(epicPublicId);
-		if (!epic)
-			throw new Error(`Failed to retrieve Shortcut epic with public ID: ${epicPublicId}`);
+		if (!epic) throw new Error(`Failed to retrieve Shortcut epic with public ID: ${epicPublicId}`);
 
 		const epicComment = replyToCommentId
 			? await this.client.createEpicCommentComment(epicPublicId, replyToCommentId, {
