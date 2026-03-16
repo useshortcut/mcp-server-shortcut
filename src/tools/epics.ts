@@ -98,6 +98,7 @@ export class EpicTools extends BaseTools {
 			"Add a comment to an epic.",
 			{
 				epicPublicId: z.number().positive().describe("Epic ID"),
+				replyToCommentId: z.number().positive().optional().describe("Comment ID to reply to"),
 				text: z.string().min(1).describe("Comment text"),
 			},
 			async (params) => await tools.createEpicComment(params),
@@ -208,9 +209,11 @@ export class EpicTools extends BaseTools {
 
 	async createEpicComment({
 		epicPublicId,
+		replyToCommentId,
 		text,
 	}: {
 		epicPublicId: number;
+		replyToCommentId?: number;
 		text: string;
 	}): Promise<CallToolResult> {
 		if (!epicPublicId) throw new Error("Epic public ID is required");
@@ -220,9 +223,13 @@ export class EpicTools extends BaseTools {
 		if (!epic)
 			throw new Error(`Failed to retrieve Shortcut epic with public ID: ${epicPublicId}`);
 
-		const epicComment = await this.client.createEpicComment(epicPublicId, {
-			text,
-		});
+		const epicComment = replyToCommentId
+			? await this.client.createEpicCommentComment(epicPublicId, replyToCommentId, {
+					text,
+				})
+			: await this.client.createEpicComment(epicPublicId, {
+					text,
+				});
 
 		return this.toResult(
 			`Created comment on epic ${epicPublicId}. Comment URL: ${epicComment.app_url}.`,

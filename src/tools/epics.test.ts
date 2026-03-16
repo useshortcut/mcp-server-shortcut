@@ -488,6 +488,38 @@ describe("EpicTools", () => {
 				}),
 			).toThrow("Epic comment text is required");
 		});
+
+		test("should create a reply to an existing comment", async () => {
+			const createEpicCommentCommentMock = mock(
+				async (_epicId: number, _commentId: number, _params: { text: string }) => ({
+					id: 200,
+					text: "Reply comment",
+					app_url: "https://app.shortcut.com/test/epic/1/comments/200",
+				}),
+			);
+			const mockClient = createMockClient({
+				getEpic: getEpicMock,
+				createEpicComment: createEpicCommentMock,
+				createEpicCommentComment: createEpicCommentCommentMock,
+			});
+			const epicTools = new EpicTools(mockClient);
+			const result = await epicTools.createEpicComment({
+				epicPublicId: 1,
+				replyToCommentId: 100,
+				text: "Reply comment",
+			});
+
+			expect(getTextContent(result)).toBe(
+				"Created comment on epic 1. Comment URL: https://app.shortcut.com/test/epic/1/comments/200.",
+			);
+			expect(createEpicCommentMock).not.toHaveBeenCalled();
+			expect(createEpicCommentCommentMock).toHaveBeenCalledTimes(1);
+			expect(createEpicCommentCommentMock.mock.calls?.[0]?.[0]).toBe(1);
+			expect(createEpicCommentCommentMock.mock.calls?.[0]?.[1]).toBe(100);
+			expect(createEpicCommentCommentMock.mock.calls?.[0]?.[2]).toMatchObject({
+				text: "Reply comment",
+			});
+		});
 	});
 
 	describe("deleteEpic method", () => {

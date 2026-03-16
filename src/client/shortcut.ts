@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import type {
 	ShortcutClient as BaseClient,
+	CreateCommentComment,
 	CreateDoc,
 	CreateEpic,
 	CreateEpicComment,
@@ -456,6 +457,23 @@ export class ShortcutClientWrapper {
 		const epicComment = response?.data ?? null;
 
 		if (!epicComment) throw new Error(`Failed to create the comment: ${response.status}`);
+
+		return epicComment;
+	}
+
+	async createEpicCommentComment(
+		epicPublicId: number,
+		commentPublicId: number,
+		params: CreateCommentComment,
+	): Promise<ThreadedComment> {
+		const response = await this.client.createEpicCommentComment(
+			epicPublicId,
+			commentPublicId,
+			params,
+		);
+		const epicComment = response?.data ?? null;
+
+		if (!epicComment) throw new Error(`Failed to create the comment reply: ${response.status}`);
 
 		return epicComment;
 	}
