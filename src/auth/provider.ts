@@ -18,6 +18,7 @@ import type {
 import type { FetchLike } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { ShortcutClient } from "@shortcut/client";
 import type { Response } from "express";
+import { toBearerAuthError } from "../http-auth";
 
 // ============================================================================
 // Configuration (read lazily so tests can set env vars before creation)
@@ -124,14 +125,24 @@ function throwMappedUpstreamOAuthError(status: number, body: string): never {
 // ============================================================================
 
 /**
- * Verifies an access token by calling the Shortcut API directly.
+ * Verifies a presented bearer token against the upstream Shortcut API.
+ *
+ * This verifier is shared by both the OAuth provider and the HTTP `/mcp`
+ * preflight path so invalid or expired tokens can be rejected before a request
+ * reaches MCP tool execution.
+ *
  * Supports both:
- * - OAuth access tokens via Authorization: Bearer
- * - Legacy Shortcut API tokens via Shortcut-Token header (fallback)
+ * - OAuth access tokens via `Authorization: Bearer`
+ * - Legacy Shortcut API tokens via `Shortcut-Token` as a fallback
+ *
+ * Throws `BearerAuthError` when the upstream service returns an OAuth-style
+ * `invalid_token` response so callers can surface a proper 401 challenge.
  */
-async function defaultVerifyAccessToken(token: string): Promise<AuthInfo> {
+export async function verifyPresentedAccessToken(token: string): Promise<AuthInfo> {
 	const clientId = process.env.SHORTCUT_OAUTH_CLIENT_ID ?? "unknown";
 	const baseURL = getApiBaseUrl();
+	let oauthAuthError: Error | null = null;
+	let legacyAuthError: Error | null = null;
 
 	// First, try OAuth bearer-token validation. This handles uncached tokens
 	// after server restarts or requests routed to a different server instance.
@@ -154,7 +165,8 @@ async function defaultVerifyAccessToken(token: string): Promise<AuthInfo> {
 				mentionName: member.mention_name,
 			},
 		};
-	} catch {
+	} catch (error) {
+		oauthAuthError = (toBearerAuthError(error) ?? null) as Error | null;
 		// Fall through to legacy token verification below.
 	}
 
@@ -179,8 +191,15 @@ async function defaultVerifyAccessToken(token: string): Promise<AuthInfo> {
 			},
 		};
 	} catch (error) {
+		legacyAuthError = (toBearerAuthError(error) ?? null) as Error | null;
 		if (error instanceof InvalidTokenError) {
 			throw error;
+		}
+		if (oauthAuthError) {
+			throw oauthAuthError;
+		}
+		if (legacyAuthError) {
+			throw legacyAuthError;
 		}
 		throw new InvalidTokenError("Invalid or expired access token");
 	}
@@ -255,7 +274,7 @@ export function createOAuthProvider(
 ): OAuthProviderWithCallback {
 	const endpoints = options?.endpoints ?? getUpstreamEndpoints();
 	const staticClient = options?.clientInfo ?? getStaticClientInfo();
-	const verifyToken = options?.verifyAccessToken ?? defaultVerifyAccessToken;
+	const verifyToken = options?.verifyAccessToken ?? verifyPresentedAccessToken;
 	const fetchFn = options?.fetch;
 	const mcpServerUrl = options?.mcpServerUrl ?? getMcpServerUrl();
 
