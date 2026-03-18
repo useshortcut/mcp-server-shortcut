@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { Client } from "@modelcontextprotocol/sdk/client";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { BearerAuthError } from "../http-auth";
 import { CustomMcpServer } from "./CustomMcpServer";
 
 describe("CustomMcpServer", () => {
@@ -65,5 +68,50 @@ describe("CustomMcpServer", () => {
 				return { content: [] };
 			}),
 		).toBeNull();
+	});
+
+	test("surfaces bearer auth failures as structured MCP errors", async () => {
+		const server = new CustomMcpServer({ readonly: false, tools: null });
+		server.addToolWithReadAccess("test-auth", "test", async () => {
+			throw new BearerAuthError({
+				error: "invalid_token",
+				errorDescription: "The access token expired",
+				headerValue:
+					'Bearer error="invalid_token", error_description="The access token expired"',
+				tokenExpired: true,
+			});
+		});
+
+		const client = new Client({
+			name: "test-client",
+			version: "1.0.0",
+		});
+		const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+		await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+
+		try {
+			await client.callTool({
+				name: "test-auth",
+			});
+			throw new Error("Expected tool call to fail");
+		} catch (error) {
+			expect(error).toMatchObject({
+				code: 401,
+				data: {
+					httpStatus: 401,
+					headers: {
+						"WWW-Authenticate":
+							'Bearer error="invalid_token", error_description="The access token expired"',
+					},
+					body: {
+						error: "invalid_token",
+						error_description: "The access token expired",
+					},
+					isAuthenticationError: true,
+					tokenExpired: true,
+				},
+			});
+		}
 	});
 });
