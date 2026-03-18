@@ -78,6 +78,25 @@ describe("http-auth", () => {
 		});
 	});
 
+	test("ignores generic upstream 401 transport messages for invalid_token", () => {
+		const authError = parseBearerAuthError({
+			message: "Request failed with status code 401",
+			response: {
+				status: 401,
+				data: {
+					error: "invalid_token",
+				},
+			},
+		});
+
+		expect(authError).toEqual({
+			error: "invalid_token",
+			errorDescription: "The access token expired",
+			headerValue: 'Bearer error="invalid_token", error_description="The access token expired"',
+			tokenExpired: false,
+		});
+	});
+
 	test("converts upstream invalid_token failures into a typed auth error", () => {
 		const authError = toBearerAuthError({
 			response: {

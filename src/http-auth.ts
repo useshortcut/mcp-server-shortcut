@@ -97,6 +97,14 @@ function parseOAuthErrorBody(data: unknown): OAuthErrorBody | undefined {
 	return undefined;
 }
 
+function isGenericUnauthorizedMessage(message: string | undefined): boolean {
+	if (!message) return false;
+	return (
+		/^Request failed with status code 401$/i.test(message) ||
+		/^Unauthorized$/i.test(message)
+	);
+}
+
 export function buildBearerAuthHeader(error?: string, errorDescription?: string): string {
 	const params: string[] = [];
 	if (error) {
@@ -134,7 +142,8 @@ export function parseBearerAuthError(error: unknown): BearerAuthErrorDetails | n
 			? body.error_description
 			: typeof headerParams.error_description === "string"
 				? headerParams.error_description
-				: typeof upstreamError.message === "string"
+				: typeof upstreamError.message === "string" &&
+					  !isGenericUnauthorizedMessage(upstreamError.message)
 					? upstreamError.message
 					: undefined;
 

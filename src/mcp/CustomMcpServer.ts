@@ -193,6 +193,8 @@ export class CustomMcpServer extends McpServer {
 					return result;
 				} catch (error) {
 					if (error instanceof BearerAuthError) {
+						// Fallback only: request-bound token preflight should handle most
+						// invalid/expired bearer tokens before tool execution begins.
 						throw new McpError(error.code, "Unauthorized", error.data);
 					}
 					if (error instanceof McpError && error.code === ErrorCode.UrlElicitationRequired) {

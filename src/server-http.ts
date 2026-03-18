@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
+import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { ShortcutClient } from "@shortcut/client";
 import express, { type NextFunction, type Request, type Response } from "express";
 import pino from "pino";
 import { ShortcutClientWrapper } from "@/client/shortcut";
+import { verifyPresentedAccessToken } from "./auth/provider";
 import { buildBearerAuthHeader, parseBearerAuthError, toBearerAuthError } from "./http-auth";
 import { CustomMcpServer } from "./mcp/CustomMcpServer";
 import { CustomFieldTools } from "./tools/custom-fields";
@@ -334,6 +336,39 @@ function sendBearerTokenError(
 	});
 }
 
+function mapVerifierErrorToBearerAuth(error: unknown) {
+	const parsed = parseBearerAuthError(error);
+	if (parsed) {
+		return parsed;
+	}
+	if (error instanceof InvalidTokenError) {
+		return {
+			error: "invalid_token",
+			errorDescription: "The access token expired",
+			headerValue: buildBearerAuthHeader("invalid_token", "The access token expired"),
+		};
+	}
+	return null;
+}
+
+export async function preflightVerifyAccessToken(
+	accessToken: string,
+	res: Response,
+	verifyAccessToken: (token: string) => Promise<unknown> = verifyPresentedAccessToken,
+): Promise<boolean> {
+	try {
+		await verifyAccessToken(accessToken);
+		return true;
+	} catch (error) {
+		const authError = mapVerifierErrorToBearerAuth(error);
+		if (authError) {
+			sendBearerTokenError(res, authError);
+			return false;
+		}
+		throw error;
+	}
+}
+
 function extractBearerToken(req: Request): string | undefined {
 	const authHeader = req.headers[HEADERS.AUTHORIZATION];
 	if (typeof authHeader !== "string") {
@@ -504,6 +539,9 @@ async function handleMcpPost(
 				return;
 			}
 			if (accessToken) {
+				if (!(await preflightVerifyAccessToken(accessToken, res))) {
+					return;
+				}
 				session.clientWrapper.updateClient(createOAuthShortcutClient(accessToken, config.apiBaseUrl));
 			}
 			await session.transport.handleRequest(req, res, req.body);
@@ -513,6 +551,9 @@ async function handleMcpPost(
 		if (isInitializeRequest(req.body)) {
 			if (!accessToken) {
 				sendUnauthorizedError(res, requestId);
+				return;
+			}
+			if (!(await preflightVerifyAccessToken(accessToken, res))) {
 				return;
 			}
 			const transport = await createTransport(accessToken, config, sessionManager);
@@ -575,6 +616,9 @@ async function handleMcpGet(
 			return;
 		}
 		if (accessToken) {
+			if (!(await preflightVerifyAccessToken(accessToken, res))) {
+				return;
+			}
 			session.clientWrapper.updateClient(createOAuthShortcutClient(accessToken, config.apiBaseUrl));
 		}
 		await session.transport.handleRequest(req, res);
@@ -626,6 +670,9 @@ async function handleMcpDelete(
 			return;
 		}
 		if (accessToken) {
+			if (!(await preflightVerifyAccessToken(accessToken, res))) {
+				return;
+			}
 			session.clientWrapper.updateClient(createOAuthShortcutClient(accessToken, config.apiBaseUrl));
 		}
 		await session.transport.handleRequest(req, res);
@@ -706,7 +753,7 @@ function httpDebugResponseMiddleware(req: Request, res: Response, next: NextFunc
 	next();
 }
 
-async function startServer() {
+export async function startServer() {
 	const config = loadConfig();
 	httpDebugVerbose = config.httpDebugVerbose;
 	httpDebugDumpAll = config.httpDebugDumpAll;
@@ -783,7 +830,9 @@ async function startServer() {
 	});
 }
 
-startServer().catch((error) => {
-	logger.fatal({ error }, "Fatal error starting no-auth HTTP server");
-	process.exit(1);
-});
+if (import.meta.main) {
+	startServer().catch((error) => {
+		logger.fatal({ error }, "Fatal error starting no-auth HTTP server");
+		process.exit(1);
+	});
+}
