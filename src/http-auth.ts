@@ -55,9 +55,7 @@ export class BearerAuthError extends Error {
 			},
 			body: {
 				error: details.error,
-				...(details.errorDescription
-					? { error_description: details.errorDescription }
-					: {}),
+				...(details.errorDescription ? { error_description: details.errorDescription } : {}),
 			},
 			isAuthenticationError: true,
 			tokenExpired: details.tokenExpired,
@@ -83,12 +81,13 @@ function getHeaderValue(
 
 function parseHeaderParameters(headerValue: string | undefined): Record<string, string> {
 	if (!headerValue) return {};
-	return Array.from(headerValue.matchAll(/([a-z_]+)="([^"]*)"/gi)).reduce<
-		Record<string, string>
-	>((acc, [, key, value]) => {
-		acc[key.toLowerCase()] = value;
-		return acc;
-	}, {});
+	return Array.from(headerValue.matchAll(/([a-z_]+)="([^"]*)"/gi)).reduce<Record<string, string>>(
+		(acc, [, key, value]) => {
+			acc[key.toLowerCase()] = value;
+			return acc;
+		},
+		{},
+	);
 }
 
 function parseOAuthErrorBody(data: unknown): OAuthErrorBody | undefined {
@@ -108,10 +107,7 @@ function parseOAuthErrorBody(data: unknown): OAuthErrorBody | undefined {
 
 function isGenericUnauthorizedMessage(message: string | undefined): boolean {
 	if (!message) return false;
-	return (
-		/^Request failed with status code 401$/i.test(message) ||
-		/^Unauthorized$/i.test(message)
-	);
+	return /^Request failed with status code 401$/i.test(message) || /^Unauthorized$/i.test(message);
 }
 
 /**
@@ -151,16 +147,16 @@ export function parseBearerAuthError(error: unknown): BearerAuthErrorDetails | n
 			? body.error
 			: typeof body?.tag === "string"
 				? body.tag
-			: typeof headerParams.error === "string"
-				? headerParams.error
-				: undefined;
+				: typeof headerParams.error === "string"
+					? headerParams.error
+					: undefined;
 	const errorDescription =
 		typeof body?.error_description === "string"
 			? body.error_description
 			: typeof headerParams.error_description === "string"
 				? headerParams.error_description
 				: typeof upstreamError.message === "string" &&
-					  !isGenericUnauthorizedMessage(upstreamError.message)
+						!isGenericUnauthorizedMessage(upstreamError.message)
 					? upstreamError.message
 					: undefined;
 

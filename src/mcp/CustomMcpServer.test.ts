@@ -76,8 +76,7 @@ describe("CustomMcpServer", () => {
 			throw new BearerAuthError({
 				error: "invalid_token",
 				errorDescription: "The access token expired",
-				headerValue:
-					'Bearer error="invalid_token", error_description="The access token expired"',
+				headerValue: 'Bearer error="invalid_token", error_description="The access token expired"',
 				tokenExpired: true,
 			});
 		});

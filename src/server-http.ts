@@ -198,7 +198,11 @@ class SessionManager {
 		return session;
 	}
 
-	add(sessionId: string, transport: StreamableHTTPServerTransport, clientWrapper: ShortcutClientWrapper): void {
+	add(
+		sessionId: string,
+		transport: StreamableHTTPServerTransport,
+		clientWrapper: ShortcutClientWrapper,
+	): void {
 		this.sessions.set(sessionId, {
 			transport,
 			clientWrapper,
@@ -330,9 +334,7 @@ function sendBearerTokenError(
 	res.header("WWW-Authenticate", authError.headerValue);
 	res.status(401).json({
 		error: authError.error,
-		...(authError.errorDescription
-			? { error_description: authError.errorDescription }
-			: {}),
+		...(authError.errorDescription ? { error_description: authError.errorDescription } : {}),
 	});
 }
 
@@ -552,7 +554,9 @@ async function handleMcpPost(
 				if (!(await preflightVerifyAccessToken(accessToken, res))) {
 					return;
 				}
-				session.clientWrapper.updateClient(createOAuthShortcutClient(accessToken, config.apiBaseUrl));
+				session.clientWrapper.updateClient(
+					createOAuthShortcutClient(accessToken, config.apiBaseUrl),
+				);
 			}
 			await session.transport.handleRequest(req, res, req.body);
 			return;
@@ -804,7 +808,9 @@ export async function startServer() {
 	app.post("/mcp", requireBearerHeader, (req, res) =>
 		handleMcpPost(req, res, sessionManager, config),
 	);
-	app.get("/mcp", requireBearerHeader, (req, res) => handleMcpGet(req, res, sessionManager, config));
+	app.get("/mcp", requireBearerHeader, (req, res) =>
+		handleMcpGet(req, res, sessionManager, config),
+	);
 	app.delete("/mcp", requireBearerHeader, (req, res) =>
 		handleMcpDelete(req, res, sessionManager, config),
 	);

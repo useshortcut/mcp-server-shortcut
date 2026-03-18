@@ -1,16 +1,16 @@
 import { McpServer, type RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import type {
-	CallToolResult,
 	CallToolRequest,
+	CallToolResult,
 	ServerNotification,
 	ServerRequest,
 	ToolAnnotations,
 } from "@modelcontextprotocol/sdk/types.js";
 import { CallToolRequestSchema, ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import type { infer as ZodInfer, ZodObject, ZodRawShape } from "zod";
-import { BearerAuthError } from "../http-auth";
 import { name, version } from "../../package.json";
+import { BearerAuthError } from "../http-auth";
 
 // The extra context provided to tool callbacks
 type ToolExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
@@ -150,16 +150,10 @@ export class CustomMcpServer extends McpServer {
 					// biome-ignore lint/suspicious/noExplicitAny: accessing SDK internals to customize tool errors
 					const tool = (this as any)._registeredTools[request.params.name];
 					if (!tool) {
-						throw new McpError(
-							ErrorCode.InvalidParams,
-							`Tool ${request.params.name} not found`,
-						);
+						throw new McpError(ErrorCode.InvalidParams, `Tool ${request.params.name} not found`);
 					}
 					if (!tool.enabled) {
-						throw new McpError(
-							ErrorCode.InvalidParams,
-							`Tool ${request.params.name} disabled`,
-						);
+						throw new McpError(ErrorCode.InvalidParams, `Tool ${request.params.name} disabled`);
 					}
 
 					const isTaskRequest = !!request.params.task;
