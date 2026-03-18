@@ -130,6 +130,11 @@ export class CustomMcpServer extends McpServer {
 		return (super.tool as any)(...args);
 	}
 
+	/**
+	 * Replaces the SDK's default tool handler wiring so bearer-token failures can
+	 * bubble out as structured MCP errors when they happen after HTTP preflight.
+	 * In the normal case, preflight auth should already have returned a real 401.
+	 */
 	private installAuthAwareToolHandlers(): void {
 		// biome-ignore lint/suspicious/noExplicitAny: calling the original SDK implementation by prototype
 		(McpServer.prototype as any).setToolRequestHandlers.call(this);

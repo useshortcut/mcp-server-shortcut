@@ -125,10 +125,18 @@ function throwMappedUpstreamOAuthError(status: number, body: string): never {
 // ============================================================================
 
 /**
- * Verifies an access token by calling the Shortcut API directly.
+ * Verifies a presented bearer token against the upstream Shortcut API.
+ *
+ * This verifier is shared by both the OAuth provider and the HTTP `/mcp`
+ * preflight path so invalid or expired tokens can be rejected before a request
+ * reaches MCP tool execution.
+ *
  * Supports both:
- * - OAuth access tokens via Authorization: Bearer
- * - Legacy Shortcut API tokens via Shortcut-Token header (fallback)
+ * - OAuth access tokens via `Authorization: Bearer`
+ * - Legacy Shortcut API tokens via `Shortcut-Token` as a fallback
+ *
+ * Throws `BearerAuthError` when the upstream service returns an OAuth-style
+ * `invalid_token` response so callers can surface a proper 401 challenge.
  */
 export async function verifyPresentedAccessToken(token: string): Promise<AuthInfo> {
 	const clientId = process.env.SHORTCUT_OAUTH_CLIENT_ID ?? "unknown";

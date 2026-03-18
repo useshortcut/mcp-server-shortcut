@@ -336,6 +336,11 @@ function sendBearerTokenError(
 	});
 }
 
+/**
+ * Maps verifier failures into the normalized bearer auth shape used by HTTP
+ * responses. The verifier may throw either a typed `BearerAuthError` or the
+ * SDK's `InvalidTokenError`, depending on which validation path failed.
+ */
 function mapVerifierErrorToBearerAuth(error: unknown) {
 	const parsed = parseBearerAuthError(error);
 	if (parsed) {
@@ -351,6 +356,11 @@ function mapVerifierErrorToBearerAuth(error: unknown) {
 	return null;
 }
 
+/**
+ * Rejects invalid or expired bearer tokens before the request enters the MCP
+ * transport. This is what allows clients to see a real HTTP 401 challenge and
+ * trigger their built-in refresh flow.
+ */
 export async function preflightVerifyAccessToken(
 	accessToken: string,
 	res: Response,

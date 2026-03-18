@@ -201,6 +201,9 @@ async function processRegistrationResponse(
 	response: Response,
 	options: CliOptions,
 ): Promise<RegisteredClient> {
+	// RFC 7591 expects 201 Created here, but some test environments currently
+	// return 200 OK. Keep the strict library behavior by default and only relax
+	// it behind an explicit compatibility flag.
 	if (options.nonStandardHttpCodes && response.status === 200) {
 		console.warn(
 			"\nRegistration endpoint returned 200 OK instead of the RFC-expected 201 Created; accepting it because --non-standard-http-codes was provided.",
@@ -216,6 +219,9 @@ function resolveIdTokenAlg(
 	authorizationServerMetadata: oauth.AuthorizationServer,
 	registeredClient: RegisteredClient,
 ): string | undefined {
+	// Prefer an explicit CLI override, then client metadata, then server
+	// metadata. This makes it possible to test non-conformant servers that omit
+	// `id_token_signing_alg_values_supported`.
 	if (options.idTokenAlg) return options.idTokenAlg;
 	if (typeof registeredClient.id_token_signed_response_alg === "string") {
 		return registeredClient.id_token_signed_response_alg;
