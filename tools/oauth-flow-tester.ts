@@ -14,9 +14,11 @@ interface CliOptions {
 	clientName: string;
 	clientUri: string;
 	scope?: string;
+	idTokenAlg?: string;
 	mode: Mode;
 	timeoutMs: number;
 	openBrowser: boolean;
+	nonStandardHttpCodes: boolean;
 }
 
 interface RegisteredClient {
@@ -55,8 +57,10 @@ Options:
   --client-name <name>    Dynamic registration client_name. Default: MCP OAuth Test Tool
   --client-uri <url>      Dynamic registration client_uri. Default: https://github.com/useshortcut/mcp-server-shortcut
   --scope <scope>         Requested OAuth scope. Default: first supported scope or openid
+  --id-token-alg <alg>    Expected ID token signing algorithm, e.g. HS256 or RS256
   --mode <mode>           local-callback | manual-paste | both. Default: both
   --timeout-ms <ms>       Local callback wait timeout. Default: 180000
+  --non-standard-http-codes  Tolerate known non-standard OAuth endpoint success codes
   --no-open-browser       Do not try to open the browser automatically
   --help                  Show this help
 `;
@@ -70,6 +74,7 @@ function parseArgs(argv: string[]): CliOptions {
 		mode: "both",
 		timeoutMs: 180_000,
 		openBrowser: true,
+		nonStandardHttpCodes: false,
 	};
 
 	for (let i = 0; i < argv.length; i++) {
@@ -92,6 +97,9 @@ function parseArgs(argv: string[]): CliOptions {
 			case "--scope":
 				options.scope = readArgValue(argv, ++i, arg);
 				break;
+			case "--id-token-alg":
+				options.idTokenAlg = readArgValue(argv, ++i, arg);
+				break;
 			case "--mode": {
 				const mode = readArgValue(argv, ++i, arg) as Mode;
 				if (!["local-callback", "manual-paste", "both"].includes(mode)) {
@@ -105,6 +113,9 @@ function parseArgs(argv: string[]): CliOptions {
 				if (!Number.isFinite(options.timeoutMs) || options.timeoutMs <= 0) {
 					throw new Error(`Invalid --timeout-ms value: ${argv[i]}`);
 				}
+				break;
+			case "--non-standard-http-codes":
+				options.nonStandardHttpCodes = true;
 				break;
 			case "--no-open-browser":
 				options.openBrowser = false;
@@ -135,6 +146,13 @@ function printSection(title: string): void {
 function printJson(label: string, value: unknown): void {
 	console.log(`\n${label}`);
 	console.log(JSON.stringify(value, null, 2));
+}
+
+function redactSecret(value: string, visiblePrefix = 12, visibleSuffix = 6): string {
+	if (value.length <= visiblePrefix + visibleSuffix + 3) {
+		return "[REDACTED]";
+	}
+	return `${value.slice(0, visiblePrefix)}...${value.slice(-visibleSuffix)}`;
 }
 
 function buildAuthorizationUrl(params: {
@@ -177,6 +195,33 @@ function createClientAuth(registeredClient: RegisteredClient): oauth.ClientAuth 
 	}
 
 	throw new Error(`Unsupported token_endpoint_auth_method: ${method}`);
+}
+
+async function processRegistrationResponse(
+	response: Response,
+	options: CliOptions,
+): Promise<RegisteredClient> {
+	if (options.nonStandardHttpCodes && response.status === 200) {
+		console.warn(
+			"\nRegistration endpoint returned 200 OK instead of the RFC-expected 201 Created; accepting it because --non-standard-http-codes was provided.",
+		);
+		return (await response.json()) as RegisteredClient;
+	}
+
+	return (await oauth.processDynamicClientRegistrationResponse(response)) as RegisteredClient;
+}
+
+function resolveIdTokenAlg(
+	options: CliOptions,
+	authorizationServerMetadata: oauth.AuthorizationServer,
+	registeredClient: RegisteredClient,
+): string | undefined {
+	if (options.idTokenAlg) return options.idTokenAlg;
+	if (typeof registeredClient.id_token_signed_response_alg === "string") {
+		return registeredClient.id_token_signed_response_alg;
+	}
+	const advertised = authorizationServerMetadata.id_token_signing_alg_values_supported;
+	return advertised?.length ? advertised[0] : undefined;
 }
 
 function isLocalhostRedirect(redirectUrl: URL): boolean {
@@ -385,19 +430,34 @@ async function main(): Promise<void> {
 			client_name: options.clientName,
 			client_uri: options.clientUri,
 			scope: requestedScope,
+			...(options.idTokenAlg ? { id_token_signed_response_alg: options.idTokenAlg } : {}),
 		},
 	);
-	const registeredClient = (await oauth.processDynamicClientRegistrationResponse(
-		registrationResponse,
-	)) as RegisteredClient;
+	const registeredClient = await processRegistrationResponse(registrationResponse, options);
 	printJson("Registered Client Information", registeredClient);
 
 	printSection("Preparing Authorization");
 	const codeVerifier = oauth.generateRandomCodeVerifier();
 	const codeChallenge = await oauth.calculatePKCECodeChallenge(codeVerifier);
 	const state = oauth.generateRandomState();
-	const client: oauth.Client = { client_id: registeredClient.client_id };
+	const resolvedIdTokenAlg = resolveIdTokenAlg(
+		options,
+		authorizationServerMetadata,
+		registeredClient,
+	);
+	const client: oauth.Client = {
+		client_id: registeredClient.client_id,
+		...(resolvedIdTokenAlg ? { id_token_signed_response_alg: resolvedIdTokenAlg } : {}),
+	};
 	const clientAuth = createClientAuth(registeredClient);
+
+	if (resolvedIdTokenAlg) {
+		console.log(`\nUsing expected ID token signing algorithm: ${resolvedIdTokenAlg}`);
+	} else {
+		console.log(
+			"\nNo ID token signing algorithm was configured or advertised; library defaults will apply.",
+		);
+	}
 
 	const authorizationUrl = buildAuthorizationUrl({
 		authorizationEndpoint: authorizationServerMetadata.authorization_endpoint!,
@@ -437,6 +497,19 @@ async function main(): Promise<void> {
 		console.log("No refresh_token was returned, so the refresh grant cannot be tested.");
 		return;
 	}
+
+	printJson("Refresh Token Request Details", {
+		token_endpoint: authorizationServerMetadata.token_endpoint,
+		token_endpoint_auth_method: registeredClient.token_endpoint_auth_method ?? "client_secret_post",
+		body: {
+			grant_type: "refresh_token",
+			client_id: registeredClient.client_id,
+			client_secret: registeredClient.client_secret
+				? redactSecret(registeredClient.client_secret)
+				: undefined,
+			refresh_token: redactSecret(tokenResult.refresh_token),
+		},
+	});
 
 	const refreshResponse = await oauth.refreshTokenGrantRequest(
 		authorizationServerMetadata,
