@@ -1,5 +1,5 @@
 # Build with Node/npm (package-lock.json is canonical)
-FROM node:20-slim AS base
+FROM node:25-slim AS base
 WORKDIR /usr/src/app
 
 # builder: install dev deps + build dist/
@@ -11,7 +11,7 @@ COPY . .
 RUN npm run build
 
 # runtime: prod deps + dist only
-FROM node:20-slim AS runtime
+FROM node:25-slim AS runtime
 WORKDIR /usr/src/app
 ENV NODE_ENV=production
 ENV HUSKY=0

@@ -53,8 +53,7 @@ describe("http-auth", () => {
 		expect(authError).toEqual({
 			error: "invalid_token",
 			errorDescription: "The access token is invalid",
-			headerValue:
-				'Bearer error="invalid_token", error_description="The access token is invalid"',
+			headerValue: 'Bearer error="invalid_token", error_description="The access token is invalid"',
 			tokenExpired: false,
 		});
 	});
