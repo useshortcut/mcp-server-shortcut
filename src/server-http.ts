@@ -171,6 +171,24 @@ function toHttpsUrl(value: string, envName: string): string {
 	}
 }
 
+export function getWellKnownRedirectUrl(
+	path: string,
+	config: Pick<ServerConfig, "apiBaseUrl" | "authServerIssuerUrl">,
+): string | null {
+	if (
+		path === "/.well-known/oauth-protected-resource" ||
+		path === "/.well-known/oauth-protected-resource/mcp"
+	) {
+		return new URL(path, config.apiBaseUrl).toString();
+	}
+
+	if (path === "/.well-known/oauth-authorization-server") {
+		return new URL(path, config.authServerIssuerUrl).toString();
+	}
+
+	return null;
+}
+
 interface SessionData {
 	transport: StreamableHTTPServerTransport;
 	clientWrapper: ShortcutClientWrapper;
@@ -791,17 +809,21 @@ export async function startServer() {
 		});
 	});
 
-	// OAuth protected-resource metadata for MCP clients. This server does not
-	// run auth flows locally; it advertises the external authorization server.
+	// Redirect metadata discovery to the upstream Shortcut API/auth server so
+	// clients can fetch the authoritative well-known documents directly.
 	app.get(
-		["/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/mcp"],
-		(_req, res) => {
-			res.json({
-				resource: `${config.mcpServerUrl}/mcp`,
-				authorization_servers: [config.authServerIssuerUrl],
-				scopes_supported: ["openid"],
-				bearer_methods_supported: ["header"],
-			});
+		[
+			"/.well-known/oauth-protected-resource",
+			"/.well-known/oauth-protected-resource/mcp",
+			"/.well-known/oauth-authorization-server",
+		],
+		(req, res) => {
+			const redirectUrl = getWellKnownRedirectUrl(req.path, config);
+			if (!redirectUrl) {
+				res.sendStatus(404);
+				return;
+			}
+			res.redirect(302, redirectUrl);
 		},
 	);
 

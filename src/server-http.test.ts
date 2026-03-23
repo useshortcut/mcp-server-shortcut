@@ -1,5 +1,6 @@
 import { describe, expect, mock, test } from "bun:test";
 import type { Request, Response } from "express";
+import { getWellKnownRedirectUrl } from "./server-http";
 
 interface MockRequest extends Partial<Request> {
 	headers: Record<string, string | string[] | undefined>;
@@ -195,6 +196,32 @@ describe("server-http (no-auth) smoke tests", () => {
 				httpDebugVerbose: true,
 				httpDebugDumpAll: true,
 			});
+		});
+
+		test("maps well-known protected resource paths to the API server", () => {
+			const config = {
+				apiBaseUrl: "https://api.example.com",
+				authServerIssuerUrl: "https://auth.example.com",
+			};
+
+			expect(getWellKnownRedirectUrl("/.well-known/oauth-protected-resource", config)).toBe(
+				"https://api.example.com/.well-known/oauth-protected-resource",
+			);
+			expect(getWellKnownRedirectUrl("/.well-known/oauth-protected-resource/mcp", config)).toBe(
+				"https://api.example.com/.well-known/oauth-protected-resource/mcp",
+			);
+		});
+
+		test("maps the OAuth authorization-server path to the auth server", () => {
+			const config = {
+				apiBaseUrl: "https://api.example.com",
+				authServerIssuerUrl: "https://auth.example.com",
+			};
+
+			expect(getWellKnownRedirectUrl("/.well-known/oauth-authorization-server", config)).toBe(
+				"https://auth.example.com/.well-known/oauth-authorization-server",
+			);
+			expect(getWellKnownRedirectUrl("/not-well-known", config)).toBeNull();
 		});
 	});
 });
