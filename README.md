@@ -51,7 +51,7 @@ If all you need need the configuration for the mcp.json file use this. You will 
 
 ### Codex (OpenAI)
 
-1. Generate yourself a Shortcut API token in your [Shortcut settings](https://app.shortcut.com/internal/settings/account/api-tokens)
+1. Generate yourself a Shortcut API token in your [Shortcut settings](https://app.shortcut.com/settings/account/api-tokens)
 1. Set the `SHORTCUT_API_TOKEN` environment variable in your shell environment
 1. Add the following to `~/.codex/config.toml` 
 
