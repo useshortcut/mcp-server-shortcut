@@ -391,8 +391,9 @@ function mapVerifierErrorToBearerAuth(error: unknown) {
 export async function preflightVerifyAccessToken(
 	accessToken: string,
 	res: Response,
-	verifyAccessToken: (token: string) => Promise<PresentedAccessTokenAuthInfo> =
-		verifyPresentedAccessToken,
+	verifyAccessToken: (
+		token: string,
+	) => Promise<PresentedAccessTokenAuthInfo> = verifyPresentedAccessToken,
 ): Promise<PresentedAccessTokenAuthInfo | null> {
 	try {
 		return await verifyAccessToken(accessToken);

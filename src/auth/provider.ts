@@ -393,8 +393,7 @@ export function createOAuthProvider(
 			extra: {
 				...(entry.extra ?? {}),
 				authType: "oauth",
-				memberId:
-					typeof entry.extra?.memberId === "string" ? entry.extra.memberId : "unknown",
+				memberId: typeof entry.extra?.memberId === "string" ? entry.extra.memberId : "unknown",
 				...(typeof entry.extra?.mentionName === "string"
 					? { mentionName: entry.extra.mentionName }
 					: {}),
