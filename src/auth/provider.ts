@@ -131,6 +131,17 @@ function throwMappedUpstreamOAuthError(status: number, body: string): never {
 	}
 }
 
+function normalizeProbeError(error: unknown): Error {
+	const authError = toBearerAuthError(error);
+	if (authError) {
+		return authError;
+	}
+	if (error instanceof Error) {
+		return error;
+	}
+	return new Error(String(error));
+}
+
 // ============================================================================
 // Default Token Verification
 // ============================================================================
@@ -180,7 +191,7 @@ export async function verifyPresentedAccessToken(
 			},
 		};
 	} catch (error) {
-		oauthAuthError = (toBearerAuthError(error) ?? null) as Error | null;
+		oauthAuthError = normalizeProbeError(error);
 		// Fall through to legacy token verification below.
 	}
 
@@ -206,7 +217,7 @@ export async function verifyPresentedAccessToken(
 			},
 		};
 	} catch (error) {
-		legacyAuthError = (toBearerAuthError(error) ?? null) as Error | null;
+		legacyAuthError = normalizeProbeError(error);
 		if (error instanceof InvalidTokenError) {
 			throw error;
 		}

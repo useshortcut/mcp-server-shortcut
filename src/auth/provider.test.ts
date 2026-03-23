@@ -123,15 +123,34 @@ describe("createOAuthProvider default verifier", () => {
 		expect(mockState.calls.length).toBe(2);
 	});
 
-	test("throws InvalidTokenError when both bearer and legacy verification fail", async () => {
+	test("throws InvalidTokenError when both bearer and legacy probes report invalid tokens", async () => {
 		mockState.handler = async () => {
-			throw new Error("Unauthorized");
+			throw new InvalidTokenError("Token is invalid");
 		};
 
 		const provider = createOAuthProvider();
 		await expect(provider.verifyAccessToken("invalid-token")).rejects.toBeInstanceOf(
 			InvalidTokenError,
 		);
+		expect(mockState.calls.length).toBe(2);
+	});
+
+	test("rethrows the first unexpected probe error when both verification paths fail", async () => {
+		const oauthProbeError = new Error("OAuth probe failed unexpectedly");
+		const legacyProbeError = new Error("Legacy probe failed unexpectedly");
+		mockState.handler = async (headers) => {
+			if (getHeader(headers, "Authorization") === "Bearer broken-token") {
+				throw oauthProbeError;
+			}
+			if (getHeader(headers, "Shortcut-Token") === "broken-token") {
+				throw legacyProbeError;
+			}
+			throw new Error("Unauthorized");
+		};
+
+		const provider = createOAuthProvider();
+
+		await expect(provider.verifyAccessToken("broken-token")).rejects.toBe(oauthProbeError);
 		expect(mockState.calls.length).toBe(2);
 	});
 });
