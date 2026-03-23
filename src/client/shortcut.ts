@@ -59,6 +59,14 @@ export class ShortcutClientWrapper {
 		this.customFieldCache = new Cache();
 	}
 
+	private clearAllCaches(): void {
+		this.currentUser = null;
+		this.userCache.clear();
+		this.teamCache.clear();
+		this.workflowCache.clear();
+		this.customFieldCache.clear();
+	}
+
 	/**
 	 * Swaps the underlying Shortcut API client (e.g. after token refresh).
 	 * Clears the current user cache but preserves entity caches since
@@ -67,6 +75,15 @@ export class ShortcutClientWrapper {
 	updateClient(newClient: BaseClient): void {
 		this.client = newClient;
 		this.currentUser = null;
+	}
+
+	/**
+	 * Replaces the underlying client for a different authenticated user and
+	 * clears all per-user caches to avoid leaking cached entities across users.
+	 */
+	replaceClient(newClient: BaseClient): void {
+		this.client = newClient;
+		this.clearAllCaches();
 	}
 
 	private getNextPageToken(next: string | null | undefined) {

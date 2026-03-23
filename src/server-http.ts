@@ -197,6 +197,7 @@ interface SessionData {
 	transport: StreamableHTTPServerTransport;
 	clientWrapper: ShortcutClientWrapper;
 	authType: PresentedAccessTokenAuthType;
+	memberId?: string;
 	createdAt: Date;
 	lastAccessedAt: Date;
 }
@@ -226,11 +227,13 @@ class SessionManager {
 		transport: StreamableHTTPServerTransport,
 		clientWrapper: ShortcutClientWrapper,
 		authType: PresentedAccessTokenAuthType,
+		memberId?: string,
 	): void {
 		this.sessions.set(sessionId, {
 			transport,
 			clientWrapper,
 			authType,
+			memberId,
 			createdAt: new Date(),
 			lastAccessedAt: new Date(),
 		});
@@ -548,18 +551,28 @@ function createServerInstance(
 
 async function createTransport(
 	accessToken: string,
-	authType: PresentedAccessTokenAuthType,
+	authInfo: PresentedAccessTokenAuthInfo,
 	config: ServerConfig,
 	sessionManager: SessionManager,
 ): Promise<StreamableHTTPServerTransport> {
 	let transport: StreamableHTTPServerTransport | null = null;
-	const { server, clientWrapper } = createServerInstance(accessToken, authType, config);
+	const { server, clientWrapper } = createServerInstance(
+		accessToken,
+		authInfo.extra.authType,
+		config,
+	);
 
 	transport = new StreamableHTTPServerTransport({
 		sessionIdGenerator: () => randomUUID(),
 		onsessioninitialized: (sid): void => {
 			if (transport) {
-				sessionManager.add(sid, transport, clientWrapper, authType);
+				sessionManager.add(
+					sid,
+					transport,
+					clientWrapper,
+					authInfo.extra.authType,
+					authInfo.extra.memberId,
+				);
 			}
 		},
 	});
@@ -577,16 +590,39 @@ async function createTransport(
 	return transport;
 }
 
+export function shouldResetSessionClient(
+	session: Pick<SessionData, "memberId">,
+	authInfo: Pick<PresentedAccessTokenAuthInfo, "extra">,
+): boolean {
+	return (
+		typeof session.memberId !== "string" ||
+		typeof authInfo.extra.memberId !== "string" ||
+		session.memberId !== authInfo.extra.memberId
+	);
+}
+
 function updateSessionClientForAuth(
 	session: SessionData,
 	accessToken: string,
 	authInfo: PresentedAccessTokenAuthInfo,
 	config: ServerConfig,
 ): void {
-	session.authType = authInfo.extra.authType;
-	session.clientWrapper.updateClient(
-		createShortcutClientForAuth(accessToken, authInfo.extra.authType, config.apiBaseUrl),
+	const nextClient = createShortcutClientForAuth(
+		accessToken,
+		authInfo.extra.authType,
+		config.apiBaseUrl,
 	);
+	const shouldResetClient = shouldResetSessionClient(session, authInfo);
+
+	session.authType = authInfo.extra.authType;
+	session.memberId = authInfo.extra.memberId;
+
+	if (shouldResetClient) {
+		session.clientWrapper.replaceClient(nextClient);
+		return;
+	}
+
+	session.clientWrapper.updateClient(nextClient);
 }
 
 async function handleMcpPost(
@@ -630,12 +666,7 @@ async function handleMcpPost(
 			if (!authInfo) {
 				return;
 			}
-			const transport = await createTransport(
-				accessToken,
-				authInfo.extra.authType,
-				config,
-				sessionManager,
-			);
+			const transport = await createTransport(accessToken, authInfo, config, sessionManager);
 			await transport.handleRequest(req, res, req.body);
 			return;
 		}

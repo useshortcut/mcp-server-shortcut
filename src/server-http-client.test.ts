@@ -24,7 +24,7 @@ class MockShortcutClient {
 
 mock.module("@shortcut/client", () => ({ ShortcutClient: MockShortcutClient }));
 
-const { createShortcutClientForAuth } = await import("./server-http");
+const { createShortcutClientForAuth, shouldResetSessionClient } = await import("./server-http");
 
 function getHeader(headers: HeadersMap, name: string): unknown {
 	const common =
@@ -52,5 +52,33 @@ describe("server-http auth-aware Shortcut client factory", () => {
 
 		expect(getHeader(headers, "Shortcut-Token")).toBe("legacy-token");
 		expect(getHeader(headers, "Authorization")).toBeUndefined();
+	});
+
+	test("resets session client when the verified member changes", () => {
+		expect(
+			shouldResetSessionClient(
+				{ memberId: "member-1" },
+				{
+					extra: {
+						authType: "oauth",
+						memberId: "member-2",
+					},
+				},
+			),
+		).toBe(true);
+	});
+
+	test("reuses session client when the verified member stays the same", () => {
+		expect(
+			shouldResetSessionClient(
+				{ memberId: "member-1" },
+				{
+					extra: {
+						authType: "legacy-api-token",
+						memberId: "member-1",
+					},
+				},
+			),
+		).toBe(false);
 	});
 });

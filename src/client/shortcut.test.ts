@@ -85,6 +85,43 @@ describe("ShortcutClientWrapper", () => {
 		});
 	});
 
+	describe("client replacement", () => {
+		test("replaceClient clears per-user caches", async () => {
+			const firstClient = {
+				getCurrentMemberInfo: mock(async () => ({
+					data: { id: "1", mention_name: "first-user", name: "First User" },
+				})),
+				listMembers: mock(async () => ({
+					data: [{ id: "1", mention_name: "first-user", name: "First User" }],
+				})),
+			} as unknown as ShortcutClient;
+			const secondClient = {
+				getCurrentMemberInfo: mock(async () => ({
+					data: { id: "2", mention_name: "second-user", name: "Second User" },
+				})),
+				listMembers: mock(async () => ({
+					data: [{ id: "2", mention_name: "second-user", name: "Second User" }],
+				})),
+			} as unknown as ShortcutClient;
+
+			const client = new ShortcutClientWrapper(firstClient);
+			await client.getCurrentUser();
+			await client.listMembers();
+
+			client.replaceClient(secondClient);
+
+			const currentUser = await client.getCurrentUser();
+			const members = await client.listMembers();
+
+			expect(firstClient.getCurrentMemberInfo).toHaveBeenCalledTimes(1);
+			expect(firstClient.listMembers).toHaveBeenCalledTimes(1);
+			expect(secondClient.getCurrentMemberInfo).toHaveBeenCalledTimes(1);
+			expect(secondClient.listMembers).toHaveBeenCalledTimes(1);
+			expect(currentUser?.id).toBe("2");
+			expect(members.map((member) => member.id)).toEqual(["2"]);
+		});
+	});
+
 	describe("Workflows", () => {
 		const workflows = new Array(2)
 			.fill(null)
