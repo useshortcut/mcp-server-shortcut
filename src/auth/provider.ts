@@ -24,7 +24,7 @@ export type PresentedAccessTokenAuthType = "oauth" | "legacy-api-token";
 
 export interface PresentedAccessTokenAuthInfo extends AuthInfo {
 	extra: {
-		memberId: string;
+		memberId?: string;
 		mentionName?: string;
 		authType: PresentedAccessTokenAuthType;
 		[key: string]: unknown;
@@ -329,7 +329,6 @@ export function createOAuthProvider(
 			expiresAt,
 			extra: {
 				authType: "oauth",
-				memberId: "unknown",
 			},
 			refreshToken: tokens.refresh_token ?? previousRefreshToken,
 		};
@@ -391,9 +390,8 @@ export function createOAuthProvider(
 			scopes: tokens.scope?.split(" ") ?? entry.scopes,
 			expiresAt: newExpiresAt,
 			extra: {
-				...(entry.extra ?? {}),
 				authType: "oauth",
-				memberId: typeof entry.extra?.memberId === "string" ? entry.extra.memberId : "unknown",
+				...(typeof entry.extra?.memberId === "string" ? { memberId: entry.extra.memberId } : {}),
 				...(typeof entry.extra?.mentionName === "string"
 					? { mentionName: entry.extra.mentionName }
 					: {}),

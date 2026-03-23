@@ -211,6 +211,10 @@ describe("createOAuthProvider token exchange behavior", () => {
 		expect(tokens.token_type).toBe("Bearer");
 		expect(tokens.expires_in).toBe(3600);
 		expect(tokens.access_token).toBe("new-access-token");
+
+		const authInfo = await provider.verifyAccessToken("new-access-token");
+		expect(authInfo.extra.authType).toBe("oauth");
+		expect(authInfo.extra.memberId).toBeUndefined();
 	});
 
 	test("accepts a previously issued refresh token after server-side rotation", async () => {
