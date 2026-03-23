@@ -20,6 +20,17 @@ import { ShortcutClient } from "@shortcut/client";
 import type { Response } from "express";
 import { toBearerAuthError } from "../http-auth";
 
+export type PresentedAccessTokenAuthType = "oauth" | "legacy-api-token";
+
+export interface PresentedAccessTokenAuthInfo extends AuthInfo {
+	extra: {
+		memberId: string;
+		mentionName?: string;
+		authType: PresentedAccessTokenAuthType;
+		[key: string]: unknown;
+	};
+}
+
 // ============================================================================
 // Configuration (read lazily so tests can set env vars before creation)
 // ============================================================================
@@ -138,7 +149,9 @@ function throwMappedUpstreamOAuthError(status: number, body: string): never {
  * Throws `BearerAuthError` when the upstream service returns an OAuth-style
  * `invalid_token` response so callers can surface a proper 401 challenge.
  */
-export async function verifyPresentedAccessToken(token: string): Promise<AuthInfo> {
+export async function verifyPresentedAccessToken(
+	token: string,
+): Promise<PresentedAccessTokenAuthInfo> {
 	const clientId = process.env.SHORTCUT_OAUTH_CLIENT_ID ?? "unknown";
 	const baseURL = getApiBaseUrl();
 	let oauthAuthError: Error | null = null;
@@ -163,6 +176,7 @@ export async function verifyPresentedAccessToken(token: string): Promise<AuthInf
 			extra: {
 				memberId: String(member.id),
 				mentionName: member.mention_name,
+				authType: "oauth",
 			},
 		};
 	} catch (error) {
@@ -188,6 +202,7 @@ export async function verifyPresentedAccessToken(token: string): Promise<AuthInf
 			extra: {
 				memberId: String(member.id),
 				mentionName: member.mention_name,
+				authType: "legacy-api-token",
 			},
 		};
 	} catch (error) {
@@ -288,7 +303,7 @@ export function createOAuthProvider(
 	// can trust them without calling the Shortcut API (which doesn't accept
 	// OAuth access tokens as API tokens).
 	// Extended entry stores refresh_token for auto-refresh when access_token expires.
-	interface TokenCacheEntry extends AuthInfo {
+	interface TokenCacheEntry extends PresentedAccessTokenAuthInfo {
 		refreshToken?: string;
 	}
 	const issuedTokens = new Map<string, TokenCacheEntry>();
@@ -312,6 +327,10 @@ export function createOAuthProvider(
 			clientId,
 			scopes: tokens.scope?.split(" ") ?? ["openid"],
 			expiresAt,
+			extra: {
+				authType: "oauth",
+				memberId: "unknown",
+			},
 			refreshToken: tokens.refresh_token ?? previousRefreshToken,
 		};
 
@@ -371,6 +390,15 @@ export function createOAuthProvider(
 			clientId: entry.clientId,
 			scopes: tokens.scope?.split(" ") ?? entry.scopes,
 			expiresAt: newExpiresAt,
+			extra: {
+				...(entry.extra ?? {}),
+				authType: "oauth",
+				memberId:
+					typeof entry.extra?.memberId === "string" ? entry.extra.memberId : "unknown",
+				...(typeof entry.extra?.mentionName === "string"
+					? { mentionName: entry.extra.mentionName }
+					: {}),
+			},
 			refreshToken: tokens.refresh_token ?? entry.refreshToken,
 		};
 

@@ -5,6 +5,8 @@ This guide covers running the Shortcut MCP server locally using `npx`. This is t
 All local configurations require a **Shortcut API token**. You can generate one at [https://app.shortcut.com/settings/account/api-tokens](https://app.shortcut.com/settings/account/api-tokens).
 
 > **Tip:** If your IDE supports HTTP-based MCP servers (like Cursor or VS Code), you can connect directly to `https://mcp.shortcut.com/mcp` instead — no API token or local setup required. See the [main README](../README.md) for details.
+>
+> If you are self-hosting the HTTP server instead of using stdio, older MCP clients can also use that same token as a static `Authorization: Bearer <token>` value in their client configuration.
 
 ## Windsurf
 

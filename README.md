@@ -49,6 +49,18 @@ If all you need need the configuration for the mcp.json file use this. You will 
 }
 ```
 
+### Codex (OpenAI)
+
+1. Generate yourself a Shortcut API token in your [Shortcut settings](https://app.shortcut.com/internal/settings/account/api-tokens)
+1. Set the `SHORTCUT_API_TOKEN` environment variable in your shell environment
+1. Add the following to `~/.codex/config.toml` 
+
+```toml
+[mcp_servers.shortcut]
+url = "https://mcp.shortcut.com/mcp"
+bearer_token_env_var = "SHORTCUT_API_TOKEN"
+```
+
 For more detail on installing MCP services in VSCode see the [official VS Code MCP docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers) for more information.
 
 ### Claude Desktop
@@ -60,6 +72,8 @@ Then, either double-click the icon to install or drag the package onto the clien
 ### Other IDEs / Running Locally
 
 If your IDE doesn't support HTTP-based MCP servers, or you'd prefer to run the server locally, see the [Local Server Setup](docs/local-server.md) guide. This covers setup for **Windsurf**, **Zed**, **Claude Code**, and any IDE that supports stdio-based MCP servers.
+
+If you self-host the HTTP server, it also supports older MCP clients that store a Shortcut token in client config and send it as `Authorization: Bearer <token>` on each request. Newer MCP clients can continue using the OAuth flow.
 
 ## Available Tools
 

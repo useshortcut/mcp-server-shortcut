@@ -89,6 +89,7 @@ describe("createOAuthProvider default verifier", () => {
 		expect(authInfo.extra).toEqual({
 			memberId: "member-1",
 			mentionName: "oauth-user",
+			authType: "oauth",
 		});
 		expect(mockState.calls.length).toBe(1);
 		expect(getHeader(mockState.calls[0], "Shortcut-Token")).toBeUndefined();
@@ -117,6 +118,7 @@ describe("createOAuthProvider default verifier", () => {
 		expect(authInfo.extra).toEqual({
 			memberId: "member-2",
 			mentionName: "legacy-user",
+			authType: "legacy-api-token",
 		});
 		expect(mockState.calls.length).toBe(2);
 	});

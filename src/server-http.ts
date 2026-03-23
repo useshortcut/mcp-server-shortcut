@@ -6,7 +6,11 @@ import { ShortcutClient } from "@shortcut/client";
 import express, { type NextFunction, type Request, type Response } from "express";
 import pino from "pino";
 import { ShortcutClientWrapper } from "@/client/shortcut";
-import { verifyPresentedAccessToken } from "./auth/provider";
+import {
+	type PresentedAccessTokenAuthInfo,
+	type PresentedAccessTokenAuthType,
+	verifyPresentedAccessToken,
+} from "./auth/provider";
 import { buildBearerAuthHeader, parseBearerAuthError, toBearerAuthError } from "./http-auth";
 import { CustomMcpServer } from "./mcp/CustomMcpServer";
 import { CustomFieldTools } from "./tools/custom-fields";
@@ -192,6 +196,7 @@ export function getWellKnownRedirectUrl(
 interface SessionData {
 	transport: StreamableHTTPServerTransport;
 	clientWrapper: ShortcutClientWrapper;
+	authType: PresentedAccessTokenAuthType;
 	createdAt: Date;
 	lastAccessedAt: Date;
 }
@@ -220,10 +225,12 @@ class SessionManager {
 		sessionId: string,
 		transport: StreamableHTTPServerTransport,
 		clientWrapper: ShortcutClientWrapper,
+		authType: PresentedAccessTokenAuthType,
 	): void {
 		this.sessions.set(sessionId, {
 			transport,
 			clientWrapper,
+			authType,
 			createdAt: new Date(),
 			lastAccessedAt: new Date(),
 		});
@@ -384,16 +391,16 @@ function mapVerifierErrorToBearerAuth(error: unknown) {
 export async function preflightVerifyAccessToken(
 	accessToken: string,
 	res: Response,
-	verifyAccessToken: (token: string) => Promise<unknown> = verifyPresentedAccessToken,
-): Promise<boolean> {
+	verifyAccessToken: (token: string) => Promise<PresentedAccessTokenAuthInfo> =
+		verifyPresentedAccessToken,
+): Promise<PresentedAccessTokenAuthInfo | null> {
 	try {
-		await verifyAccessToken(accessToken);
-		return true;
+		return await verifyAccessToken(accessToken);
 	} catch (error) {
 		const authError = mapVerifierErrorToBearerAuth(error);
 		if (authError) {
 			sendBearerTokenError(res, authError);
-			return false;
+			return null;
 		}
 		throw error;
 	}
@@ -424,24 +431,11 @@ function isAuthorizedForSession(
 	return true;
 }
 
-function createOAuthShortcutClient(accessToken: string, baseURL: string): ShortcutClient {
-	const client = new ShortcutClient("_placeholder_", {
-		baseURL,
-		headers: {
-			Authorization: `Bearer ${accessToken}`,
-		},
-	});
-	// biome-ignore lint/suspicious/noExplicitAny: accessing axios internals
-	const instance = (client as any).instance;
-	if (instance?.defaults?.headers) {
-		delete instance.defaults.headers["Shortcut-Token"];
-		if (instance.defaults.headers.common) {
-			delete instance.defaults.headers.common["Shortcut-Token"];
-		}
-	}
-
+function installShortcutClientDebugging(client: ShortcutClient): ShortcutClient {
 	// Log outbound Shortcut API traffic in verbose modes.
 	// DEBUG_LEVEL=2 and DEBUG_LEVEL=3 both enable full API request/response visibility.
+	// biome-ignore lint/suspicious/noExplicitAny: accessing axios internals
+	const instance = (client as any).instance;
 	if (httpDebugVerbose && instance?.interceptors) {
 		instance.interceptors.request.use((config: unknown) => {
 			const cfg = config as Record<string, unknown>;
@@ -488,8 +482,42 @@ function createOAuthShortcutClient(accessToken: string, baseURL: string): Shortc
 	return client;
 }
 
+function createOAuthShortcutClient(accessToken: string, baseURL: string): ShortcutClient {
+	const client = new ShortcutClient("_placeholder_", {
+		baseURL,
+		headers: {
+			Authorization: `Bearer ${accessToken}`,
+		},
+	});
+	// biome-ignore lint/suspicious/noExplicitAny: accessing axios internals
+	const instance = (client as any).instance;
+	if (instance?.defaults?.headers) {
+		delete instance.defaults.headers["Shortcut-Token"];
+		if (instance.defaults.headers.common) {
+			delete instance.defaults.headers.common["Shortcut-Token"];
+		}
+	}
+
+	return installShortcutClientDebugging(client);
+}
+
+function createLegacyShortcutClient(accessToken: string, baseURL: string): ShortcutClient {
+	return installShortcutClientDebugging(new ShortcutClient(accessToken, { baseURL }));
+}
+
+export function createShortcutClientForAuth(
+	accessToken: string,
+	authType: PresentedAccessTokenAuthType,
+	baseURL: string,
+): ShortcutClient {
+	return authType === "legacy-api-token"
+		? createLegacyShortcutClient(accessToken, baseURL)
+		: createOAuthShortcutClient(accessToken, baseURL);
+}
+
 function createServerInstance(
 	accessToken: string,
+	authType: PresentedAccessTokenAuthType,
 	config: ServerConfig,
 ): { server: CustomMcpServer; clientWrapper: ShortcutClientWrapper } {
 	const server = new CustomMcpServer({
@@ -498,7 +526,7 @@ function createServerInstance(
 	});
 
 	const clientWrapper = new ShortcutClientWrapper(
-		createOAuthShortcutClient(accessToken, config.apiBaseUrl),
+		createShortcutClientForAuth(accessToken, authType, config.apiBaseUrl),
 	);
 
 	// Most important tools should be at the top.
@@ -519,17 +547,18 @@ function createServerInstance(
 
 async function createTransport(
 	accessToken: string,
+	authType: PresentedAccessTokenAuthType,
 	config: ServerConfig,
 	sessionManager: SessionManager,
 ): Promise<StreamableHTTPServerTransport> {
 	let transport: StreamableHTTPServerTransport | null = null;
-	const { server, clientWrapper } = createServerInstance(accessToken, config);
+	const { server, clientWrapper } = createServerInstance(accessToken, authType, config);
 
 	transport = new StreamableHTTPServerTransport({
 		sessionIdGenerator: () => randomUUID(),
 		onsessioninitialized: (sid): void => {
 			if (transport) {
-				sessionManager.add(sid, transport, clientWrapper);
+				sessionManager.add(sid, transport, clientWrapper, authType);
 			}
 		},
 	});
@@ -545,6 +574,18 @@ async function createTransport(
 
 	await server.connect(transport);
 	return transport;
+}
+
+function updateSessionClientForAuth(
+	session: SessionData,
+	accessToken: string,
+	authInfo: PresentedAccessTokenAuthInfo,
+	config: ServerConfig,
+): void {
+	session.authType = authInfo.extra.authType;
+	session.clientWrapper.updateClient(
+		createShortcutClientForAuth(accessToken, authInfo.extra.authType, config.apiBaseUrl),
+	);
 }
 
 async function handleMcpPost(
@@ -569,12 +610,11 @@ async function handleMcpPost(
 				return;
 			}
 			if (accessToken) {
-				if (!(await preflightVerifyAccessToken(accessToken, res))) {
+				const authInfo = await preflightVerifyAccessToken(accessToken, res);
+				if (!authInfo) {
 					return;
 				}
-				session.clientWrapper.updateClient(
-					createOAuthShortcutClient(accessToken, config.apiBaseUrl),
-				);
+				updateSessionClientForAuth(session, accessToken, authInfo, config);
 			}
 			await session.transport.handleRequest(req, res, req.body);
 			return;
@@ -585,10 +625,16 @@ async function handleMcpPost(
 				sendUnauthorizedError(res, requestId);
 				return;
 			}
-			if (!(await preflightVerifyAccessToken(accessToken, res))) {
+			const authInfo = await preflightVerifyAccessToken(accessToken, res);
+			if (!authInfo) {
 				return;
 			}
-			const transport = await createTransport(accessToken, config, sessionManager);
+			const transport = await createTransport(
+				accessToken,
+				authInfo.extra.authType,
+				config,
+				sessionManager,
+			);
 			await transport.handleRequest(req, res, req.body);
 			return;
 		}
@@ -648,10 +694,11 @@ async function handleMcpGet(
 			return;
 		}
 		if (accessToken) {
-			if (!(await preflightVerifyAccessToken(accessToken, res))) {
+			const authInfo = await preflightVerifyAccessToken(accessToken, res);
+			if (!authInfo) {
 				return;
 			}
-			session.clientWrapper.updateClient(createOAuthShortcutClient(accessToken, config.apiBaseUrl));
+			updateSessionClientForAuth(session, accessToken, authInfo, config);
 		}
 		await session.transport.handleRequest(req, res);
 	} catch (error) {
@@ -702,10 +749,11 @@ async function handleMcpDelete(
 			return;
 		}
 		if (accessToken) {
-			if (!(await preflightVerifyAccessToken(accessToken, res))) {
+			const authInfo = await preflightVerifyAccessToken(accessToken, res);
+			if (!authInfo) {
 				return;
 			}
-			session.clientWrapper.updateClient(createOAuthShortcutClient(accessToken, config.apiBaseUrl));
+			updateSessionClientForAuth(session, accessToken, authInfo, config);
 		}
 		await session.transport.handleRequest(req, res);
 	} catch (error) {
@@ -805,7 +853,7 @@ export async function startServer() {
 			transport: "streamable-http",
 			timestamp: new Date().toISOString(),
 			version: "2025-11-25",
-			auth: "none",
+			auth: "bearer-required",
 		});
 	});
 
@@ -870,7 +918,7 @@ export async function startServer() {
 
 if (import.meta.main) {
 	startServer().catch((error) => {
-		logger.fatal({ error }, "Fatal error starting no-auth HTTP server");
+		logger.fatal({ error }, "Fatal error starting bearer-auth HTTP server");
 		process.exit(1);
 	});
 }
