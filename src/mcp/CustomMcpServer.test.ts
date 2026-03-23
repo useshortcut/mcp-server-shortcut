@@ -70,6 +70,29 @@ describe("CustomMcpServer", () => {
 		).toBeNull();
 	});
 
+	test("adds a default title to discovered tools", async () => {
+		const server = new CustomMcpServer({ readonly: false, tools: null });
+		server.addToolWithReadAccess("stories-get-by-id", "test", async () => {
+			return { content: [] };
+		});
+
+		const client = new Client({
+			name: "test-client",
+			version: "1.0.0",
+		});
+		const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+		await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+
+		const { tools } = await client.listTools();
+		expect(tools).toContainEqual(
+			expect.objectContaining({
+				name: "stories-get-by-id",
+				title: "Stories: Get By ID",
+			}),
+		);
+	});
+
 	test("surfaces bearer auth failures as structured MCP errors", async () => {
 		const server = new CustomMcpServer({ readonly: false, tools: null });
 		server.addToolWithReadAccess("test-auth", "test", async () => {

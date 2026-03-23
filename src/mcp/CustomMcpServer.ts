@@ -28,6 +28,13 @@ export class CustomMcpServer extends McpServer {
 	private readonly: boolean;
 	private tools: Set<string>;
 	private authAwareToolHandlerInstalled = false;
+	private static readonly toolAnnotationKeys = new Set([
+		"title",
+		"readOnlyHint",
+		"destructiveHint",
+		"idempotentHint",
+		"openWorldHint",
+	]);
 
 	constructor({ readonly, tools }: { readonly: boolean; tools: string[] | null | undefined }) {
 		super({ name, version });
@@ -51,6 +58,147 @@ export class CustomMcpServer extends McpServer {
 			if (name.startsWith(`${tool}-`)) return true;
 		}
 		return false;
+	}
+
+	private buildDefaultToolTitle(name: string): string {
+		const [entity, ...actionParts] = name.split("-");
+		const titleCase = (part: string) => {
+			const upperCaseWords = new Set(["id", "ids", "pr", "prs", "url", "urls", "api"]);
+			return upperCaseWords.has(part) ? part.toUpperCase() : `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`;
+		};
+		const entityTitle = titleCase(entity ?? name);
+		if (!actionParts.length) return entityTitle;
+		return `${entityTitle}: ${actionParts.map(titleCase).join(" ")}`;
+	}
+
+	private isToolAnnotations(value: unknown): value is ToolAnnotations {
+		if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+		const keys = Object.keys(value);
+		return keys.length > 0 && keys.every((key) => CustomMcpServer.toolAnnotationKeys.has(key));
+	}
+
+	private parseToolRegistration(args: any[]): {
+		name: string;
+		config: {
+			title: string;
+			description?: string;
+			inputSchema?: ZodRawShape;
+			annotations?: ToolAnnotations;
+		};
+		cb: (...cbArgs: any[]) => CallToolResult | Promise<CallToolResult>;
+		hasInputSchema: boolean;
+	} {
+		const [name] = args;
+		if (typeof name !== "string" || args.length < 2) {
+			throw new Error("Invalid tool registration arguments.");
+		}
+
+		const config: {
+			title: string;
+			description?: string;
+			inputSchema?: ZodRawShape;
+			annotations?: ToolAnnotations;
+		} = {
+			title: this.buildDefaultToolTitle(name),
+		};
+
+		const setAnnotations = (annotations: ToolAnnotations | undefined) => {
+			if (!annotations) return;
+			config.annotations = {
+				...annotations,
+				title: annotations.title ?? config.title,
+			};
+			config.title = annotations.title ?? config.title;
+		};
+
+		switch (args.length) {
+			case 2:
+				return {
+					name,
+					config,
+					cb: args[1],
+					hasInputSchema: false,
+				};
+			case 3:
+				if (typeof args[1] === "string") {
+					config.description = args[1];
+					return {
+						name,
+						config,
+						cb: args[2],
+						hasInputSchema: false,
+					};
+				}
+				if (this.isToolAnnotations(args[1])) {
+					setAnnotations(args[1]);
+					return {
+						name,
+						config,
+						cb: args[2],
+						hasInputSchema: false,
+					};
+				}
+				config.inputSchema = args[1];
+				return {
+					name,
+					config,
+					cb: args[2],
+					hasInputSchema: true,
+				};
+			case 4:
+				if (typeof args[1] === "string") {
+					config.description = args[1];
+					if (this.isToolAnnotations(args[2])) {
+						setAnnotations(args[2]);
+						return {
+							name,
+							config,
+							cb: args[3],
+							hasInputSchema: false,
+						};
+					}
+					config.inputSchema = args[2];
+					return {
+						name,
+						config,
+						cb: args[3],
+						hasInputSchema: true,
+					};
+				}
+				config.inputSchema = args[1];
+				setAnnotations(args[2]);
+				return {
+					name,
+					config,
+					cb: args[3],
+					hasInputSchema: true,
+				};
+			case 5:
+				config.description = args[1];
+				config.inputSchema = args[2];
+				setAnnotations(args[3]);
+				return {
+					name,
+					config,
+					cb: args[4],
+					hasInputSchema: true,
+				};
+			default:
+				throw new Error("Unsupported tool registration arguments.");
+		}
+	}
+
+	private registerTool(...args: any[]): RegisteredTool | null {
+		const { name, config, cb, hasInputSchema } = this.parseToolRegistration(args);
+		// biome-ignore lint/suspicious/noExplicitAny: Delegate to SDK registerTool with a normalized config object
+		return (McpServer.prototype as any).registerTool.call(
+			this,
+			name,
+			config,
+			hasInputSchema
+				? async (input: any, extra: ToolExtra) => await cb(input, extra)
+				: async (_input: unknown, extra: ToolExtra) => await cb(extra),
+		);
 	}
 
 	// Overloads for addToolWithWriteAccess to match all variants of the base tool() method
@@ -88,8 +236,7 @@ export class CustomMcpServer extends McpServer {
 	addToolWithWriteAccess(...args: any[]): RegisteredTool | null {
 		if (this.readonly) return null;
 		if (!this.shouldAddTool(args[0])) return null;
-		// biome-ignore lint/suspicious/noExplicitAny: Delegate to parent with proper type casting
-		return (super.tool as any)(...args);
+		return this.registerTool(...args);
 	}
 
 	// Overloads for addToolWithReadAccess to match all variants of the base tool() method
@@ -126,8 +273,7 @@ export class CustomMcpServer extends McpServer {
 	// biome-ignore lint/suspicious/noExplicitAny: Implementation signature uses any to allow all overload variants
 	addToolWithReadAccess(...args: any[]): RegisteredTool | null {
 		if (!this.shouldAddTool(args[0])) return null;
-		// biome-ignore lint/suspicious/noExplicitAny: Delegate to parent with proper type casting
-		return (super.tool as any)(...args);
+		return this.registerTool(...args);
 	}
 
 	/**
