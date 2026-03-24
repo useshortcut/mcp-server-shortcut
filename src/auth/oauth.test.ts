@@ -251,10 +251,10 @@ describe("OAuth Flow Tests", () => {
 			expect(rootRes.status).toBe(200);
 			expect(mcpRes.status).toBe(200);
 
-			const [rootData, mcpData] = (await Promise.all([
-				rootRes.json(),
-				mcpRes.json(),
-			])) as [ResourceMetadataResponse, ResourceMetadataResponse];
+			const [rootData, mcpData] = (await Promise.all([rootRes.json(), mcpRes.json()])) as [
+				ResourceMetadataResponse,
+				ResourceMetadataResponse,
+			];
 			expect(rootData).toEqual(mcpData);
 		});
 
