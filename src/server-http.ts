@@ -175,18 +175,21 @@ export function getWellKnownRedirectUrl(
 	path: string,
 	config: Pick<ServerConfig, "apiBaseUrl" | "authServerIssuerUrl">,
 ): string | null {
-	if (
-		path === "/.well-known/oauth-protected-resource" ||
-		path === "/.well-known/oauth-protected-resource/mcp"
-	) {
-		return new URL(path, config.apiBaseUrl).toString();
-	}
-
 	if (path === "/.well-known/oauth-authorization-server") {
 		return new URL(path, config.authServerIssuerUrl).toString();
 	}
 
 	return null;
+}
+
+export function getProtectedResourceMetadata(
+	config: Pick<ServerConfig, "mcpServerUrl" | "authServerIssuerUrl">,
+) {
+	return {
+		resource: `${config.mcpServerUrl}/mcp`,
+		authorization_servers: [config.authServerIssuerUrl],
+		scopes_supported: ["openid"],
+	};
 }
 
 interface SessionData {
@@ -809,23 +812,24 @@ export async function startServer() {
 		});
 	});
 
-	// Redirect metadata discovery to the upstream Shortcut API/auth server so
-	// clients can fetch the authoritative well-known documents directly.
+	// Serve protected-resource metadata locally so clients discover this MCP
+	// server's `/mcp` endpoint without being redirected upstream.
 	app.get(
-		[
-			"/.well-known/oauth-protected-resource",
-			"/.well-known/oauth-protected-resource/mcp",
-			"/.well-known/oauth-authorization-server",
-		],
-		(req, res) => {
-			const redirectUrl = getWellKnownRedirectUrl(req.path, config);
-			if (!redirectUrl) {
-				res.sendStatus(404);
-				return;
-			}
-			res.redirect(302, redirectUrl);
+		["/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/mcp"],
+		(_req, res) => {
+			res.json(getProtectedResourceMetadata(config));
 		},
 	);
+
+	// Redirect auth-server metadata discovery to the upstream auth server.
+	app.get("/.well-known/oauth-authorization-server", (req, res) => {
+		const redirectUrl = getWellKnownRedirectUrl(req.path, config);
+		if (!redirectUrl) {
+			res.sendStatus(404);
+			return;
+		}
+		res.redirect(302, redirectUrl);
+	});
 
 	app.post("/mcp", requireBearerHeader, (req, res) =>
 		handleMcpPost(req, res, sessionManager, config),
