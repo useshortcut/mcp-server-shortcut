@@ -169,6 +169,14 @@ function createTestApp(): express.Express {
 		}),
 	);
 
+	app.get("/.well-known/oauth-protected-resource", (_req, res) => {
+		res.json({
+			resource: mcpResourceUrl.toString(),
+			authorization_servers: [new URL("/", placeholderUrl).toString()],
+			scopes_supported: ["openid"],
+		});
+	});
+
 	// OAuth callback relay
 	app.get(provider.callbackPath, (req, res) => {
 		const { code, state, error, error_description } = req.query as Record<string, string>;
