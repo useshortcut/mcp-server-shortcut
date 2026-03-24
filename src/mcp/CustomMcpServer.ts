@@ -23,6 +23,7 @@ type WithArgsCallback<Args extends ZodRawShape> = (
 	args: ZodInfer<ZodObject<Args>>,
 	extra: ToolExtra,
 ) => CallToolResult | Promise<CallToolResult>;
+type ToolAccess = "read" | "write";
 
 export class CustomMcpServer extends McpServer {
 	private readonly: boolean;
@@ -77,7 +78,30 @@ export class CustomMcpServer extends McpServer {
 		return keys.length > 0 && keys.every((key) => CustomMcpServer.toolAnnotationKeys.has(key));
 	}
 
-	private parseToolRegistration(args: any[]): {
+	private defaultToolAnnotations(access: ToolAccess, name: string): ToolAnnotations {
+		const isDestructiveWrite =
+			access === "write" &&
+			(name.includes("-delete") ||
+				name.includes("-remove") ||
+				name.includes("-archive") ||
+				name.includes("-purge"));
+		if (access === "read") {
+			return {
+				readOnlyHint: true,
+				idempotentHint: true,
+				destructiveHint: false,
+				openWorldHint: false,
+			};
+		}
+		return {
+			readOnlyHint: false,
+			idempotentHint: false,
+			destructiveHint: isDestructiveWrite,
+			openWorldHint: false,
+		};
+	}
+
+	private parseToolRegistration(access: ToolAccess, args: any[]): {
 		name: string;
 		config: {
 			title: string;
@@ -100,13 +124,14 @@ export class CustomMcpServer extends McpServer {
 			annotations?: ToolAnnotations;
 		} = {
 			title: this.buildDefaultToolTitle(name),
+			annotations: this.defaultToolAnnotations(access, name),
 		};
 
 		const setAnnotations = (annotations: ToolAnnotations | undefined) => {
 			if (!annotations) return;
 			config.annotations = {
+				...config.annotations,
 				...annotations,
-				title: annotations.title ?? config.title,
 			};
 			config.title = annotations.title ?? config.title;
 		};
@@ -188,8 +213,8 @@ export class CustomMcpServer extends McpServer {
 		}
 	}
 
-	private registerTool(...args: any[]): RegisteredTool | null {
-		const { name, config, cb, hasInputSchema } = this.parseToolRegistration(args);
+	private registerToolWithAccess(access: ToolAccess, ...args: any[]): RegisteredTool | null {
+		const { name, config, cb, hasInputSchema } = this.parseToolRegistration(access, args);
 		// biome-ignore lint/suspicious/noExplicitAny: Delegate to SDK registerTool with a normalized config object
 		return (McpServer.prototype as any).registerTool.call(
 			this,
@@ -236,7 +261,7 @@ export class CustomMcpServer extends McpServer {
 	addToolWithWriteAccess(...args: any[]): RegisteredTool | null {
 		if (this.readonly) return null;
 		if (!this.shouldAddTool(args[0])) return null;
-		return this.registerTool(...args);
+		return this.registerToolWithAccess("write", ...args);
 	}
 
 	// Overloads for addToolWithReadAccess to match all variants of the base tool() method
@@ -273,7 +298,7 @@ export class CustomMcpServer extends McpServer {
 	// biome-ignore lint/suspicious/noExplicitAny: Implementation signature uses any to allow all overload variants
 	addToolWithReadAccess(...args: any[]): RegisteredTool | null {
 		if (!this.shouldAddTool(args[0])) return null;
-		return this.registerTool(...args);
+		return this.registerToolWithAccess("read", ...args);
 	}
 
 	/**

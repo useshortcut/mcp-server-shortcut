@@ -93,6 +93,62 @@ describe("CustomMcpServer", () => {
 		);
 	});
 
+	test("adds default annotations to read tools", async () => {
+		const server = new CustomMcpServer({ readonly: false, tools: null });
+		server.addToolWithReadAccess("stories-search", "test", async () => {
+			return { content: [] };
+		});
+
+		const client = new Client({
+			name: "test-client",
+			version: "1.0.0",
+		});
+		const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+		await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+
+		const { tools } = await client.listTools();
+		expect(tools).toContainEqual(
+			expect.objectContaining({
+				name: "stories-search",
+				annotations: expect.objectContaining({
+					readOnlyHint: true,
+					idempotentHint: true,
+					destructiveHint: false,
+					openWorldHint: false,
+				}),
+			}),
+		);
+	});
+
+	test("marks delete and remove write tools as destructive", async () => {
+		const server = new CustomMcpServer({ readonly: false, tools: null });
+		server.addToolWithWriteAccess("stories-remove-subtask", "test", async () => {
+			return { content: [] };
+		});
+
+		const client = new Client({
+			name: "test-client",
+			version: "1.0.0",
+		});
+		const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+		await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+
+		const { tools } = await client.listTools();
+		expect(tools).toContainEqual(
+			expect.objectContaining({
+				name: "stories-remove-subtask",
+				annotations: expect.objectContaining({
+					readOnlyHint: false,
+					idempotentHint: false,
+					destructiveHint: true,
+					openWorldHint: false,
+				}),
+			}),
+		);
+	});
+
 	test("surfaces bearer auth failures as structured MCP errors", async () => {
 		const server = new CustomMcpServer({ readonly: false, tools: null });
 		server.addToolWithReadAccess("test-auth", "test", async () => {
