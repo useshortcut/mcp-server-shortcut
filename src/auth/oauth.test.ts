@@ -169,6 +169,14 @@ function createTestApp(): express.Express {
 		}),
 	);
 
+	app.get("/.well-known/oauth-protected-resource", (_req, res) => {
+		res.json({
+			resource: mcpResourceUrl.toString(),
+			authorization_servers: [new URL("/", placeholderUrl).toString()],
+			scopes_supported: ["openid"],
+		});
+	});
+
 	// OAuth callback relay
 	app.get(provider.callbackPath, (req, res) => {
 		const { code, state, error, error_description } = req.query as Record<string, string>;
@@ -243,6 +251,21 @@ beforeEach(() => {
 
 describe("OAuth Flow Tests", () => {
 	describe("Metadata Discovery", () => {
+		test("GET /.well-known/oauth-protected-resource returns the same metadata as /mcp", async () => {
+			const [rootRes, mcpRes] = await Promise.all([
+				fetch(`${baseUrl}/.well-known/oauth-protected-resource`),
+				fetch(`${baseUrl}/.well-known/oauth-protected-resource/mcp`),
+			]);
+			expect(rootRes.status).toBe(200);
+			expect(mcpRes.status).toBe(200);
+
+			const [rootData, mcpData] = (await Promise.all([rootRes.json(), mcpRes.json()])) as [
+				ResourceMetadataResponse,
+				ResourceMetadataResponse,
+			];
+			expect(rootData).toEqual(mcpData);
+		});
+
 		test("GET /.well-known/oauth-protected-resource/mcp returns resource metadata", async () => {
 			const res = await fetch(`${baseUrl}/.well-known/oauth-protected-resource/mcp`);
 			expect(res.status).toBe(200);
