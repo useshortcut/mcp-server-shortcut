@@ -61,6 +61,14 @@ function createIntegrationTestApp(): express.Express {
 		}),
 	);
 
+	app.get("/.well-known/oauth-protected-resource", (_req, res) => {
+		res.json({
+			resource: mcpResourceUrl.toString(),
+			authorization_servers: [new URL("/", placeholderUrl).toString()],
+			scopes_supported: ["openid"],
+		});
+	});
+
 	app.get("/health", (_req, res) => {
 		res.json({ status: "ok" });
 	});
