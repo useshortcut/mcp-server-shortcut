@@ -230,7 +230,9 @@ describe("server-http (no-auth) smoke tests", () => {
 				"https://auth.example.com/.well-known/oauth-authorization-server",
 			);
 			expect(getWellKnownRedirectUrl("/.well-known/oauth-protected-resource", config)).toBeNull();
-			expect(getWellKnownRedirectUrl("/.well-known/oauth-protected-resource/mcp", config)).toBeNull();
+			expect(
+				getWellKnownRedirectUrl("/.well-known/oauth-protected-resource/mcp", config),
+			).toBeNull();
 			expect(getWellKnownRedirectUrl("/not-well-known", config)).toBeNull();
 		});
 	});
