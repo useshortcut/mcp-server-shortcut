@@ -243,6 +243,21 @@ beforeEach(() => {
 
 describe("OAuth Flow Tests", () => {
 	describe("Metadata Discovery", () => {
+		test("GET /.well-known/oauth-protected-resource returns the same metadata as /mcp", async () => {
+			const [rootRes, mcpRes] = await Promise.all([
+				fetch(`${baseUrl}/.well-known/oauth-protected-resource`),
+				fetch(`${baseUrl}/.well-known/oauth-protected-resource/mcp`),
+			]);
+			expect(rootRes.status).toBe(200);
+			expect(mcpRes.status).toBe(200);
+
+			const [rootData, mcpData] = (await Promise.all([
+				rootRes.json(),
+				mcpRes.json(),
+			])) as [ResourceMetadataResponse, ResourceMetadataResponse];
+			expect(rootData).toEqual(mcpData);
+		});
+
 		test("GET /.well-known/oauth-protected-resource/mcp returns resource metadata", async () => {
 			const res = await fetch(`${baseUrl}/.well-known/oauth-protected-resource/mcp`);
 			expect(res.status).toBe(200);

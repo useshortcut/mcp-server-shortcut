@@ -130,6 +130,21 @@ describe.skipIf(SKIP)("OAuth Integration Tests (staging)", () => {
 	});
 
 	describe("Metadata Discovery (live)", () => {
+		test("local MCP server serves protected resource metadata on both well-known paths", async () => {
+			const [rootRes, mcpRes] = await Promise.all([
+				fetch(`${baseUrl}/.well-known/oauth-protected-resource`),
+				fetch(`${baseUrl}/.well-known/oauth-protected-resource/mcp`),
+			]);
+			expect(rootRes.status).toBe(200);
+			expect(mcpRes.status).toBe(200);
+
+			const [rootData, mcpData] = (await Promise.all([
+				rootRes.json(),
+				mcpRes.json(),
+			])) as [ResourceMetadataResponse, ResourceMetadataResponse];
+			expect(rootData).toEqual(mcpData);
+		});
+
 		test("local MCP server serves protected resource metadata", async () => {
 			const res = await fetch(`${baseUrl}/.well-known/oauth-protected-resource/mcp`);
 			expect(res.status).toBe(200);

@@ -1,6 +1,6 @@
 import { describe, expect, mock, test } from "bun:test";
 import type { Request, Response } from "express";
-import { getWellKnownRedirectUrl } from "./server-http";
+import { getProtectedResourceMetadata, getWellKnownRedirectUrl } from "./server-http";
 
 interface MockRequest extends Partial<Request> {
 	headers: Record<string, string | string[] | undefined>;
@@ -198,18 +198,26 @@ describe("server-http (no-auth) smoke tests", () => {
 			});
 		});
 
-		test("maps well-known protected resource paths to the API server", () => {
+		test("builds protected-resource metadata from local server config", () => {
+			const previousAuthServer = process.env.AUTH_SERVER;
+			process.env.AUTH_SERVER = "auth.example.com";
+
 			const config = {
-				apiBaseUrl: "https://api.example.com",
+				mcpServerUrl: "http://localhost:9292",
 				authServerIssuerUrl: "https://auth.example.com",
 			};
 
-			expect(getWellKnownRedirectUrl("/.well-known/oauth-protected-resource", config)).toBe(
-				"https://api.example.com/.well-known/oauth-protected-resource",
-			);
-			expect(getWellKnownRedirectUrl("/.well-known/oauth-protected-resource/mcp", config)).toBe(
-				"https://api.example.com/.well-known/oauth-protected-resource/mcp",
-			);
+			expect(getProtectedResourceMetadata(config)).toEqual({
+				resource: "http://localhost:9292/mcp",
+				authorization_servers: ["https://auth.example.com"],
+				scopes_supported: ["openid"],
+			});
+
+			if (previousAuthServer === undefined) {
+				delete process.env.AUTH_SERVER;
+			} else {
+				process.env.AUTH_SERVER = previousAuthServer;
+			}
 		});
 
 		test("maps the OAuth authorization-server path to the auth server", () => {
@@ -221,6 +229,8 @@ describe("server-http (no-auth) smoke tests", () => {
 			expect(getWellKnownRedirectUrl("/.well-known/oauth-authorization-server", config)).toBe(
 				"https://auth.example.com/.well-known/oauth-authorization-server",
 			);
+			expect(getWellKnownRedirectUrl("/.well-known/oauth-protected-resource", config)).toBeNull();
+			expect(getWellKnownRedirectUrl("/.well-known/oauth-protected-resource/mcp", config)).toBeNull();
 			expect(getWellKnownRedirectUrl("/not-well-known", config)).toBeNull();
 		});
 	});
