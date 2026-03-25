@@ -34,34 +34,12 @@ type ToolConfig = {
 	inputSchema?: ZodRawShape;
 	annotations?: ToolAnnotations;
 };
-type ParsedToolRegistration =
-	| {
-			name: string;
-			config: ToolConfig;
-			cb: NoArgsCallback;
-			hasInputSchema: false;
-	  }
-	| {
-			name: string;
-			config: ToolConfig;
-			cb: AnyArgsCallback;
-			hasInputSchema: true;
-	  };
-type ToolRegistrationArgs =
-	| [name: string, cb: NoArgsCallback]
-	| [name: string, description: string, cb: NoArgsCallback]
-	| [name: string, annotations: ToolAnnotations, cb: NoArgsCallback]
-	| [name: string, inputSchema: ZodRawShape, cb: AnyArgsCallback]
-	| [name: string, description: string, annotations: ToolAnnotations, cb: NoArgsCallback]
-	| [name: string, description: string, inputSchema: ZodRawShape, cb: AnyArgsCallback]
-	| [name: string, inputSchema: ZodRawShape, annotations: ToolAnnotations, cb: AnyArgsCallback]
-	| [
-			name: string,
-			description: string,
-			inputSchema: ZodRawShape,
-			annotations: ToolAnnotations,
-			cb: AnyArgsCallback,
-	  ];
+type ParsedToolRegistration = {
+	name: string;
+	config: ToolConfig;
+	cb: NoArgsCallback | AnyArgsCallback;
+	hasInputSchema: boolean;
+};
 
 export class CustomMcpServer extends McpServer {
 	private readonly: boolean;
@@ -141,10 +119,7 @@ export class CustomMcpServer extends McpServer {
 		};
 	}
 
-	private parseToolRegistration(
-		access: ToolAccess,
-		args: ToolRegistrationArgs,
-	): ParsedToolRegistration {
+	private parseToolRegistration(access: ToolAccess, args: unknown[]): ParsedToolRegistration {
 		const [name] = args;
 		if (typeof name !== "string" || args.length < 2) {
 			throw new Error("Invalid tool registration arguments.");
@@ -169,16 +144,16 @@ export class CustomMcpServer extends McpServer {
 				return {
 					name,
 					config,
-					cb: args[1],
+					cb: args[1] as NoArgsCallback,
 					hasInputSchema: false,
 				};
 			case 3:
 				if (typeof args[1] === "string") {
-					config.description = args[1];
+					config.description = args[1] as string;
 					return {
 						name,
 						config,
-						cb: args[2],
+						cb: args[2] as NoArgsCallback,
 						hasInputSchema: false,
 					};
 				}
@@ -187,53 +162,53 @@ export class CustomMcpServer extends McpServer {
 					return {
 						name,
 						config,
-						cb: args[2],
+						cb: args[2] as NoArgsCallback,
 						hasInputSchema: false,
 					};
 				}
-				config.inputSchema = args[1];
+				config.inputSchema = args[1] as ZodRawShape;
 				return {
 					name,
 					config,
-					cb: args[2],
+					cb: args[2] as AnyArgsCallback,
 					hasInputSchema: true,
 				};
 			case 4:
 				if (typeof args[1] === "string") {
-					config.description = args[1];
+					config.description = args[1] as string;
 					if (this.isToolAnnotations(args[2])) {
 						setAnnotations(args[2]);
 						return {
 							name,
 							config,
-							cb: args[3],
+							cb: args[3] as NoArgsCallback,
 							hasInputSchema: false,
 						};
 					}
-					config.inputSchema = args[2];
+					config.inputSchema = args[2] as ZodRawShape;
 					return {
 						name,
 						config,
-						cb: args[3],
+						cb: args[3] as AnyArgsCallback,
 						hasInputSchema: true,
 					};
 				}
-				config.inputSchema = args[1];
-				setAnnotations(args[2]);
+				config.inputSchema = args[1] as ZodRawShape;
+				setAnnotations(args[2] as ToolAnnotations);
 				return {
 					name,
 					config,
-					cb: args[3],
+					cb: args[3] as AnyArgsCallback,
 					hasInputSchema: true,
 				};
 			case 5:
-				config.description = args[1];
-				config.inputSchema = args[2];
-				setAnnotations(args[3]);
+				config.description = args[1] as string;
+				config.inputSchema = args[2] as ZodRawShape;
+				setAnnotations(args[3] as ToolAnnotations);
 				return {
 					name,
 					config,
-					cb: args[4],
+					cb: args[4] as AnyArgsCallback,
 					hasInputSchema: true,
 				};
 			default:
@@ -241,10 +216,7 @@ export class CustomMcpServer extends McpServer {
 		}
 	}
 
-	private registerToolWithAccess(
-		access: ToolAccess,
-		...args: ToolRegistrationArgs
-	): RegisteredTool | null {
+	private registerToolWithAccess(access: ToolAccess, ...args: unknown[]): RegisteredTool | null {
 		const { name, config, cb, hasInputSchema } = this.parseToolRegistration(access, args);
 		// biome-ignore lint/suspicious/noExplicitAny: Delegate to SDK registerTool with a normalized config object
 		return (McpServer.prototype as any).registerTool.call(
@@ -252,8 +224,8 @@ export class CustomMcpServer extends McpServer {
 			name,
 			config,
 			hasInputSchema
-				? async (input: unknown, extra: ToolExtra) => await cb(input, extra)
-				: async (_input: unknown, extra: ToolExtra) => await cb(extra),
+				? async (input: unknown, extra: ToolExtra) => await (cb as AnyArgsCallback)(input, extra)
+				: async (_input: unknown, extra: ToolExtra) => await (cb as NoArgsCallback)(extra),
 		);
 	}
 
