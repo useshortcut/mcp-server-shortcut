@@ -24,6 +24,44 @@ type WithArgsCallback<Args extends ZodRawShape> = (
 	extra: ToolExtra,
 ) => CallToolResult | Promise<CallToolResult>;
 type ToolAccess = "read" | "write";
+type AnyArgsCallback = (
+	input: unknown,
+	extra: ToolExtra,
+) => CallToolResult | Promise<CallToolResult>;
+type ToolConfig = {
+	title: string;
+	description?: string;
+	inputSchema?: ZodRawShape;
+	annotations?: ToolAnnotations;
+};
+type ParsedToolRegistration =
+	| {
+			name: string;
+			config: ToolConfig;
+			cb: NoArgsCallback;
+			hasInputSchema: false;
+	  }
+	| {
+			name: string;
+			config: ToolConfig;
+			cb: AnyArgsCallback;
+			hasInputSchema: true;
+	  };
+type ToolRegistrationArgs =
+	| [name: string, cb: NoArgsCallback]
+	| [name: string, description: string, cb: NoArgsCallback]
+	| [name: string, annotations: ToolAnnotations, cb: NoArgsCallback]
+	| [name: string, inputSchema: ZodRawShape, cb: AnyArgsCallback]
+	| [name: string, description: string, annotations: ToolAnnotations, cb: NoArgsCallback]
+	| [name: string, description: string, inputSchema: ZodRawShape, cb: AnyArgsCallback]
+	| [name: string, inputSchema: ZodRawShape, annotations: ToolAnnotations, cb: AnyArgsCallback]
+	| [
+			name: string,
+			description: string,
+			inputSchema: ZodRawShape,
+			annotations: ToolAnnotations,
+			cb: AnyArgsCallback,
+	  ];
 
 export class CustomMcpServer extends McpServer {
 	private readonly: boolean;
@@ -65,7 +103,9 @@ export class CustomMcpServer extends McpServer {
 		const [entity, ...actionParts] = name.split("-");
 		const titleCase = (part: string) => {
 			const upperCaseWords = new Set(["id", "ids", "pr", "prs", "url", "urls", "api"]);
-			return upperCaseWords.has(part) ? part.toUpperCase() : `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`;
+			return upperCaseWords.has(part)
+				? part.toUpperCase()
+				: `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`;
 		};
 		const entityTitle = titleCase(entity ?? name);
 		if (!actionParts.length) return entityTitle;
@@ -101,28 +141,16 @@ export class CustomMcpServer extends McpServer {
 		};
 	}
 
-	private parseToolRegistration(access: ToolAccess, args: any[]): {
-		name: string;
-		config: {
-			title: string;
-			description?: string;
-			inputSchema?: ZodRawShape;
-			annotations?: ToolAnnotations;
-		};
-		cb: (...cbArgs: any[]) => CallToolResult | Promise<CallToolResult>;
-		hasInputSchema: boolean;
-	} {
+	private parseToolRegistration(
+		access: ToolAccess,
+		args: ToolRegistrationArgs,
+	): ParsedToolRegistration {
 		const [name] = args;
 		if (typeof name !== "string" || args.length < 2) {
 			throw new Error("Invalid tool registration arguments.");
 		}
 
-		const config: {
-			title: string;
-			description?: string;
-			inputSchema?: ZodRawShape;
-			annotations?: ToolAnnotations;
-		} = {
+		const config: ToolConfig = {
 			title: this.buildDefaultToolTitle(name),
 			annotations: this.defaultToolAnnotations(access, name),
 		};
@@ -213,7 +241,10 @@ export class CustomMcpServer extends McpServer {
 		}
 	}
 
-	private registerToolWithAccess(access: ToolAccess, ...args: any[]): RegisteredTool | null {
+	private registerToolWithAccess(
+		access: ToolAccess,
+		...args: ToolRegistrationArgs
+	): RegisteredTool | null {
 		const { name, config, cb, hasInputSchema } = this.parseToolRegistration(access, args);
 		// biome-ignore lint/suspicious/noExplicitAny: Delegate to SDK registerTool with a normalized config object
 		return (McpServer.prototype as any).registerTool.call(
@@ -221,7 +252,7 @@ export class CustomMcpServer extends McpServer {
 			name,
 			config,
 			hasInputSchema
-				? async (input: any, extra: ToolExtra) => await cb(input, extra)
+				? async (input: unknown, extra: ToolExtra) => await cb(input, extra)
 				: async (_input: unknown, extra: ToolExtra) => await cb(extra),
 		);
 	}
