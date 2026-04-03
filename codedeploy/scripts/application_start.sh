@@ -8,7 +8,8 @@ sha=$(echo "$key" | sed -E 's/.*-([0-9a-f]{7,40})\.tgz/\1/')
 
 docker run \
  --name shortcut-mcp \
- --rm -d -p 9292:9292 \
+ --restart unless-stopped \
+ -d -p 9292:9292 \
  --mount type=bind,source=/opt/shortcut-mcp/.env,target=/usr/src/app/.env,readonly \
  --log-driver=awslogs \
  --log-opt awslogs-region=us-east-1 \
