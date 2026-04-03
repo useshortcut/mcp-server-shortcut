@@ -7,6 +7,7 @@ key=$(echo "$deployment_json" | jq -r '.deploymentInfo.revision.s3Location.key')
 sha=$(echo "$key" | sed -E 's/.*-([0-9a-f]{7,40})\.tgz/\1/')
 
 docker run \
+ --restart always
  --name shortcut-mcp \
  --rm -d -p 9292:9292 \
  --mount type=bind,source=/opt/shortcut-mcp/.env,target=/usr/src/app/.env,readonly \
