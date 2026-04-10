@@ -15,6 +15,7 @@ import type {
 	Doc,
 	DocSlim,
 	Epic,
+	EpicSlim,
 	Group,
 	History,
 	Iteration,
@@ -695,6 +696,23 @@ export class ShortcutClientWrapper {
 		if (response.status === 403) throw new Error("Docs feature disabled for this workspace.");
 
 		return response?.data ?? null;
+	}
+
+	async deleteDoc(docPublicId: string): Promise<void> {
+		await this.client.deleteDoc(docPublicId, { content_format: "markdown" });
+	}
+
+	async listDocumentEpics(docPublicId: string): Promise<EpicSlim[]> {
+		const response = await this.client.listDocumentEpics(docPublicId);
+		return response?.data ?? [];
+	}
+
+	async linkDocumentToEpic(docPublicId: string, epicPublicId: number): Promise<void> {
+		await this.client.linkDocumentToEpic(docPublicId, epicPublicId);
+	}
+
+	async unlinkDocumentFromEpic(docPublicId: string, epicPublicId: number): Promise<void> {
+		await this.client.unlinkDocumentFromEpic(docPublicId, epicPublicId);
 	}
 
 	async uploadFile(storyId: number, filePath: string) {

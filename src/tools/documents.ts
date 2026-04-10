@@ -61,6 +61,46 @@ export class DocumentTools extends BaseTools {
 			async ({ docId }: { docId: string }) => await tools.getDocumentById(docId),
 		);
 
+		server.addToolWithWriteAccess(
+			"documents-delete",
+			"Delete a document by ID.",
+			{
+				docId: z.string().describe("Document ID"),
+			},
+			async ({ docId }: { docId: string }) => await tools.deleteDocument(docId),
+		);
+
+		server.addToolWithReadAccess(
+			"documents-list-epics",
+			"List epics linked to a document.",
+			{
+				docId: z.string().describe("Document ID"),
+			},
+			async ({ docId }: { docId: string }) => await tools.listDocumentEpics(docId),
+		);
+
+		server.addToolWithWriteAccess(
+			"documents-link-epic",
+			"Link a document to an epic.",
+			{
+				docId: z.string().describe("Document ID"),
+				epicId: z.number().describe("Epic ID"),
+			},
+			async ({ docId, epicId }: { docId: string; epicId: number }) =>
+				await tools.linkDocumentToEpic(docId, epicId),
+		);
+
+		server.addToolWithWriteAccess(
+			"documents-unlink-epic",
+			"Unlink a document from an epic.",
+			{
+				docId: z.string().describe("Document ID"),
+				epicId: z.number().describe("Epic ID"),
+			},
+			async ({ docId, epicId }: { docId: string; epicId: number }) =>
+				await tools.unlinkDocumentFromEpic(docId, epicId),
+		);
+
 		return tools;
 	}
 
@@ -154,6 +194,59 @@ export class DocumentTools extends BaseTools {
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : "Unknown error";
 			return this.toResult(`Failed to get document: ${errorMessage}`);
+		}
+	}
+
+	private async deleteDocument(docId: string) {
+		try {
+			const doc = await this.client.getDocById(docId);
+			if (!doc) return this.toResult(`Document with ID ${docId} not found.`);
+
+			await this.client.deleteDoc(docId);
+
+			return this.toResult(`Document "${doc.title}" (${docId}) deleted successfully.`);
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : "Unknown error";
+			return this.toResult(`Failed to delete document: ${errorMessage}`);
+		}
+	}
+
+	private async listDocumentEpics(docId: string) {
+		try {
+			const epics = await this.client.listDocumentEpics(docId);
+			if (!epics?.length) return this.toResult(`No epics linked to document ${docId}.`);
+			return this.toResult(
+				`Found ${epics.length} epic(s) linked to document ${docId}.`,
+				epics.map((epic) => ({
+					id: epic.id,
+					name: epic.name,
+					app_url: epic.app_url,
+					state: epic.state,
+				})),
+			);
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : "Unknown error";
+			return this.toResult(`Failed to list document epics: ${errorMessage}`);
+		}
+	}
+
+	private async linkDocumentToEpic(docId: string, epicId: number) {
+		try {
+			await this.client.linkDocumentToEpic(docId, epicId);
+			return this.toResult(`Document ${docId} linked to epic ${epicId} successfully.`);
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : "Unknown error";
+			return this.toResult(`Failed to link document to epic: ${errorMessage}`);
+		}
+	}
+
+	private async unlinkDocumentFromEpic(docId: string, epicId: number) {
+		try {
+			await this.client.unlinkDocumentFromEpic(docId, epicId);
+			return this.toResult(`Document ${docId} unlinked from epic ${epicId} successfully.`);
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : "Unknown error";
+			return this.toResult(`Failed to unlink document from epic: ${errorMessage}`);
 		}
 	}
 }
