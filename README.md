@@ -1,8 +1,8 @@
+:warning: Future work for the Shortcut MCP server will be done for the remote server at https://mcp.shortcut.com/mcp. Instructions for installing and using the server can be found here: [Shortcut MCP Server](https://help.shortcut.com/hc/en-us/articles/36443434285844-MCP-Server).
+
+----
+
 # @shortcut/mcp
-
-## :warning: Repository Archived
-
-Active development of Shortcut's MCP will continue in a private repository, and previously published versions of the local MCP are still available via NPM. If you have feedback or suggestions, please contact support@shortcut.com
 
 <img height="125" src="https://github.com/user-attachments/assets/7c3d3b8e-6252-4790-81cd-6640cd46a2d6" alt="Shortcut's logo" align="right">
 
