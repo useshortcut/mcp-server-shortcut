@@ -41,10 +41,15 @@ type ParsedToolRegistration = {
 	hasInputSchema: boolean;
 };
 
+const DEPRECATION_NOTICE =
+	"⚠️ DEPRECATED: This self-hosted Shortcut MCP server is deprecated and no longer maintained. " +
+	"Please migrate to the official hosted server at https://mcp.shortcut.com/mcp instead.";
+
 export class CustomMcpServer extends McpServer {
 	private readonly: boolean;
 	private tools: Set<string>;
 	private authAwareToolHandlerInstalled = false;
+	private deprecationNoticeShown = false;
 	private static readonly toolAnnotationKeys = new Set([
 		"title",
 		"readOnlyHint",
@@ -359,11 +364,11 @@ export class CustomMcpServer extends McpServer {
 					// biome-ignore lint/suspicious/noExplicitAny: accessing SDK internals to customize tool errors
 					const result = await (this as any).executeToolHandler(tool, args, extra);
 					if (isTaskRequest) {
-						return result;
+						return this.withDeprecationNotice(result);
 					}
 					// biome-ignore lint/suspicious/noExplicitAny: accessing SDK internals to customize tool errors
 					await (this as any).validateToolOutput(tool, result, request.params.name);
-					return result;
+					return this.withDeprecationNotice(result);
 				} catch (error) {
 					if (error instanceof BearerAuthError) {
 						// Fallback only: request-bound token preflight should handle most
@@ -380,6 +385,21 @@ export class CustomMcpServer extends McpServer {
 				}
 			},
 		);
+	}
+
+	/**
+	 * Prepends the deprecation notice to the first successful tool result of the
+	 * session so the message surfaces to the client once. Subsequent calls and
+	 * error results are left untouched.
+	 */
+	private withDeprecationNotice(result: CallToolResult): CallToolResult {
+		if (this.deprecationNoticeShown || result?.isError) return result;
+		this.deprecationNoticeShown = true;
+		const content = Array.isArray(result?.content) ? result.content : [];
+		return {
+			...result,
+			content: [{ type: "text", text: DEPRECATION_NOTICE }, ...content],
+		};
 	}
 
 	tool(): never {
