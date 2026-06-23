@@ -61,6 +61,10 @@ CustomFieldTools.create(client, server);
 
 async function startServer() {
 	try {
+		console.error(
+			"⚠️ DEPRECATED: This self-hosted Shortcut MCP server is deprecated and no longer maintained. " +
+				"Please migrate to the official hosted server at https://mcp.shortcut.com/mcp instead.",
+		);
 		const transport = new StdioServerTransport();
 		await server.connect(transport);
 	} catch (error) {
